@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Navbar from "@/components/layout/Navbar";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { listAdminUsers, updateAdminUserStatus, updateAdminUserRole } from "@/lib/api";
-import { User } from "@/lib/types";
+import { User } from "@/types/user";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -73,9 +74,9 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Navbar />
+      <Header />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 w-full flex-1">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">User Account Management</h1>
@@ -166,7 +167,7 @@ export default function AdminUsersPage() {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 }
-

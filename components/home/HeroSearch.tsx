@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCities, searchWithAi } from "@/lib/api";
-import { LocationArea } from "@/lib/types";
+import { LocationArea } from "@/types/user";
 
 export default function HeroSearch() {
   const router = useRouter();
   const [searchMode, setSearchMode] = useState<"standard" | "ai">("standard");
-  const [location, setLocation] = useState("");
+  const [city, setCity] = useState("");
   const [cities, setCities] = useState<LocationArea[]>([]);
   const [propertyType, setPropertyType] = useState("all");
-  const [stayType, setStayType] = useState("Daily");
+  const [stayType, setStayType] = useState("daily");
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -27,18 +27,21 @@ export default function HeroSearch() {
       setAiLoading(true);
       searchWithAi({ prompt: aiPrompt })
         .then(() => {
-          router.push(`/search?aiPrompt=${encodeURIComponent(aiPrompt)}`);
+          router.push(`/properties?aiPrompt=${encodeURIComponent(aiPrompt)}`);
         })
         .catch(() => {
-          router.push(`/search?aiPrompt=${encodeURIComponent(aiPrompt)}`);
+          router.push(`/properties?aiPrompt=${encodeURIComponent(aiPrompt)}`);
         })
         .finally(() => setAiLoading(false));
       return;
     }
 
-    router.push(
-      `/search?location=${encodeURIComponent(location)}&propertyType=${propertyType}&stayType=${stayType}`
-    );
+    const queryParams = new URLSearchParams();
+    if (city.trim()) queryParams.set("city", city.trim());
+    if (stayType) queryParams.set("stayType", stayType);
+    if (propertyType && propertyType !== "all") queryParams.set("propertyType", propertyType);
+
+    router.push(`/properties?${queryParams.toString()}`);
   };
 
   return (
@@ -46,18 +49,22 @@ export default function HeroSearch() {
       {/* Mode Selector */}
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <div className="flex gap-2 p-1.5 bg-zinc-100 rounded-2xl border border-zinc-200 w-fit">
-          {["Hourly", "Daily", "Monthly"].map((type) => (
+          {[
+            { label: "Hourly", value: "hourly" },
+            { label: "Daily", value: "daily" },
+            { label: "Monthly", value: "monthly" },
+          ].map((type) => (
             <button
-              key={type}
+              key={type.value}
               type="button"
-              onClick={() => setStayType(type)}
+              onClick={() => setStayType(type.value)}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                stayType === type
+                stayType === type.value
                   ? "bg-black text-white shadow-md"
                   : "text-zinc-600 hover:text-black"
               }`}
             >
-              {type} Stay
+              {type.label} Stay
             </button>
           ))}
         </div>
@@ -72,7 +79,7 @@ export default function HeroSearch() {
                 : "text-zinc-600"
             }`}
           >
-            🔍 Standard Filter
+            🔍 Standard Search
           </button>
           <button
             type="button"
@@ -93,14 +100,14 @@ export default function HeroSearch() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="md:col-span-2 relative">
               <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1 px-1">
-                Location / City
+                City / Location
               </label>
               <input
                 type="text"
                 list="city-suggestions"
-                placeholder="Search by city, area or landmark..."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Enter city (e.g. Gurugram, Bangalore)..."
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
                 className="glass-input w-full px-4 py-3 rounded-xl text-sm font-semibold placeholder-zinc-400"
               />
               <datalist id="city-suggestions">
@@ -132,7 +139,7 @@ export default function HeroSearch() {
                 type="submit"
                 className="glass-button w-full py-3 px-6 rounded-xl text-xs font-bold flex items-center justify-center gap-2 group cursor-pointer"
               >
-                <span>Search Stays</span>
+                <span>SEARCH</span>
                 <span className="group-hover:translate-x-1 transition-transform">→</span>
               </button>
             </div>
@@ -141,11 +148,11 @@ export default function HeroSearch() {
           <div className="space-y-3">
             <div>
               <label className="block text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-1 px-1">
-                AI Natural Language Prompt
+                AI Stay Assistant
               </label>
               <textarea
                 rows={2}
-                placeholder="Describe your dream stay e.g., 'Pet-friendly 2BHK flat in Koramangala under ₹20,000 with high-speed Wi-Fi and parking'"
+                placeholder="Describe your ideal stay (e.g., 'Fully furnished 2BHK flat in Gurugram under ₹30,000 for monthly stay')"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm font-medium border border-emerald-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none bg-emerald-50/30 text-zinc-900"
@@ -158,7 +165,7 @@ export default function HeroSearch() {
                 disabled={aiLoading}
                 className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 px-6 shadow-md transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
-                <span>{aiLoading ? "Searching AI..." : "✨ Search with AI"}</span>
+                <span>{aiLoading ? "Searching AI..." : "✨ Find Stays with AI"}</span>
               </button>
             </div>
           </div>
@@ -167,4 +174,3 @@ export default function HeroSearch() {
     </div>
   );
 }
-

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Navbar from "@/components/layout/Navbar";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { listAdminProperties, approveProperty, requestPropertyChanges, rejectProperty } from "@/lib/api";
-import { Property } from "@/lib/types";
+import { Property } from "@/types/property";
 
 export default function AdminPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -69,9 +70,9 @@ export default function AdminPropertiesPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Navbar />
+      <Header />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 w-full flex-1">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">Property Verification Queue</h1>
@@ -190,7 +191,7 @@ export default function AdminPropertiesPage() {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 }
-

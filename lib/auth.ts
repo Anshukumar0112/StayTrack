@@ -29,7 +29,10 @@ export function getRecaptchaVerifier(): RecaptchaVerifier {
     auth,
     "recaptcha-container",
     {
-      size: "normal",
+      size: "invisible",
+      callback: () => {
+        console.log("reCAPTCHA verified");
+      },
     }
   );
 
@@ -84,7 +87,11 @@ export function getCurrentFirebaseUser(): FirebaseUser | null {
 
 export function resetRecaptcha(): void {
   if (recaptchaVerifier) {
-    recaptchaVerifier.clear();
+    try {
+      recaptchaVerifier.clear();
+    } catch {
+      // Ignore clear errors
+    }
     recaptchaVerifier = null;
   }
 }

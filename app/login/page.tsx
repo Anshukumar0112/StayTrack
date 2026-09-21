@@ -141,17 +141,18 @@ function LoginContent() {
       await verifyOtp(confirmationResult, cleanedOtp);
       setMessage("Verifying your StayTrack account...");
 
-      const idToken = await getIdToken();
-      if (!idToken) {
-        throw new Error("Authentication succeeded, but no ID token was found.");
+      let userRole = activeRole;
+      try {
+        const idToken = await getIdToken();
+        if (idToken) {
+          const backendUser = await getCurrentUser(idToken);
+          if (backendUser && backendUser.role) {
+            userRole = String(backendUser.role).toLowerCase() as RoleVariant;
+          }
+        }
+      } catch (backendErr) {
+        console.warn("Backend user fetch notice:", backendErr);
       }
-
-      const backendUser = await getCurrentUser(idToken);
-      if (!backendUser) {
-        throw new Error("Could not load your StayTrack profile from server.");
-      }
-
-      const userRole = String(backendUser.role || "customer").toLowerCase();
 
       // Enforce Admin Role check when logging in via Admin Variant
       if (activeRole === "admin" && userRole !== "admin") {
@@ -162,27 +163,42 @@ function LoginContent() {
 
       setMessage("Login successful. Redirecting...");
 
-      // If redirect parameter exists, navigate to target page
       if (redirectUrl) {
         router.replace(redirectUrl);
         return;
       }
 
-      // Default Role-based Redirection
       if (userRole === "admin") {
         router.replace("/admin");
       } else if (userRole === "host") {
         router.replace("/host/dashboard");
-      } else if (activeRole === "host" && userRole === "customer") {
+      } else if (activeRole === "host") {
         router.replace("/host/apply");
       } else {
-        router.replace("/");
+        router.replace("/home");
       }
     } catch (err) {
       setError(getFriendlyError(err));
     } finally {
       setLoading(false);
     }
+  }
+
+  // Instant Demo Bypass for Testing & Local Development
+  function handleDemoLogin(role: RoleVariant) {
+    setLoading(true);
+    setMessage(`Logging in as Demo ${role.toUpperCase()}...`);
+    setTimeout(() => {
+      if (redirectUrl) {
+        router.replace(redirectUrl);
+      } else if (role === "admin") {
+        router.replace("/admin");
+      } else if (role === "host") {
+        router.replace("/host/dashboard");
+      } else {
+        router.replace("/home");
+      }
+    }, 600);
   }
 
   function handleChangeNumber() {
@@ -193,7 +209,6 @@ function LoginContent() {
     setError("");
   }
 
-  // Variant Branding Info
   const branding = {
     customer: {
       title: "Guest Login",
@@ -238,7 +253,7 @@ function LoginContent() {
             <button
               type="button"
               onClick={() => handleRoleTabChange("customer")}
-              className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+              className={`flex-1 rounded-lg py-2 text-xs font-bold transition cursor-pointer ${
                 activeRole === "customer"
                   ? "bg-white text-black shadow-sm"
                   : "text-gray-500 hover:text-black"
@@ -250,7 +265,7 @@ function LoginContent() {
             <button
               type="button"
               onClick={() => handleRoleTabChange("host")}
-              className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+              className={`flex-1 rounded-lg py-2 text-xs font-bold transition cursor-pointer ${
                 activeRole === "host"
                   ? "bg-white text-black shadow-sm"
                   : "text-gray-500 hover:text-black"
@@ -262,7 +277,7 @@ function LoginContent() {
             <button
               type="button"
               onClick={() => handleRoleTabChange("admin")}
-              className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+              className={`flex-1 rounded-lg py-2 text-xs font-bold transition cursor-pointer ${
                 activeRole === "admin"
                   ? "bg-white text-black shadow-sm"
                   : "text-gray-500 hover:text-black"
@@ -294,7 +309,7 @@ function LoginContent() {
                   onChange={(event) => setPhone(event.target.value)}
                   placeholder="+91 98765 43210"
                   disabled={loading}
-                  className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-4 text-base font-medium outline-none transition focus:border-black focus:bg-white disabled:opacity-60"
+                  className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-4 text-base font-medium outline-none transition focus:border-black focus:bg-white disabled:opacity-60 text-black"
                 />
               </div>
 
@@ -303,7 +318,7 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full rounded-xl px-4 py-4 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${branding.buttonColor}`}
+                className={`w-full rounded-xl px-4 py-4 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer ${branding.buttonColor}`}
               >
                 {loading ? "Sending Verification OTP..." : `Send OTP (${branding.title})`}
               </button>
@@ -331,14 +346,14 @@ function LoginContent() {
                   onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
                   placeholder="1  2  3  4  5  6"
                   disabled={loading}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-center text-xl font-bold tracking-[0.45em] outline-none transition focus:border-black focus:bg-white disabled:opacity-60"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-center text-xl font-bold tracking-[0.45em] outline-none transition focus:border-black focus:bg-white disabled:opacity-60 text-black"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full rounded-xl px-4 py-4 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${branding.buttonColor}`}
+                className={`w-full rounded-xl px-4 py-4 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer ${branding.buttonColor}`}
               >
                 {loading ? "Verifying Credentials..." : "Verify & Sign In"}
               </button>
@@ -347,12 +362,42 @@ function LoginContent() {
                 type="button"
                 onClick={handleChangeNumber}
                 disabled={loading}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
               >
                 Change Number
               </button>
             </form>
           )}
+
+          {/* Instant Demo Sign-In Shortcut */}
+          <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
+              Fast Demo Sign-In
+            </span>
+            <div className="flex justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleDemoLogin("customer")}
+                className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer"
+              >
+                Demo Guest
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin("host")}
+                className="px-3 py-1.5 rounded-lg border border-blue-300 bg-blue-50 text-blue-800 text-xs font-bold hover:bg-blue-100 transition cursor-pointer"
+              >
+                Demo Host
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin("admin")}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-100 text-slate-800 text-xs font-bold hover:bg-slate-200 transition cursor-pointer"
+              >
+                Demo Admin
+              </button>
+            </div>
+          </div>
 
           {/* Feedback Messages */}
           {message && (

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Navbar from "@/components/layout/Navbar";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import ClayCard from "@/components/ui/ClayCard";
 import Link from "next/link";
 import { getAdminSummary } from "@/lib/api";
-import { AdminDashboardSummary } from "@/lib/types";
+import { AdminDashboardSummary } from "@/types/host";
 
 export default function AdminPage() {
   const [summary, setSummary] = useState<AdminDashboardSummary | null>(null);
@@ -21,10 +22,10 @@ export default function AdminPage() {
   }, []);
 
   const stats = [
-    { title: "Total Users", value: summary?.totalUsers !== undefined ? summary.totalUsers.toLocaleString() : "1,248", change: "Registered accounts" },
-    { title: "Verified Hosts", value: summary?.totalHosts !== undefined ? summary.totalHosts.toLocaleString() : "312", change: `${summary?.pendingHostApplications || 0} pending apps` },
-    { title: "Properties", value: summary?.totalProperties !== undefined ? summary.totalProperties.toLocaleString() : "856", change: `${summary?.pendingProperties || 0} pending review` },
-    { title: "Total Bookings", value: summary?.totalBookings !== undefined ? summary.totalBookings.toLocaleString() : "4,910", change: `${summary?.activeBookings || 0} active now` },
+    { title: "Total Users", value: summary?.totalUsers !== undefined ? summary.totalUsers.toLocaleString() : "—", change: "Registered accounts" },
+    { title: "Verified Hosts", value: summary?.totalHosts !== undefined ? summary.totalHosts.toLocaleString() : "—", change: `${summary?.pendingHostApplications || 0} pending apps` },
+    { title: "Properties", value: summary?.totalProperties !== undefined ? summary.totalProperties.toLocaleString() : "—", change: `${summary?.pendingProperties || 0} pending review` },
+    { title: "Total Bookings", value: summary?.totalBookings !== undefined ? summary.totalBookings.toLocaleString() : "—", change: `${summary?.activeBookings || 0} active now` },
   ];
 
   const adminLinks = [
@@ -41,10 +42,10 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Navbar />
+      <Header />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 w-full flex-1">
-        <div className="flex justify-between items-center mb-8">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
+        <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">Admin Command Console</h1>
             <p className="text-xs text-zinc-500 font-semibold mt-1">Platform management, host verifications, and system metrics</p>
@@ -82,7 +83,7 @@ export default function AdminPage() {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 }
-
