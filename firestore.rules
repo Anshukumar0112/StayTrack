@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // StayTrack application data is accessed through the Spring Boot backend
+    // using the Firebase Admin SDK. Admin SDK access bypasses these rules.
+    // Keep direct client access disabled until a specific frontend-direct
+    // Firestore use case is intentionally designed and secured.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

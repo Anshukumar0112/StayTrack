@@ -1,0 +1,2 @@
+// Property Reusable Components
+export {};
