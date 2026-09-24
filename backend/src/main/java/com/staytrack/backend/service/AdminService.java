@@ -1263,210 +1263,6 @@ public class AdminService {
     // HOST APPLICATION MANAGEMENT
     // =========================================================
 
-    /**
-     * List host applications for the admin panel with optional status/search
-     * filters and pagination.
-     */
-    public Map<String, Object> listHostApplicationsForAdmin(
-            AuthenticatedUser admin,
-            String verificationStatus,
-            String search,
-            int page,
-            int pageSize) {
-
-        requireAdmin(admin);
-
-        if (page < 1) {
-            throw new RuntimeException(
-                    "Page must be greater than or equal to 1"
-            );
-        }
-
-        if (pageSize < 1 || pageSize > 100) {
-            throw new RuntimeException(
-                    "Page size must be between 1 and 100"
-            );
-        }
-
-        String cleanStatus =
-                normalizeStatus(verificationStatus);
-
-        if (!cleanStatus.isBlank()
-                && !"pending".equals(cleanStatus)
-                && !"approved".equals(cleanStatus)
-                && !"changes_required".equals(cleanStatus)
-                && !"rejected".equals(cleanStatus)) {
-
-            throw new RuntimeException(
-                    "Invalid host application verification status"
-            );
-        }
-
-        String cleanSearch =
-                search == null
-                        ? ""
-                        : search.trim().toLowerCase();
-
-        try {
-            List<QueryDocumentSnapshot> documents =
-                    FirestoreClient.getFirestore()
-                            .collection("hostApplications")
-                            .get()
-                            .get()
-                            .getDocuments();
-
-            List<QueryDocumentSnapshot> matched =
-                    new ArrayList<>();
-
-            for (QueryDocumentSnapshot document : documents) {
-
-                if (!document.exists()) {
-                    continue;
-                }
-
-                String status =
-                        getStringField(
-                                document,
-                                "verificationStatus"
-                        ).toLowerCase();
-
-                if (!cleanStatus.isBlank()
-                        && !cleanStatus.equals(status)) {
-                    continue;
-                }
-
-                if (!cleanSearch.isBlank()) {
-
-                    String applicationId =
-                            document.getId().toLowerCase();
-
-                    String userId =
-                            getStringField(
-                                    document,
-                                    "userId"
-                            ).toLowerCase();
-
-                    String name =
-                            getStringField(
-                                    document,
-                                    "applicantName"
-                            ).toLowerCase();
-
-                    String email =
-                            getStringField(
-                                    document,
-                                    "email"
-                            ).toLowerCase();
-
-                    String phone =
-                            getStringField(
-                                    document,
-                                    "phone"
-                            ).toLowerCase();
-
-                    String hostType =
-                            getStringField(
-                                    document,
-                                    "hostType"
-                            ).toLowerCase();
-
-                    if (!applicationId.contains(cleanSearch)
-                            && !userId.contains(cleanSearch)
-                            && !name.contains(cleanSearch)
-                            && !email.contains(cleanSearch)
-                            && !phone.contains(cleanSearch)
-                            && !hostType.contains(cleanSearch)) {
-
-                        continue;
-                    }
-                }
-
-                matched.add(document);
-            }
-
-            matched.sort(
-                    Comparator.comparing(
-                            (DocumentSnapshot application) ->
-                                    application.getTimestamp("updatedAt"),
-                            Comparator.nullsLast(
-                                    Comparator.reverseOrder()
-                            )
-                    )
-            );
-
-            int total =
-                    matched.size();
-
-            int totalPages =
-                    total == 0
-                            ? 0
-                            : (int) Math.ceil(
-                                    (double) total / pageSize
-                            );
-
-            int start =
-                    (page - 1) * pageSize;
-
-            List<Map<String, Object>> applications =
-                    new ArrayList<>();
-
-            if (start < total) {
-
-                int end =
-                        Math.min(
-                                start + pageSize,
-                                total
-                        );
-
-                for (int i = start; i < end; i++) {
-
-                    DocumentSnapshot document =
-                            matched.get(i);
-
-                    Map<String, Object> data =
-                            document.getData();
-
-                    if (data == null) {
-                        continue;
-                    }
-
-                    Map<String, Object> item =
-                            new HashMap<>(data);
-
-                    item.put(
-                            "applicationId",
-                            document.getId()
-                    );
-
-                    applications.add(item);
-                }
-            }
-
-            Map<String, Object> result =
-                    new HashMap<>();
-
-            result.put("applications", applications);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("pageSize", pageSize);
-            result.put("totalPages", totalPages);
-            result.put("hasNext", page < totalPages);
-            result.put(
-                    "hasPrevious",
-                    page > 1 && total > 0
-            );
-
-            return result;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Unable to list host applications",
-                    e
-            );
-        }
-    }
-
     // =========================================================
     // ADMIN SETTINGS
     // =========================================================
@@ -2761,73 +2557,6 @@ public class AdminService {
     }
 
     // =========================================================
-    // HOST APPLICATION HELPERS
-    // =========================================================
-
-    private DocumentSnapshot getExistingHostApplication(
-            String applicationId) {
-
-        if (applicationId == null ||
-                applicationId.isBlank()) {
-
-            throw new RuntimeException(
-                    "Application ID is required"
-            );
-        }
-
-        try {
-
-            DocumentSnapshot application =
-                    hostApplicationRepository.findById(
-                            applicationId
-                    );
-
-            if (!application.exists()) {
-                throw new RuntimeException(
-                        "Host application not found"
-                );
-            }
-
-            return application;
-
-        } catch (RuntimeException e) {
-            throw e;
-
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Unable to find host application",
-                    e
-            );
-        }
-    }
-
-    private Map<String, Object> getHostApplicationWithId(
-            DocumentSnapshot document) {
-
-        if (document == null || !document.exists()) {
-            throw new RuntimeException(
-                    "Host application not found"
-            );
-        }
-
-        Map<String, Object> application =
-                document.getData();
-
-        if (application == null) {
-            throw new RuntimeException(
-                    "Host application data is empty"
-            );
-        }
-
-        application.put(
-                "applicationId",
-                document.getId()
-        );
-
-        return application;
-    }
-
-    // =========================================================
     // USER HELPERS
     // =========================================================
 
@@ -3069,26 +2798,13 @@ public class AdminService {
     // COMMON HELPERS
     // =========================================================
     private long readNonNegativeLong(
-        Map<String, Object> data,
-        String field) {
+            Map<String, Object> data,
+            String field) {
 
-    Object value = data.get(field);
+        Object value = data.get(field);
 
-    if (value instanceof Number number) {
-        long result = number.longValue();
-
-        if (result < 0) {
-            throw new RuntimeException(
-                    field + " cannot be negative"
-            );
-        }
-
-        return result;
-    }
-
-    if (value instanceof String string) {
-        try {
-            long result = Long.parseLong(string.trim());
+        if (value instanceof Number number) {
+            long result = number.longValue();
 
             if (result < 0) {
                 throw new RuntimeException(
@@ -3097,12 +2813,27 @@ public class AdminService {
             }
 
             return result;
-
-        } catch (NumberFormatException e) {
-            throw new RuntimeException(
-                    field + " must be a valid non-negative integer"
-            );
         }
+
+        if (value instanceof String string) {
+            try {
+                long result = Long.parseLong(string.trim());
+
+                if (result < 0) {
+                    throw new RuntimeException(
+                            field + " cannot be negative"
+                    );
+                }
+
+                return result;
+
+            } catch (NumberFormatException e) {
+                throw new RuntimeException(
+                        field + " must be a valid non-negative integer"
+                );
+            }
+        }
+
         throw new RuntimeException(
                 field + " is required and must be a number"
         );
