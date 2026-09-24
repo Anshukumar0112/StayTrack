@@ -13,7 +13,7 @@ export default function Footer() {
             <span className="text-xl font-black tracking-tight text-zinc-950">STAYTRACK</span>
           </div>
           <p className="text-xs leading-relaxed text-zinc-500">
-            India's direct property/stay marketplace connecting customers directly with hosts. Hourly, daily, and monthly stays with zero brokerage.
+            India's direct property/stay marketplace connecting customers directly with hosts. Hourly, daily, and monthly stays across Delhi NCR.
           </p>
         </div>
 

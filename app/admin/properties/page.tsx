@@ -5,10 +5,12 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
-import { listAdminProperties, approveProperty, requestPropertyChanges, rejectProperty } from "@/lib/api";
+import { listAdminProperties, approveProperty, requestPropertyChanges, rejectProperty, updatePropertyAssignment } from "@/lib/api";
 import { Property } from "@/types/property";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 
 export default function AdminPropertiesPage() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [properties, setProperties] = useState<Property[]>([]);
   const [verificationFilter, setVerificationFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
@@ -19,6 +21,7 @@ export default function AdminPropertiesPage() {
   const [noteInput, setNoteInput] = useState("");
 
   const fetchProperties = () => {
+    if (!isAdmin) return;
     setLoading(true);
     listAdminProperties({
       verificationStatus: verificationFilter !== "all" ? verificationFilter : undefined,
@@ -39,8 +42,30 @@ export default function AdminPropertiesPage() {
   };
 
   useEffect(() => {
-    fetchProperties();
-  }, [verificationFilter]);
+    if (isAdmin) {
+      fetchProperties();
+    }
+  }, [verificationFilter, isAdmin]);
+
+  if (guardLoading || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-xs font-bold text-zinc-500">
+        Verifying administrator credentials...
+      </div>
+    );
+  }
+
+  const handleToggleAssignment = async (propertyId: string, assignment: { topVerified?: boolean; showInStay?: boolean }) => {
+    setActionLoadingId(propertyId);
+    try {
+      await updatePropertyAssignment(propertyId, assignment);
+      fetchProperties();
+    } catch (err: any) {
+      alert("Failed to update property assignment: " + err.message);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const handleExecuteModalAction = async () => {
     if (!modalProperty || !modalMode) return;
@@ -76,7 +101,7 @@ export default function AdminPropertiesPage() {
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">Property Verification Queue</h1>
-            <p className="text-xs text-zinc-500 font-semibold mt-1">Review host submissions and control property listing status</p>
+            <p className="text-xs text-zinc-500 font-semibold mt-1">Review host submissions and control property section assignments</p>
           </div>
 
           <div className="flex gap-2 p-1 bg-zinc-100 border border-zinc-200 rounded-xl">
@@ -102,7 +127,7 @@ export default function AdminPropertiesPage() {
               {properties.map((p) => (
                 <div key={p.id} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="clay-badge px-2.5 py-0.5 text-[10px] font-bold uppercase">{p.propertyType || "Flat"}</span>
                       <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
                         p.verificationStatus === "approved"
@@ -113,14 +138,53 @@ export default function AdminPropertiesPage() {
                       }`}>
                         {p.verificationStatus || "Pending"}
                       </span>
+
+                      {p.topVerified && (
+                        <span className="bg-amber-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                          ⭐ Top Verified
+                        </span>
+                      )}
+                      {p.showInStay && (
+                        <span className="bg-emerald-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                          🏠 Stay Section
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-sm font-bold text-zinc-950">{p.title}</h3>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       📍 {p.city}, {p.area} • Host ID: <span className="font-mono text-zinc-700">{p.hostId}</span> • Price: ₹{p.price || p.pricePerNight || 0}
                     </p>
+
+                    {/* Section Assignment Toggles */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <button
+                        onClick={() => handleToggleAssignment(p.id, { topVerified: !p.topVerified })}
+                        disabled={actionLoadingId === p.id}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                          p.topVerified
+                            ? "bg-amber-500 text-white border-amber-600 shadow-sm"
+                            : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100"
+                        }`}
+                        title="Toggle Top Verified section assignment"
+                      >
+                        {p.topVerified ? "⭐ Remove Top Verified" : "⭐ Assign Top Verified"}
+                      </button>
+                      <button
+                        onClick={() => handleToggleAssignment(p.id, { showInStay: !p.showInStay })}
+                        disabled={actionLoadingId === p.id}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                          p.showInStay
+                            ? "bg-emerald-600 text-white border-emerald-700 shadow-sm"
+                            : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100"
+                        }`}
+                        title="Toggle Stay section assignment"
+                      >
+                        {p.showInStay ? "🏠 Remove Stay Section" : "🏠 Assign Stay Section"}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => { setModalProperty(p); setModalMode("approve"); setNoteInput(""); }}
                       disabled={actionLoadingId === p.id}

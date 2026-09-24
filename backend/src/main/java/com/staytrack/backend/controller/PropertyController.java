@@ -67,4 +67,16 @@ public class PropertyController {
 
         return propertyService.getPublicProperties();
     }
+
+    @GetMapping("/top-verified")
+    public List<Map<String, Object>> getTopVerifiedProperties() {
+
+        return propertyService.getTopVerifiedProperties();
+    }
+
+    @GetMapping("/stay-section")
+    public List<Map<String, Object>> getStaySectionProperties() {
+
+        return propertyService.getStaySectionProperties();
+    }
 }

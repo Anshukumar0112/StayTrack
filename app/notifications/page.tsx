@@ -76,9 +76,9 @@ export default function NotificationsPage() {
             </div>
           ) : notifications.length > 0 ? (
             <div className="divide-y divide-zinc-100">
-              {notifications.map((n) => (
+              {notifications.map((n, idx) => (
                 <div
-                  key={n.id}
+                  key={n.id || `notif-idx-${idx}`}
                   onClick={() => !n.read && handleMarkRead(n.id)}
                   className={`py-4 px-3 rounded-2xl transition-all cursor-pointer flex justify-between items-start gap-4 ${
                     n.read ? "bg-white" : "bg-emerald-50/60 border-l-4 border-emerald-500"

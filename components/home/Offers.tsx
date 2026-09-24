@@ -6,9 +6,9 @@ import GlassCard from "@/components/ui/GlassCard";
 const offers = [
   {
     code: "DIRECT100",
-    title: "₹0 Brokerage Guaranteed",
-    subtitle: "Book directly with property owners and save 100% middleman fees.",
-    tag: "ALWAYS ACTIVE",
+    title: "Direct Owner Bookings",
+    subtitle: "Book directly with verified property owners across Delhi NCR.",
+    tag: "VERIFIED HOSTS",
     bg: "bg-emerald-900 text-white",
   },
   {

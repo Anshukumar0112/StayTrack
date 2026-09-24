@@ -59,7 +59,9 @@ public class SecurityConfig {
                                 "/api/search/**",
                                 "/api/locations/**",
                                 "/api/ai/search",
-                                "/api/properties/public"
+                                "/api/properties/public",
+                                "/api/properties/top-verified",
+                                "/api/properties/stay-section"
                         ).permitAll()
 
                         .requestMatchers("/api/admin/**")

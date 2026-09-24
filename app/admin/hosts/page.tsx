@@ -7,14 +7,17 @@ import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { listAdminHostApplications, approveHostApplication, rejectHostApplication, verifyHostPaymentAccount } from "@/lib/api";
 import { HostApplication } from "@/types/host";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 
 export default function AdminHostsPage() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [applications, setApplications] = useState<HostApplication[]>([]);
   const [filter, setFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const fetchApps = () => {
+    if (!isAdmin) return;
     setLoading(true);
     listAdminHostApplications({
       verificationStatus: filter !== "all" ? filter : undefined,
@@ -35,8 +38,18 @@ export default function AdminHostsPage() {
   };
 
   useEffect(() => {
-    fetchApps();
-  }, [filter]);
+    if (isAdmin) {
+      fetchApps();
+    }
+  }, [filter, isAdmin]);
+
+  if (guardLoading || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-xs font-bold text-zinc-500">
+        Verifying administrator credentials...
+      </div>
+    );
+  }
 
   const handleApprove = async (appId: string) => {
     try {
@@ -125,9 +138,11 @@ export default function AdminHostsPage() {
                       </span>
                       <span className="text-xs text-zinc-500 font-mono">User ID: {app.userId}</span>
                     </div>
-                    <h3 className="text-sm font-bold text-zinc-950">{app.fullName || app.email}</h3>
+                    <h3 className="text-sm font-bold text-zinc-950">
+                      {app.applicantName || app.fullName || app.email || "Applicant"}
+                    </h3>
                     <p className="text-xs text-zinc-500 mt-0.5">
-                      📧 {app.email} • 📞 {app.phone}
+                      📧 {app.email || "N/A"} • 📞 {app.phone || "N/A"} • 🏷️ {app.hostType ? app.hostType.toUpperCase() : "PROPERTY OWNER"}
                     </p>
                   </div>
 
@@ -135,15 +150,15 @@ export default function AdminHostsPage() {
                     {app.verificationStatus === "pending" && (
                       <>
                         <button
-                          onClick={() => handleApprove(app.id)}
-                          disabled={actionLoadingId === app.id}
+                          onClick={() => handleApprove(app.id || app.applicationId || app.userId)}
+                          disabled={actionLoadingId === (app.id || app.applicationId || app.userId)}
                           className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           ✓ Approve Host
                         </button>
                         <button
-                          onClick={() => handleReject(app.id)}
-                          disabled={actionLoadingId === app.id}
+                          onClick={() => handleReject(app.id || app.applicationId || app.userId)}
+                          disabled={actionLoadingId === (app.id || app.applicationId || app.userId)}
                           className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           ✕ Reject

@@ -62,9 +62,9 @@ export default function HostEarningsPage() {
               </ClayCard>
 
               <ClayCard className="p-6 border border-zinc-200">
-                <span className="text-[11px] font-bold text-zinc-500 uppercase">Commission Deducted</span>
-                <div className="text-3xl font-black text-emerald-600 mt-2">₹0</div>
-                <span className="text-[10px] text-emerald-700 font-extrabold mt-1 block">₹0 Brokerage Guaranteed</span>
+                <span className="text-[11px] font-bold text-zinc-500 uppercase">Host Payout Terms</span>
+                <div className="text-3xl font-black text-emerald-600 mt-2">Direct</div>
+                <span className="text-[10px] text-emerald-700 font-extrabold mt-1 block">Verified Payouts</span>
               </ClayCard>
             </div>
 

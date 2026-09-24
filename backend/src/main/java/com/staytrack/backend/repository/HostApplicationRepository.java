@@ -47,6 +47,16 @@ public class HostApplicationRepository {
                 .getDocuments();
     }
 
+    public List<QueryDocumentSnapshot> findAll()
+            throws ExecutionException, InterruptedException {
+
+        return getDb()
+                .collection(COLLECTION)
+                .get()
+                .get()
+                .getDocuments();
+    }
+
     public void create(
             String applicationId,
             Map<String, Object> application)

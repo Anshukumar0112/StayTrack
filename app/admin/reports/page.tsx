@@ -4,8 +4,19 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 
 export default function AdminReportsPage() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
+
+  if (guardLoading || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-xs font-bold text-zinc-500">
+        Verifying administrator credentials...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />

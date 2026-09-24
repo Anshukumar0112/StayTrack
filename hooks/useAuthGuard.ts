@@ -55,9 +55,9 @@ export function useAuthGuard() {
       return true;
     }
 
-    // User is unauthenticated -> redirect to /login with target return URL
+    // User is unauthenticated -> redirect to /auth?mode=login with target return URL
     const encodedRedirect = encodeURIComponent(targetPath);
-    router.push(`/login?redirect=${encodedRedirect}&role=${roleIntent}`);
+    router.replace(`/auth?mode=login&returnTo=${encodedRedirect}`);
     return false;
   }
 

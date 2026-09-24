@@ -57,20 +57,28 @@ export default function Header() {
 
   const role = userProfile?.role || "customer";
 
+  let myBookingsPath = "/trips";
+  let listPropertyPath = "/host/application";
+  let listPropertyLabel = "List Your Property";
+
+  if (!firebaseUser) {
+    myBookingsPath = "/auth?mode=login&returnTo=/trips";
+    listPropertyPath = "/auth?mode=login&returnTo=/host/application";
+  } else if (role === "host") {
+    listPropertyPath = "/host";
+    listPropertyLabel = "Host Dashboard";
+  } else if (role === "admin") {
+    listPropertyPath = "/admin";
+    listPropertyLabel = "Admin Portal";
+  }
+
   const navItems = [
-    { name: "Stays", path: "/properties" },
     { name: "Explore", path: "/" },
-    { name: "My Trips", path: "/trips" },
-    { name: "List Your Property", path: role === "host" ? "/host" : "/host/application" },
+    { name: "Stays", path: "/properties" },
+    { name: "My Bookings", path: myBookingsPath },
+    ...(firebaseUser ? [{ name: "Chat", path: "/chat" }] : []),
+    { name: listPropertyLabel, path: listPropertyPath },
   ];
-
-  if (role === "host") {
-    navItems.push({ name: "Host Dashboard", path: "/host" });
-  }
-
-  if (role === "admin") {
-    navItems.push({ name: "Admin Portal", path: "/admin" });
-  }
 
   return (
     <header className="glass-nav sticky top-0 z-50 transition-all duration-300 bg-white/85 backdrop-blur-md border-b border-zinc-200">
@@ -84,16 +92,13 @@ export default function Header() {
             <span className="text-xl font-black tracking-tight text-zinc-950">
               STAYTRACK
             </span>
-            <span className="hidden text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full sm:inline-block">
-              ₹0 Brokerage
-            </span>
           </div>
         </Link>
 
         {/* Desktop Navigation Links */}
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => {
-            const isActive = pathname === item.path || (item.path !== "/" && pathname.startsWith(item.path));
+            const isActive = pathname === item.path || (item.path !== "/" && !item.path.startsWith("/auth") && pathname.startsWith(item.path));
             return (
               <Link
                 key={item.path}
@@ -156,9 +161,9 @@ export default function Header() {
 
                   <div className="mt-3 max-h-64 overflow-y-auto space-y-2">
                     {notifications.length > 0 ? (
-                      notifications.map((notif) => (
+                      notifications.map((notif, idx) => (
                         <div
-                          key={notif.id}
+                          key={notif.id || `hdr-notif-${idx}`}
                           className={`p-2.5 rounded-xl text-xs transition-colors ${
                             notif.read ? "bg-zinc-50 text-zinc-600" : "bg-emerald-50 text-emerald-950 font-semibold border-l-2 border-emerald-500"
                           }`}
@@ -200,20 +205,12 @@ export default function Header() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-100 transition-all"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-xl bg-black px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-all shadow-sm"
-              >
-                Register
-              </Link>
-            </div>
+            <Link
+              href={pathname && pathname !== "/" ? `/auth?mode=login&returnTo=${encodeURIComponent(pathname)}` : "/auth?mode=login"}
+              className="rounded-xl bg-black px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-all shadow-sm"
+            >
+              Login / Register
+            </Link>
           )}
         </div>
       </div>

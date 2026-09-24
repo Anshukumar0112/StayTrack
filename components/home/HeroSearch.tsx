@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCities, searchWithAi } from "@/lib/api";
 import { LocationArea } from "@/types/user";
+import { SUPPORTED_LOCATIONS } from "@/lib/locations";
 
 export default function HeroSearch() {
   const router = useRouter();
@@ -100,19 +101,19 @@ export default function HeroSearch() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="md:col-span-2 relative">
               <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1 px-1">
-                City / Location
+                City / Location (Delhi NCR)
               </label>
               <input
                 type="text"
                 list="city-suggestions"
-                placeholder="Enter city (e.g. Gurugram, Bangalore)..."
+                placeholder="Search Delhi NCR (e.g. Delhi, Gurugram, Noida)..."
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="glass-input w-full px-4 py-3 rounded-xl text-sm font-semibold placeholder-zinc-400"
               />
               <datalist id="city-suggestions">
-                {cities.map((c, i) => (
-                  <option key={i} value={c.cityName || c.areaName} />
+                {SUPPORTED_LOCATIONS.map((loc) => (
+                  <option key={loc.id} value={loc.name} />
                 ))}
               </datalist>
             </div>
@@ -152,7 +153,7 @@ export default function HeroSearch() {
               </label>
               <textarea
                 rows={2}
-                placeholder="Describe your ideal stay (e.g., 'Fully furnished 2BHK flat in Gurugram under ₹30,000 for monthly stay')"
+                placeholder="Describe your ideal stay in Delhi NCR (e.g., 'Fully furnished 2BHK flat in Gurugram under ₹30,000 for monthly stay')"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm font-medium border border-emerald-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none bg-emerald-50/30 text-zinc-900"

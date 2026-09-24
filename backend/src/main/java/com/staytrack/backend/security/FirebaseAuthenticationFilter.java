@@ -53,20 +53,24 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
             String uid = decodedToken.getUid();
 
-            Firestore db = FirestoreClient.getFirestore();
-
-            DocumentSnapshot userDocument =
-                    db.collection("users")
-                            .document(uid)
-                            .get()
-                            .get();
-
             String role = "customer";
             String status = "active";
 
-            if (userDocument.exists()) {
-                role = getStringField(userDocument, "role", "customer");
-                status = getStringField(userDocument, "status", "active");
+            try {
+                Firestore db = FirestoreClient.getFirestore();
+
+                DocumentSnapshot userDocument =
+                        db.collection("users")
+                                .document(uid)
+                                .get()
+                                .get();
+
+                if (userDocument.exists()) {
+                    role = getStringField(userDocument, "role", "customer");
+                    status = getStringField(userDocument, "status", "active");
+                }
+            } catch (Exception docEx) {
+                // Default fallback to customer role & active status if Firestore profile fetch fails
             }
 
             if (!"active".equalsIgnoreCase(status)) {

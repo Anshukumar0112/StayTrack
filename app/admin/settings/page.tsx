@@ -6,8 +6,10 @@ import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { getSubscriptionSettings, updateSubscriptionSettings, getAiSettings, updateAiSettings } from "@/lib/api";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 
 export default function AdminSettingsPage() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [subPrice, setSubPrice] = useState("999");
   const [subLimit, setSubLimit] = useState("10");
 
@@ -18,6 +20,7 @@ export default function AdminSettingsPage() {
   const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
+    if (!isAdmin) return;
     setLoading(true);
     Promise.allSettled([getSubscriptionSettings(), getAiSettings()])
       .then(([subRes, aiRes]) => {
@@ -31,7 +34,15 @@ export default function AdminSettingsPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [isAdmin]);
+
+  if (guardLoading || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-xs font-bold text-zinc-500">
+        Verifying administrator credentials...
+      </div>
+    );
+  }
 
   const handleSaveSubSettings = async (e: React.FormEvent) => {
     e.preventDefault();

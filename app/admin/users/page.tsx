@@ -7,8 +7,10 @@ import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { listAdminUsers, updateAdminUserStatus, updateAdminUserRole } from "@/lib/api";
 import { User } from "@/types/user";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 
 export default function AdminUsersPage() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [users, setUsers] = useState<User[]>([]);
   const [roleFilter, setRoleFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,6 +18,7 @@ export default function AdminUsersPage() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const fetchUsers = () => {
+    if (!isAdmin) return;
     setLoading(true);
     listAdminUsers({
       role: roleFilter !== "all" ? roleFilter : undefined,
@@ -37,8 +40,18 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, [roleFilter]);
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [roleFilter, isAdmin]);
+
+  if (guardLoading || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-xs font-bold text-zinc-500">
+        Verifying administrator credentials...
+      </div>
+    );
+  }
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

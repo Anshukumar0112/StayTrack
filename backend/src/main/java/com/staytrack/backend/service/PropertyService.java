@@ -192,6 +192,16 @@ public class PropertyService {
         );
 
         property.put(
+                "topVerified",
+                false
+        );
+
+        property.put(
+                "showInStay",
+                false
+        );
+
+        property.put(
                 "averageRating",
                 0.0
         );
@@ -364,42 +374,64 @@ public class PropertyService {
         }
     }
 
-    public List<Map<String, Object>> getPublicProperties() {
-
+    public List<Map<String, Object>> getTopVerifiedProperties() {
         try {
-
             List<QueryDocumentSnapshot> documents =
                     propertyRepository.findApprovedActive();
 
             List<Map<String, Object>> properties =
                     new ArrayList<>();
 
-            for (DocumentSnapshot document :
-                    documents) {
-
-                Map<String, Object> property =
-                        document.getData();
-
+            for (DocumentSnapshot document : documents) {
+                Map<String, Object> property = document.getData();
                 if (property != null) {
-
-                    property.put(
-                            "propertyId",
-                            document.getId()
-                    );
-
-                    properties.add(property);
+                    boolean isTop = isTrue(property.get("topVerified")) || isTrue(property.get("isTopVerified"));
+                    if (isTop) {
+                        property.put("propertyId", document.getId());
+                        properties.add(property);
+                    }
                 }
             }
 
             return properties;
-
         } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Unable to get properties",
-                    e
-            );
+            throw new RuntimeException("Unable to get top verified properties", e);
         }
+    }
+
+    public List<Map<String, Object>> getStaySectionProperties() {
+        try {
+            List<QueryDocumentSnapshot> documents =
+                    propertyRepository.findApprovedActive();
+
+            List<Map<String, Object>> properties =
+                    new ArrayList<>();
+
+            for (DocumentSnapshot document : documents) {
+                Map<String, Object> property = document.getData();
+                if (property != null) {
+                    boolean isStay = isTrue(property.get("showInStay")) || isTrue(property.get("assignedToStay")) || isTrue(property.get("isStay"));
+                    if (isStay) {
+                        property.put("propertyId", document.getId());
+                        properties.add(property);
+                    }
+                }
+            }
+
+            return properties;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to get stay section properties", e);
+        }
+    }
+
+    public List<Map<String, Object>> getPublicProperties() {
+        return getStaySectionProperties();
+    }
+
+    private boolean isTrue(Object value) {
+        if (value == null) return false;
+        if (value instanceof Boolean) return (Boolean) value;
+        return "true".equalsIgnoreCase(value.toString());
     }
 
     private void validateProperty(

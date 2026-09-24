@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "StayTrack | Find. Book. Stay. Direct.",
-  description: "Direct accommodation platform with zero brokerage. Find rooms, PGs, flats, and hotels.",
+  description: "Direct accommodation platform. Find rooms, PGs, flats, and hotels across Delhi NCR.",
 };
 
 export default function RootLayout({

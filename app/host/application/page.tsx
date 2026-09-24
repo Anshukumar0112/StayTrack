@@ -1,160 +1,243 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
+import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
-import ClayCard from "@/components/ui/ClayCard";
 import { submitHostApplication, getMyHostApplication } from "@/lib/api";
 import { HostApplication } from "@/types/host";
-import { useUser } from "@/hooks/useUser";
-import Link from "next/link";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+
+function formatSubmissionDate(value: any): string {
+  if (!value) return "Recently";
+
+  try {
+    let date: Date;
+
+    if (typeof value === "string" || typeof value === "number") {
+      date = new Date(value);
+    } else if (value && typeof value === "object") {
+      if (value.seconds !== undefined) {
+        date = new Date(value.seconds * 1000);
+      } else if (value._seconds !== undefined) {
+        date = new Date(value._seconds * 1000);
+      } else if (typeof value.toDate === "function") {
+        date = value.toDate();
+      } else {
+        date = new Date(value);
+      }
+    } else {
+      date = new Date(value);
+    }
+
+    if (isNaN(date.getTime())) {
+      return "Recently";
+    }
+
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "Recently";
+  }
+}
 
 export default function HostApplicationPage() {
-  const { user: userProfile } = useUser();
-  const [existingApp, setExistingApp] = useState<HostApplication | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { firebaseUser, userProfile, loading: authLoading, handleProtectedAction } = useAuthGuard();
 
-  const [fullName, setFullName] = useState("");
+  const [existingApp, setExistingApp] = useState<HostApplication | null>(null);
+  const [fetchingApp, setFetchingApp] = useState(true);
+
+  const [hostType, setHostType] = useState("property_owner");
+  const [applicantName, setApplicantName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [govIdUrl, setGovIdUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const fetchApplication = () => {
-    setLoading(true);
-    getMyHostApplication()
-      .then((app) => {
-        if (app && app.id) setExistingApp(app);
-        else setExistingApp(null);
-      })
-      .catch((err) => console.warn("Failed to fetch host app:", err))
-      .finally(() => setLoading(false));
+  // Redirect unauthenticated visitors to /auth?mode=login&redirect=/host/application
+  useEffect(() => {
+    if (!authLoading && !firebaseUser) {
+      handleProtectedAction("/host/application", "host");
+    }
+  }, [authLoading, firebaseUser]);
+
+  // Load existing application once authenticated
+  const fetchApplication = async () => {
+    if (!firebaseUser) return;
+    setFetchingApp(true);
+    try {
+      const app = await getMyHostApplication();
+      if (app && app.exists !== false && (app.id || (app as any).applicationId)) {
+        setExistingApp(app);
+      } else {
+        setExistingApp(null);
+      }
+    } catch (err) {
+      // Application not found is an expected state for new applicants
+      setExistingApp(null);
+    } finally {
+      setFetchingApp(false);
+    }
   };
 
   useEffect(() => {
-    fetchApplication();
-  }, []);
+    if (firebaseUser) {
+      fetchApplication();
+    } else if (!authLoading) {
+      setFetchingApp(false);
+    }
+  }, [firebaseUser, authLoading]);
 
+  // Pre-fill user profile fields
   useEffect(() => {
     if (userProfile) {
-      setFullName(userProfile.name || "");
+      setApplicantName(userProfile.name || "");
       setEmail(userProfile.email || "");
-      setPhone(userProfile.phone || "");
     }
   }, [userProfile]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
-    if (!fullName || !email || !phone) {
-      setError("Please fill in all required fields.");
+    if (!applicantName.trim()) {
+      setError("Full applicant name is required.");
       return;
     }
 
     setSubmitting(true);
     try {
       await submitHostApplication({
-        fullName,
-        email,
-        phone,
-        govIdUrl,
+        hostType,
+        applicantName: applicantName.trim(),
+        email: email.trim(),
       });
-      alert("Host application submitted successfully! Admin will review your profile. 🎉");
-      fetchApplication();
+
+      setSuccessMessage("Host application submitted successfully!");
+      await fetchApplication();
     } catch (err: any) {
-      setError(err.message || "Failed to submit application.");
+      setError(err.message || "Failed to submit host application. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const status = existingApp?.verificationStatus?.toLowerCase() || "";
+
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white text-black">
       <Header />
 
-      <main className="mx-auto max-w-3xl px-4 sm:px-6 py-10 w-full flex-1">
+      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-12 w-full flex-1">
         <div className="mb-8 text-center">
-          <span className="clay-badge px-3.5 py-1 text-xs font-extrabold uppercase">
+          <span className="inline-block px-3.5 py-1 text-xs font-black uppercase tracking-wider bg-black text-white rounded-full shadow-sm">
             HOST VERIFICATION
           </span>
           <h1 className="text-3xl font-black text-zinc-950 mt-3">Become a Verified StayTrack Host</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">
-            Submit your owner application to unlock direct property listings with ₹0 brokerage
+            Submit your owner application to unlock direct property listings
           </p>
         </div>
 
-        {loading ? (
+        {authLoading || fetchingApp ? (
           <div className="py-20 text-center text-xs font-bold text-zinc-500">
-            Checking application status...
+            Loading host application details...
           </div>
-        ) : existingApp ? (
-          <GlassCard className="border border-zinc-200 p-8 shadow-xl space-y-6">
-            <div className="text-center pb-6 border-b border-zinc-200">
-              <span className={`clay-badge px-4 py-1.5 text-xs font-extrabold uppercase ${
-                existingApp.verificationStatus === "approved"
-                  ? "bg-emerald-600 text-white"
-                  : existingApp.verificationStatus === "rejected"
-                  ? "bg-red-600 text-white"
-                  : "bg-amber-500 text-white animate-pulse"
-              }`}>
-                STATUS: {existingApp.verificationStatus}
+        ) : existingApp && status === "pending" ? (
+          /* STATUS: PENDING */
+          <GlassCard className="border border-zinc-200 p-8 shadow-xl space-y-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white text-2xl font-black shadow-md animate-pulse">
+              ⏳
+            </div>
+            <div>
+              <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+                Status: Pending Review
               </span>
-
-              <h2 className="text-2xl font-black text-zinc-950 mt-4">
-                {existingApp.verificationStatus === "approved"
-                  ? "Congratulations! You are a Verified Host"
-                  : existingApp.verificationStatus === "rejected"
-                  ? "Application Requires Revision"
-                  : "Application Under Admin Review"}
-              </h2>
-
-              <p className="text-xs text-zinc-500 mt-2 max-w-md mx-auto leading-relaxed">
-                {existingApp.verificationStatus === "approved"
-                  ? "Your host profile has been approved. You can now list properties and receive bookings."
-                  : existingApp.verificationStatus === "rejected"
-                  ? `Reason: ${existingApp.rejectionReason || "Verification failed. Please contact admin."}`
-                  : "Our team is verifying your details. Reviews are usually completed within 24 hours."}
+              <h2 className="text-2xl font-black text-zinc-950">Application Under Review</h2>
+              <p className="text-xs text-zinc-500 font-medium mt-2 max-w-md mx-auto leading-relaxed">
+                Your host verification application has been received and is currently being reviewed by StayTrack administrators.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-zinc-700">
-              <div>
-                <span className="text-[10px] text-zinc-400 font-bold uppercase block">Applicant Name</span>
-                <span className="font-bold text-zinc-950">{existingApp.fullName}</span>
+            <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 text-left text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-zinc-500 font-bold">Applicant:</span>
+                <span className="font-bold text-zinc-900">{existingApp.applicantName || existingApp.fullName || "Applicant"}</span>
               </div>
-              <div>
-                <span className="text-[10px] text-zinc-400 font-bold uppercase block">Email</span>
-                <span className="font-bold text-zinc-950">{existingApp.email}</span>
+              <div className="flex justify-between">
+                <span className="text-zinc-500 font-bold">Host Type:</span>
+                <span className="font-bold text-zinc-900 uppercase">{existingApp.hostType || "Property Owner"}</span>
               </div>
-              <div>
-                <span className="text-[10px] text-zinc-400 font-bold uppercase block">Phone</span>
-                <span className="font-bold text-zinc-950">{existingApp.phone}</span>
+              <div className="flex justify-between">
+                <span className="text-zinc-500 font-bold">Submitted:</span>
+                <span className="font-bold text-zinc-900">
+                  {formatSubmissionDate(existingApp.submittedAt)}
+                </span>
               </div>
             </div>
 
-            {existingApp.verificationStatus === "approved" && (
-              <div className="pt-4 flex justify-center">
-                <Link
-                  href="/host"
-                  className="rounded-xl bg-black hover:bg-zinc-800 text-white font-bold text-xs px-6 py-3.5 shadow-md"
-                >
-                  Go to Host Dashboard →
-                </Link>
+            <div className="pt-2">
+              <Link
+                href="/"
+                className="inline-block rounded-xl bg-black px-6 py-3.5 text-xs font-bold text-white hover:bg-zinc-800 transition-all shadow-sm"
+              >
+                ← Back to StayTrack
+              </Link>
+            </div>
+          </GlassCard>
+        ) : existingApp && status === "changes_required" ? (
+          /* STATUS: CHANGES REQUIRED */
+          <GlassCard className="border border-amber-200 bg-amber-50/30 p-8 shadow-xl space-y-6">
+            <div className="text-center">
+              <span className="inline-block px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+                Changes Required
+              </span>
+              <h2 className="text-2xl font-black text-zinc-950">Application Update Requested</h2>
+              <p className="text-xs text-zinc-600 font-medium mt-1">
+                The verification staff reviewed your application and requested the following update:
+              </p>
+            </div>
+
+            {existingApp.adminNote && (
+              <div className="p-4 bg-white border border-amber-200 rounded-xl text-xs text-amber-950 font-semibold leading-relaxed">
+                <span className="font-bold block text-amber-800 uppercase tracking-wider text-[10px] mb-1">Admin Note</span>
+                {existingApp.adminNote}
               </div>
             )}
-          </GlassCard>
-        ) : (
-          <GlassCard className="border border-zinc-200 p-8 shadow-xl">
-            <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* Resubmission Form */}
+            <form onSubmit={handleSubmit} className="space-y-5 pt-2">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl">
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl text-center">
                   {error}
                 </div>
               )}
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
+                  Host Type *
+                </label>
+                <select
+                  value={hostType}
+                  onChange={(e) => setHostType(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-xs font-semibold outline-none focus:border-black"
+                >
+                  <option value="property_owner">Property Owner</option>
+                  <option value="dealer_broker">Dealer / Broker</option>
+                  <option value="hotel_owner">Hotel / Resort Owner</option>
+                  <option value="pg_owner">PG / Co-Living Operator</option>
+                  <option value="property_manager">Property Manager</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
@@ -162,61 +245,184 @@ export default function HostApplicationPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter your full legal name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="glass-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
+                  value={applicantName}
+                  onChange={(e) => setApplicantName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-xs font-semibold outline-none focus:border-black"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
-                  />
+              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1 text-left">
+                <div className="flex items-center gap-2 text-xs font-bold text-zinc-900">
+                  <span>🔒</span>
+                  <span>Identity Verification Policy</span>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="+91 98765 43210"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
-                  Govt ID Document Link (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://storage.../Aadhaar_PAN_Verification.pdf"
-                  value={govIdUrl}
-                  onChange={(e) => setGovIdUrl(e.target.value)}
-                  className="glass-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
-                />
+                <p className="text-xs text-zinc-600 font-medium leading-relaxed">
+                  Government document verification will be completed during the verification process. Document upload will be available once secure document storage is enabled.
+                </p>
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-4 rounded-xl bg-black text-white text-xs font-bold hover:bg-zinc-800 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                className="w-full py-4 rounded-xl bg-black text-white text-xs font-bold hover:bg-zinc-800 transition-all cursor-pointer disabled:opacity-50 shadow-md"
               >
-                {submitting ? "Submitting Application..." : "Submit Host Application"}
+                {submitting ? "Resubmitting Application..." : "Resubmit Application"}
               </button>
+            </form>
+          </GlassCard>
+        ) : existingApp && status === "rejected" ? (
+          /* STATUS: REJECTED */
+          <GlassCard className="border border-red-200 p-8 shadow-xl space-y-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600 text-white text-2xl font-black shadow-md">
+              ✕
+            </div>
+            <div>
+              <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+                Status: Not Approved
+              </span>
+              <h2 className="text-2xl font-black text-zinc-950">Application Not Approved</h2>
+              <p className="text-xs text-zinc-600 font-medium mt-2 max-w-md mx-auto leading-relaxed">
+                Unfortunately, your StayTrack host application was not approved during verification.
+              </p>
+            </div>
+
+            {existingApp.rejectionReason && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-left text-xs text-red-950 font-semibold leading-relaxed">
+                <span className="font-bold block text-red-800 uppercase tracking-wider text-[10px] mb-1">Rejection Reason</span>
+                {existingApp.rejectionReason}
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Link
+                href="/"
+                className="inline-block rounded-xl bg-black px-6 py-3.5 text-xs font-bold text-white hover:bg-zinc-800 transition-all shadow-sm"
+              >
+                ← Back to StayTrack
+              </Link>
+            </div>
+          </GlassCard>
+        ) : existingApp && status === "approved" ? (
+          /* STATUS: APPROVED */
+          <GlassCard className="border border-emerald-200 bg-emerald-50/20 p-8 shadow-xl space-y-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white text-2xl font-black shadow-md">
+              ✓
+            </div>
+            <div>
+              <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+                Verified StayTrack Host
+              </span>
+              <h2 className="text-2xl font-black text-zinc-950">You're Now a StayTrack Host 🎉</h2>
+              <p className="text-xs text-zinc-600 font-medium mt-2 max-w-md mx-auto leading-relaxed">
+                Your host verification is complete. Activate your host subscription to list your properties and manage direct bookings.
+              </p>
+            </div>
+
+            <div className="pt-2 flex justify-center">
+              <Link
+                href="/host"
+                className="rounded-xl bg-black hover:bg-zinc-800 text-white font-bold text-xs px-6 py-3.5 shadow-md transition-all"
+              >
+                Go to Host Dashboard →
+              </Link>
+            </div>
+          </GlassCard>
+        ) : (
+          /* NEW APPLICATION FORM */
+          <GlassCard className="border border-zinc-200 p-8 shadow-xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl text-center">
+                  {error}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center">
+                  {successMessage}
+                </div>
+              )}
+
+              {/* Personal Information Section */}
+              <div className="space-y-4">
+                <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-2">
+                  1. Personal Information
+                </h2>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
+                    Full Legal Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter your full legal name"
+                    value={applicantName}
+                    onChange={(e) => setApplicantName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-xs font-semibold text-black outline-none focus:border-black"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-xs font-semibold text-black outline-none focus:border-black"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
+                      Host Type *
+                    </label>
+                    <select
+                      value={hostType}
+                      onChange={(e) => setHostType(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-xs font-semibold text-black outline-none focus:border-black"
+                    >
+                      <option value="property_owner">Property Owner</option>
+                      <option value="dealer_broker">Dealer / Broker</option>
+                      <option value="hotel_owner">Hotel / Resort Owner</option>
+                      <option value="pg_owner">PG / Co-Living Operator</option>
+                      <option value="property_manager">Property Manager</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Identity Verification Section */}
+              <div className="space-y-3 pt-2">
+                <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-2">
+                  2. Identity Verification
+                </h2>
+
+                <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1 text-left">
+                  <div className="flex items-center gap-2 text-xs font-bold text-zinc-900">
+                    <span>🔒</span>
+                    <span>Identity Verification Policy</span>
+                  </div>
+                  <p className="text-xs text-zinc-600 font-medium leading-relaxed">
+                    Government document verification will be completed during the verification process. Document upload will be available once secure document storage is enabled.
+                  </p>
+                </div>
+              </div>
+
+              {/* Submit Action */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-4 rounded-xl bg-black text-white text-xs font-bold hover:bg-zinc-800 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? "Submitting Host Application..." : "Submit Host Application"}
+                </button>
+              </div>
             </form>
           </GlassCard>
         )}

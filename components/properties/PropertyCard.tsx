@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import GlassCard from "@/components/ui/GlassCard";
 import { formatCurrency } from "@/lib/utils";
@@ -21,18 +22,21 @@ interface PropertyCardProps {
 
 export default function PropertyCard(props: PropertyCardProps) {
   const p = props.property;
+  const [imageError, setImageError] = useState(false);
   
-  const id = p?.id || props.id || "";
+  const id = p?.id || (p as any)?.propertyId || props.id || "";
   const title = p?.title || props.title || "StayTrack Property";
-  const location = p ? `${p.area || ""}, ${p.city || ""}` : (props.location || "");
+  const location = p
+    ? [p.area, p.city].filter(Boolean).join(", ")
+    : (props.location || "");
   const category = p?.propertyType || props.category || "Flat";
   
   const rawPrice = p
-    ? (p.pricePerNight || p.pricePerMonth || p.pricePerHour || p.price || 0)
+    ? (p.dailyPrice ?? p.pricePerNight ?? p.monthlyPrice ?? p.pricePerMonth ?? p.hourlyPrice ?? p.pricePerHour ?? p.price ?? 0)
     : (props.price || 0);
 
-  const bookingTypeStr = p?.bookingType || props.stayType || "daily";
-  const displayStayType = bookingTypeStr === "monthly" ? "month" : bookingTypeStr === "hourly" ? "hour" : "night";
+  const bookingTypeStr = p?.bookingType || (p as any)?.stayTypes?.[0] || props.stayType || "daily";
+  const displayStayType = bookingTypeStr.toLowerCase() === "monthly" ? "month" : bookingTypeStr.toLowerCase() === "hourly" ? "hour" : "night";
   const rating = p?.rating || props.rating || 4.8;
   const bedrooms = p?.bedrooms ?? props.bedrooms;
   const bathrooms = p?.bathrooms ?? props.bathrooms;
@@ -44,8 +48,13 @@ export default function PropertyCard(props: PropertyCardProps) {
     <GlassCard hoverEffect className="group flex flex-col justify-between overflow-hidden border border-zinc-200 p-0 shadow-md">
       <Link href={targetPath} className="relative h-48 w-full overflow-hidden bg-zinc-100 block">
         <div className="flex h-full w-full items-center justify-center bg-zinc-100 group-hover:scale-105 transition-transform duration-500">
-          {p?.images && p.images.length > 0 ? (
-            <img src={p.images[0]} alt={title} className="h-full w-full object-cover" />
+          {p?.images && p.images.length > 0 && !imageError ? (
+            <img
+              src={p.images[0]}
+              alt=""
+              onError={() => setImageError(true)}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <span className="text-4xl">🏡</span>
           )}
@@ -57,7 +66,7 @@ export default function PropertyCard(props: PropertyCardProps) {
             {category}
           </span>
           <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm">
-            ₹0 Brokerage
+            Verified
           </span>
         </div>
 

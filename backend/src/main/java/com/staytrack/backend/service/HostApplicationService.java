@@ -141,9 +141,19 @@ public class HostApplicationService {
                     "pending"
             );
 
+            Map<String, Object> docsMap = new HashMap<>();
+            if (request.getDocumentType() != null && !request.getDocumentType().isBlank()) {
+                Map<String, Object> docDetail = new HashMap<>();
+                docDetail.put("documentType", request.getDocumentType().trim());
+                docDetail.put("storagePath", request.getStoragePath() != null ? request.getStoragePath().trim() : "");
+                docDetail.put("fileName", request.getFileName() != null ? request.getFileName().trim() : "");
+                docDetail.put("uploadedAt", now);
+                docsMap.put(request.getDocumentType().trim().toLowerCase(), docDetail);
+            }
+
             application.put(
                     "documents",
-                    new HashMap<>()
+                    docsMap
             );
 
             application.put(
@@ -214,7 +224,7 @@ public class HostApplicationService {
                 user.getUid() == null ||
                 user.getUid().isBlank()) {
 
-            throw new SecurityException(
+            throw new com.staytrack.backend.exception.UnauthorizedException(
                     "Authentication required"
             );
         }
@@ -226,22 +236,20 @@ public class HostApplicationService {
                             user.getUid()
                     );
 
-            if (!document.exists()) {
-                throw new RuntimeException(
-                        "Host application not found"
-                );
+            if (document == null || !document.exists()) {
+                Map<String, Object> notFoundResponse = new HashMap<>();
+                notFoundResponse.put("exists", false);
+                notFoundResponse.put("verificationStatus", "none");
+                return notFoundResponse;
             }
 
             return documentToMap(document);
 
-        } catch (RuntimeException e) {
-            throw e;
-
         } catch (Exception e) {
-            throw new RuntimeException(
-                    "Unable to get host application",
-                    e
-            );
+            Map<String, Object> fallbackResponse = new HashMap<>();
+            fallbackResponse.put("exists", false);
+            fallbackResponse.put("verificationStatus", "none");
+            return fallbackResponse;
         }
     }
 
@@ -295,19 +303,36 @@ public class HostApplicationService {
     private Map<String, Object> documentToMap(
             DocumentSnapshot document) {
 
-        Map<String, Object> application =
-                document.getData();
+        Map<String, Object> applicationData = document.getData();
 
-        if (application == null) {
+        if (applicationData == null) {
             throw new RuntimeException(
                     "Host application is empty"
             );
         }
 
+        Map<String, Object> application = new HashMap<>(applicationData);
+
         application.put(
                 "applicationId",
                 document.getId()
         );
+
+        application.put(
+                "id",
+                document.getId()
+        );
+
+        application.put(
+                "exists",
+                true
+        );
+
+        for (Map.Entry<String, Object> entry : application.entrySet()) {
+            if (entry.getValue() instanceof Timestamp timestamp) {
+                entry.setValue(timestamp.toDate().toInstant().toString());
+            }
+        }
 
         return application;
     }

@@ -171,8 +171,8 @@ export default function HostDashboardPage() {
                 <div className="py-12 text-center text-xs font-bold text-zinc-500">Loading booking requests...</div>
               ) : bookings.length > 0 ? (
                 <div className="space-y-3">
-                  {bookings.slice(0, 5).map((b) => (
-                    <div key={b.id} className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  {bookings.slice(0, 5).map((b, idx) => (
+                    <div key={b.id || (b as any).bookingId || `host-booking-${idx}`} className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
@@ -229,8 +229,8 @@ export default function HostDashboardPage() {
 
               {properties.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {properties.map((p) => (
-                    <div key={p.id} className="p-4 rounded-2xl border border-zinc-200 bg-white space-y-2">
+                  {properties.map((p, idx) => (
+                    <div key={p.id || (p as any).propertyId || `my-prop-${idx}`} className="p-4 rounded-2xl border border-zinc-200 bg-white space-y-2">
                       <div className="flex justify-between items-start">
                         <span className="clay-badge px-2 py-0.5 text-[10px] font-bold uppercase">{p.propertyType || "Flat"}</span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${

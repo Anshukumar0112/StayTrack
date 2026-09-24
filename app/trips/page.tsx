@@ -8,6 +8,7 @@ import GlassCard from "@/components/ui/GlassCard";
 import Link from "next/link";
 import { getMyBookings, createBookingOrder, verifyBookingPayment, cancelBooking } from "@/lib/api";
 import { Booking } from "@/types/booking";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 declare global {
   interface Window {
@@ -16,12 +17,15 @@ declare global {
 }
 
 export default function MyTripsPage() {
+  const { firebaseUser, loading: authLoading, handleProtectedAction } = useAuthGuard();
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "upcoming" | "confirmed" | "cancelled">("all");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const fetchBookings = () => {
+    if (!firebaseUser) return;
     setLoading(true);
     getMyBookings()
       .then((data) => {
@@ -39,7 +43,11 @@ export default function MyTripsPage() {
   };
 
   useEffect(() => {
-    fetchBookings();
+    if (!authLoading && !firebaseUser) {
+      handleProtectedAction("/trips", "customer");
+    } else if (firebaseUser) {
+      fetchBookings();
+    }
 
     if (!document.getElementById("razorpay-sdk")) {
       const script = document.createElement("script");
@@ -48,7 +56,7 @@ export default function MyTripsPage() {
       script.async = true;
       document.body.appendChild(script);
     }
-  }, []);
+  }, [firebaseUser, authLoading]);
 
   const handlePayNow = async (bookingId: string) => {
     try {
@@ -92,11 +100,11 @@ export default function MyTripsPage() {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm("Are you sure you want to cancel this trip booking?")) return;
+    if (!confirm("Are you sure you want to cancel this booking?")) return;
     try {
       setActionLoadingId(bookingId);
       await cancelBooking(bookingId);
-      alert("Trip booking cancelled.");
+      alert("Booking cancelled.");
       fetchBookings();
     } catch (err: any) {
       alert("Failed to cancel: " + err.message);
@@ -119,13 +127,13 @@ export default function MyTripsPage() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-black text-zinc-950">My Trips & Stays</h1>
+            <h1 className="text-3xl font-black text-zinc-950">My Bookings</h1>
             <p className="text-xs text-zinc-500 font-semibold mt-1">Manage upcoming reservations, payment status, and host details</p>
           </div>
 
           <div className="flex gap-1.5 p-1 bg-zinc-100 border border-zinc-200 rounded-xl">
             {[
-              { label: "All Trips", value: "all" },
+              { label: "All Bookings", value: "all" },
               { label: "Upcoming / Requested", value: "upcoming" },
               { label: "Confirmed", value: "confirmed" },
               { label: "Cancelled", value: "cancelled" },
@@ -143,19 +151,19 @@ export default function MyTripsPage() {
           </div>
         </div>
 
-        {loading ? (
+        {authLoading || loading ? (
           <div className="py-20 text-center text-xs font-bold text-zinc-500">
-            Loading your trips...
+            Loading your bookings...
           </div>
         ) : filteredBookings.length > 0 ? (
           <div className="space-y-4">
-            {filteredBookings.map((b) => {
+            {filteredBookings.map((b, idx) => {
               const isAccepted = b.status === "ACCEPTED" || b.status === "PAYMENT_PENDING";
               const isConfirmed = b.status === "CONFIRMED";
               const isPending = b.status === "REQUESTED";
 
               return (
-                <GlassCard key={b.id} hoverEffect className="border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5">
+                <GlassCard key={b.id || (b as any).bookingId || `trip-idx-${idx}`} hoverEffect className="border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5">
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className={`clay-badge px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
@@ -208,7 +216,7 @@ export default function MyTripsPage() {
                       href={`/trips/${b.id}`}
                       className="rounded-xl bg-black hover:bg-zinc-800 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
                     >
-                      Trip Details
+                      Booking Details
                     </Link>
                   </div>
                 </GlassCard>
@@ -218,7 +226,7 @@ export default function MyTripsPage() {
         ) : (
           <GlassCard className="py-16 text-center border border-zinc-200">
             <span className="text-4xl">🧳</span>
-            <h3 className="text-base font-bold text-zinc-950 mt-3">No trips found</h3>
+            <h3 className="text-base font-bold text-zinc-950 mt-3">No bookings yet</h3>
             <p className="text-xs text-zinc-500 mt-1">You don't have any bookings matching filter "{activeTab}".</p>
             <Link href="/properties" className="mt-4 inline-block rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold">
               Find & Book A Stay

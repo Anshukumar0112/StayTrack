@@ -21,15 +21,15 @@ export default function RootHomePage() {
         <section className="relative px-6 pt-16 pb-12 text-center max-w-7xl mx-auto w-full">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-1.5 text-xs font-bold text-emerald-900">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            Direct Host Connect • ₹0 Brokerage Guaranteed
+            Direct Host Connect • Verified Properties
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-zinc-950 max-w-4xl mx-auto leading-tight">
-            Find Your <span className="underline decoration-emerald-500 decoration-wavy">Perfect Stay</span>
+            Find Your <span className="underline decoration-emerald-500 decoration-wavy">Perfect Stay</span> in Delhi NCR
           </h1>
 
           <p className="mt-4 text-base sm:text-lg text-zinc-600 max-w-2xl mx-auto font-medium leading-relaxed">
-            Hotels, homes, rooms, PGs and flexible stays. Connect directly with verified owners with zero brokerage fees.
+            Hostels, rooms, PGs and flexible stays across Delhi NCR. Connect directly with verified owners.
           </p>
 
           {/* Search Module */}
@@ -58,7 +58,7 @@ export default function RootHomePage() {
                 BECOME A HOST ON STAYTRACK
               </span>
               <h2 className="text-3xl sm:text-4xl font-black text-white mt-4">
-                List Your Property With ₹0 Brokerage
+                List Your Property On StayTrack
               </h2>
               <p className="text-sm text-zinc-300 mt-3 leading-relaxed font-medium">
                 Connect directly with guests, set your own stay terms, and manage bookings effortlessly with direct payouts.

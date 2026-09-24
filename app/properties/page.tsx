@@ -8,8 +8,9 @@ import MobileNav from "@/components/layout/MobileNav";
 import PropertyCard from "@/components/properties/PropertyCard";
 import PropertyFilters from "@/components/properties/PropertyFilters";
 import GlassCard from "@/components/ui/GlassCard";
-import { searchProperties, searchWithAi, getPublicProperties } from "@/lib/api";
+import { searchProperties, searchWithAi, getStayProperties } from "@/lib/api";
 import { Property, SearchRequest } from "@/types/property";
+import { isSupportedLocation } from "@/lib/locations";
 
 function PropertySearchContent() {
   const searchParams = useSearchParams();
@@ -44,7 +45,7 @@ function PropertySearchContent() {
         } else {
           setProperties([]);
         }
-      } else {
+      } else if (city || area || propertyType !== "all" || stayType || minBedrooms > 0 || furnished !== undefined) {
         const requestPayload: SearchRequest = {
           city: city || undefined,
           area: area || undefined,
@@ -62,17 +63,20 @@ function PropertySearchContent() {
         } else if (Array.isArray(res)) {
           setProperties(res);
         } else {
-          // If search endpoint returned empty, fetch public properties as baseline
-          const publicStays = await getPublicProperties();
-          setProperties(Array.isArray(publicStays) ? publicStays : []);
+          setProperties([]);
         }
+      } else {
+        // Fetch strictly properties explicitly assigned to Stay section & filter for Delhi NCR scope
+        const stayStays = await getStayProperties();
+        const ncrOnly = (Array.isArray(stayStays) ? stayStays : []).filter((s) => isSupportedLocation(s.city));
+        setProperties(ncrOnly);
       }
     } catch (err: any) {
       console.warn("Search API notice:", err);
-      // Try fallback to public properties on API error
       try {
-        const publicStays = await getPublicProperties();
-        setProperties(Array.isArray(publicStays) ? publicStays : []);
+        const stayStays = await getStayProperties();
+        const ncrOnly = (Array.isArray(stayStays) ? stayStays : []).filter((s) => isSupportedLocation(s.city));
+        setProperties(ncrOnly);
       } catch {
         setProperties([]);
         setError(err.message || "Failed to load properties");
@@ -96,6 +100,8 @@ function PropertySearchContent() {
     setFurnished(undefined);
   };
 
+  const isUnsupported = city && !isSupportedLocation(city);
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
@@ -104,12 +110,12 @@ function PropertySearchContent() {
         <div className="mb-8 flex justify-between items-start flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">
-              {aiPromptParam ? "✨ AI Recommended Stays" : "Discover Stays & Properties"}
+              {aiPromptParam ? "✨ AI Recommended Stays" : "Discover Delhi NCR Stays"}
             </h1>
             <p className="text-xs text-zinc-500 font-semibold mt-1">
               {aiPromptParam
                 ? `Matched properties for: "${aiPromptParam}"`
-                : "Filter by location, stay model, price slider, and furnished status with ₹0 brokerage"}
+                : "Filter by location, stay model, price slider, and furnished status across Delhi NCR"}
             </p>
           </div>
         </div>
@@ -141,7 +147,7 @@ function PropertySearchContent() {
             <div className="mb-4 flex justify-between items-center text-xs text-zinc-500 font-semibold">
               <span>Showing {properties.length} verified stays</span>
               <span className="clay-badge px-3 py-1 font-extrabold text-[10px] uppercase">
-                ₹0 Brokerage Direct Host
+                Delhi NCR • Verified Stays
               </span>
             </div>
 
@@ -151,18 +157,32 @@ function PropertySearchContent() {
                   <div key={i} className="h-72 rounded-3xl bg-zinc-100 animate-pulse border border-zinc-200" />
                 ))}
               </div>
+            ) : isUnsupported ? (
+              <GlassCard className="py-16 text-center border border-zinc-200 bg-amber-50/20">
+                <span className="text-5xl">📍</span>
+                <h3 className="text-lg font-bold text-zinc-950 mt-4">StayTrack Currently Operates in Delhi NCR Only</h3>
+                <p className="text-xs text-zinc-600 mt-2 max-w-md mx-auto leading-relaxed">
+                  We do not currently serve <strong className="text-black font-bold">{city}</strong>. StayTrack is available in Delhi, Gurugram, Noida, Greater Noida, Ghaziabad, and Faridabad. We're expanding soon!
+                </p>
+                <button
+                  onClick={handleResetFilters}
+                  className="mt-5 rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold shadow-sm"
+                >
+                  Explore Delhi NCR Stays
+                </button>
+              </GlassCard>
             ) : properties.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {properties.map((prop) => (
-                  <PropertyCard key={prop.id} property={prop} />
+                {properties.map((prop, idx) => (
+                  <PropertyCard key={prop.id || (prop as any).propertyId || `prop-item-${idx}`} property={prop} />
                 ))}
               </div>
             ) : (
               <GlassCard className="py-16 text-center border border-zinc-200">
-                <span className="text-5xl">🔍</span>
-                <h3 className="text-lg font-bold text-zinc-950 mt-4">No stays match your criteria</h3>
-                <p className="text-xs text-zinc-500 mt-2">
-                  Try adjusting the city, price range, or clearing filters.
+                <span className="text-5xl">🏡</span>
+                <h3 className="text-lg font-bold text-zinc-950 mt-4">Verified stays are coming soon</h3>
+                <p className="text-xs text-zinc-500 mt-2 max-w-md mx-auto">
+                  StayTrack is currently onboarding verified properties across Delhi NCR.
                 </p>
                 <button
                   onClick={handleResetFilters}

@@ -160,7 +160,15 @@ export async function searchLocations(q: string): Promise<LocationArea[]> {
 // PROPERTIES
 // ==========================================
 export async function getPublicProperties(): Promise<Property[]> {
-  return apiFetch<Property[]>("/api/properties/public");
+  return apiFetch<Property[]>("/api/properties/stay-section");
+}
+
+export async function getTopVerifiedProperties(): Promise<Property[]> {
+  return apiFetch<Property[]>("/api/properties/top-verified");
+}
+
+export async function getStayProperties(): Promise<Property[]> {
+  return apiFetch<Property[]>("/api/properties/stay-section");
 }
 
 export async function getPropertyDetails(propertyId: string): Promise<Property> {
@@ -272,15 +280,29 @@ export async function getEligibility(): Promise<{ eligible: boolean; reason?: st
   return apiFetch("/api/subscriptions/eligibility");
 }
 
-export async function submitHostApplication(data: any): Promise<any> {
+export async function submitHostApplication(data: {
+  hostType: string;
+  applicantName: string;
+  email?: string;
+  documentType?: string;
+  storagePath?: string;
+  fileName?: string;
+}): Promise<any> {
   return apiFetch("/api/host-applications", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function getMyHostApplication(): Promise<HostApplication> {
-  return apiFetch<HostApplication>("/api/host-applications/me");
+export async function getMyHostApplication(): Promise<HostApplication | null> {
+  try {
+    return await apiFetch<HostApplication>("/api/host-applications/me");
+  } catch (err: any) {
+    if (err.message && (err.message.includes("404") || err.message.includes("not found") || err.message.includes("500"))) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 // ==========================================
@@ -409,6 +431,18 @@ export async function requestPropertyChanges(propertyId: string, note: string): 
 
 export async function rejectProperty(propertyId: string, reason: string): Promise<any> {
   return apiFetch(`/api/admin/properties/${propertyId}/reject?reason=${encodeURIComponent(reason)}`, {
+    method: "PUT",
+  });
+}
+
+export async function updatePropertyAssignment(
+  propertyId: string,
+  assignment: { topVerified?: boolean; showInStay?: boolean }
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (assignment.topVerified !== undefined) params.set("topVerified", String(assignment.topVerified));
+  if (assignment.showInStay !== undefined) params.set("showInStay", String(assignment.showInStay));
+  return apiFetch(`/api/admin/properties/${propertyId}/assignment?${params.toString()}`, {
     method: "PUT",
   });
 }

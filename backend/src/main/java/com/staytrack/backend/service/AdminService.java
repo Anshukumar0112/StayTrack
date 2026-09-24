@@ -1752,6 +1752,97 @@ public class AdminService {
     // HOST APPLICATION VERIFICATION
     // =========================================================
 
+    public Map<String, Object> listHostApplicationsForAdmin(
+            AuthenticatedUser admin,
+            String verificationStatus,
+            String search,
+            int page,
+            int pageSize) {
+
+        requireAdmin(admin);
+
+        if (page < 1) {
+            throw new RuntimeException("Page must be greater than or equal to 1");
+        }
+
+        if (pageSize < 1 || pageSize > 100) {
+            throw new RuntimeException("Page size must be between 1 and 100");
+        }
+
+        String cleanVerification = verificationStatus == null ? "" : verificationStatus.trim().toLowerCase();
+        String cleanSearch = search == null ? "" : search.trim().toLowerCase();
+
+        try {
+            List<QueryDocumentSnapshot> documents = hostApplicationRepository.findAll();
+            List<DocumentSnapshot> matched = new ArrayList<>();
+
+            for (QueryDocumentSnapshot document : documents) {
+                if (document == null || !document.exists()) continue;
+
+                String status = getStringField(document, "verificationStatus").toLowerCase();
+                if (status.isBlank()) {
+                    status = "pending";
+                }
+
+                if (!cleanVerification.isBlank() && !"all".equals(cleanVerification) && !cleanVerification.equals(status)) {
+                    continue;
+                }
+
+                if (!cleanSearch.isBlank()) {
+                    String appId = document.getId().toLowerCase();
+                    String userId = getStringField(document, "userId").toLowerCase();
+                    String applicantName = getStringField(document, "applicantName").toLowerCase();
+                    String email = getStringField(document, "email").toLowerCase();
+                    String phone = getStringField(document, "phone").toLowerCase();
+
+                    if (!appId.contains(cleanSearch)
+                            && !userId.contains(cleanSearch)
+                            && !applicantName.contains(cleanSearch)
+                            && !email.contains(cleanSearch)
+                            && !phone.contains(cleanSearch)) {
+                        continue;
+                    }
+                }
+
+                matched.add(document);
+            }
+
+            matched.sort(
+                    Comparator.comparing(
+                            (DocumentSnapshot doc) -> doc.getTimestamp("submittedAt"),
+                            Comparator.nullsLast(Comparator.reverseOrder())
+                    )
+            );
+
+            int total = matched.size();
+            int totalPages = total == 0 ? 0 : (int) Math.ceil((double) total / pageSize);
+            int start = (page - 1) * pageSize;
+
+            List<Map<String, Object>> applications = new ArrayList<>();
+
+            if (start < total) {
+                int end = Math.min(start + pageSize, total);
+                for (int i = start; i < end; i++) {
+                    applications.add(getHostApplicationWithId(matched.get(i)));
+                }
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", applications);
+            result.put("total", total);
+            result.put("page", page);
+            result.put("pageSize", pageSize);
+            result.put("totalPages", totalPages);
+            result.put("hasNext", page < totalPages);
+            result.put("hasPrevious", page > 1 && total > 0);
+
+            return result;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to list host applications", e);
+        }
+    }
+
     public List<Map<String, Object>> getPendingHostApplications(
             AuthenticatedUser admin) {
 
@@ -3012,12 +3103,93 @@ public class AdminService {
                     field + " must be a valid non-negative integer"
             );
         }
+        throw new RuntimeException(
+                field + " is required and must be a number"
+        );
     }
 
-    throw new RuntimeException(
-            field + " is required and must be a number"
-    );
-}
+    private DocumentSnapshot getExistingHostApplication(String applicationId) {
+        if (applicationId == null || applicationId.isBlank()) {
+            throw new RuntimeException("Application ID is required");
+        }
+        try {
+            DocumentSnapshot document = hostApplicationRepository.findById(applicationId.trim());
+            if (document == null || !document.exists()) {
+                throw new RuntimeException("Host application not found");
+            }
+            return document;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to get host application", e);
+        }
+    }
+
+    private Map<String, Object> getHostApplicationWithId(DocumentSnapshot document) {
+        if (document == null || !document.exists()) {
+            throw new RuntimeException("Host application not found");
+        }
+
+        Map<String, Object> data = document.getData();
+        if (data == null) {
+            throw new RuntimeException("Host application data is empty");
+        }
+
+        Map<String, Object> application = new HashMap<>(data);
+        application.put("applicationId", document.getId());
+        application.put("id", document.getId());
+        application.put("userId", document.getId());
+
+        if (!application.containsKey("verificationStatus")) {
+            application.put("verificationStatus", "pending");
+        }
+
+        for (Map.Entry<String, Object> entry : application.entrySet()) {
+            if (entry.getValue() instanceof Timestamp timestamp) {
+                entry.setValue(timestamp.toDate().toInstant().toString());
+            }
+        }
+
+        return application;
+    }
+
+    public Map<String, Object> updatePropertyAssignment(
+            AuthenticatedUser admin,
+            String propertyId,
+            Boolean topVerified,
+            Boolean showInStay) {
+
+        requireAdmin(admin);
+
+        try {
+            DocumentSnapshot existing = propertyRepository.findById(propertyId);
+            if (!existing.exists()) {
+                throw new RuntimeException("Property not found");
+            }
+
+            Map<String, Object> updates = new HashMap<>();
+            if (topVerified != null) {
+                updates.put("topVerified", topVerified);
+            }
+            if (showInStay != null) {
+                updates.put("showInStay", showInStay);
+            }
+            updates.put("updatedAt", Timestamp.now());
+
+            propertyRepository.update(propertyId, updates);
+
+            Map<String, Object> result = new HashMap<>();
+            if (existing.getData() != null) {
+                result.putAll(existing.getData());
+            }
+            result.putAll(updates);
+            result.put("propertyId", propertyId);
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to update property assignment", e);
+        }
+    }
+
     private String getStringField(
             DocumentSnapshot document,
             String field) {

@@ -3,10 +3,25 @@ import {
   RecaptchaVerifier,
   User as FirebaseUser,
   signInWithPhoneNumber,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
   signOut,
 } from "firebase/auth";
 
 import { auth } from "./firebase";
+
+export async function signInWithEmail(email: string, pass: string): Promise<FirebaseUser> {
+  const result = await signInWithEmailAndPassword(auth, email, pass);
+  return result.user;
+}
+
+export async function signInWithGoogle(): Promise<FirebaseUser> {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  const result = await signInWithPopup(auth, provider);
+  return result.user;
+}
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 

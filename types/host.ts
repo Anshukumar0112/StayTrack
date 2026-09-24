@@ -1,13 +1,20 @@
 export interface HostApplication {
-  id: string;
+  id?: string;
+  applicationId?: string;
+  exists?: boolean;
   userId: string;
-  fullName: string;
+  applicantName?: string;
+  fullName?: string;
   email: string;
   phone: string;
+  hostType?: string;
   govIdUrl?: string;
-  verificationStatus: 'pending' | 'approved' | 'changes_required' | 'rejected';
+  documents?: Record<string, any>;
+  verificationStatus: 'pending' | 'approved' | 'changes_required' | 'rejected' | 'none';
   adminNote?: string;
   rejectionReason?: string;
+  submittedAt?: any;
+  updatedAt?: any;
   createdAt?: string;
 }
 

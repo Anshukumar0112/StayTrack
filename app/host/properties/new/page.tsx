@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import GlassCard from "@/components/ui/GlassCard";
 import { createProperty } from "@/lib/api";
+import { SUPPORTED_LOCATIONS, isSupportedLocation } from "@/lib/locations";
 
 export default function CreateNewPropertyPage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function CreateNewPropertyPage() {
   const [propertyType, setPropertyType] = useState("Flat");
   const [bookingType, setBookingType] = useState("daily");
   const [price, setPrice] = useState("");
-  const [city, setCity] = useState("Bangalore");
+  const [city, setCity] = useState("Gurugram");
   const [area, setArea] = useState("");
   const [bedrooms, setBedrooms] = useState(1);
   const [bathrooms, setBathrooms] = useState(1);
@@ -30,6 +31,11 @@ export default function CreateNewPropertyPage() {
 
     if (!title || !description || !area || !price) {
       setError("Please fill in all mandatory fields.");
+      return;
+    }
+
+    if (!isSupportedLocation(city)) {
+      setError("StayTrack currently operates only in Delhi NCR (Delhi, Gurugram, Noida, Greater Noida, Ghaziabad, Faridabad).");
       return;
     }
 
@@ -63,13 +69,13 @@ export default function CreateNewPropertyPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Navbar />
+      <Header />
 
       <main className="mx-auto max-w-3xl px-6 py-10 w-full flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-black text-zinc-950">Add New Property</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">
-            List your accommodation on StayTrack with ₹0 brokerage
+            List your Delhi NCR accommodation on StayTrack
           </p>
         </div>
 
@@ -87,7 +93,7 @@ export default function CreateNewPropertyPage() {
               </label>
               <input
                 type="text"
-                placeholder="e.g. Luxury 2BHK Glass Suite in Koramangala"
+                placeholder="e.g. Furnished 2BHK Apartment in Cyber City, Gurugram"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold"
@@ -156,14 +162,19 @@ export default function CreateNewPropertyPage() {
 
               <div>
                 <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                  City
+                  City (Delhi NCR)
                 </label>
-                <input
-                  type="text"
+                <select
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold"
-                />
+                  className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold text-zinc-900"
+                >
+                  {SUPPORTED_LOCATIONS.map((loc) => (
+                    <option key={loc.id} value={loc.name}>
+                      {loc.name} ({loc.state})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -172,7 +183,7 @@ export default function CreateNewPropertyPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Koramangala 5th Block"
+                  placeholder="e.g. Cyber City, Sector 62"
                   value={area}
                   onChange={(e) => setArea(e.target.value)}
                   className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold"

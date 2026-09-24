@@ -106,7 +106,7 @@ export default function HostSubscriptionPage() {
           </span>
           <h1 className="text-3xl font-black text-zinc-950 mt-3">Host Plans & Property Limits</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">
-            Subscribe to list additional properties with direct guest communication and ₹0 brokerage
+            Subscribe to list additional properties with direct guest communication
           </p>
         </div>
 
@@ -140,8 +140,8 @@ export default function HostSubscriptionPage() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Brokerage Fee</span>
-                  <span className="text-base font-bold text-emerald-400">₹0 Brokerage (100% Payouts)</span>
+                  <span className="text-zinc-500 block uppercase font-bold text-[10px]">Platform Terms</span>
+                  <span className="text-base font-bold text-emerald-400">Direct Payouts</span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block uppercase font-bold text-[10px]">Expiration Date</span>

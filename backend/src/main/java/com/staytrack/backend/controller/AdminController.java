@@ -299,6 +299,26 @@ public class AdminController {
         );
     }
 
+    @PutMapping("/properties/{propertyId}/assignment")
+    public ResponseEntity<Map<String, Object>>
+    updatePropertyAssignment(
+            @PathVariable String propertyId,
+            @RequestParam(required = false) Boolean topVerified,
+            @RequestParam(required = false) Boolean showInStay) {
+
+        AuthenticatedUser admin =
+                SecurityUtils.getCurrentUser();
+
+        return ResponseEntity.ok(
+                adminService.updatePropertyAssignment(
+                        admin,
+                        propertyId,
+                        topVerified,
+                        showInStay
+                )
+        );
+    }
+
     // =========================================================
     // HOST APPLICATION VERIFICATION
     // =========================================================

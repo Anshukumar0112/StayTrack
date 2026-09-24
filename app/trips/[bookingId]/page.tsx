@@ -106,7 +106,7 @@ export default function TripDetailPage({
   };
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this trip booking?")) return;
+    if (!confirm("Are you sure you want to cancel this booking?")) return;
     setCancelLoading(true);
     try {
       await cancelBooking(bookingId);
@@ -129,22 +129,22 @@ export default function TripDetailPage({
 
       <main className="mx-auto max-w-4xl px-4 sm:px-6 py-10 w-full flex-1">
         <div className="mb-6 flex items-center gap-2 text-xs font-semibold text-zinc-500">
-          <Link href="/trips" className="hover:text-black">My Trips</Link>
+          <Link href="/trips" className="hover:text-black">My Bookings</Link>
           <span>/</span>
-          <span className="text-zinc-900 font-bold">Trip #{bookingId}</span>
+          <span className="text-zinc-900 font-bold">Booking #{bookingId}</span>
         </div>
 
         {loading ? (
           <div className="py-20 text-center text-xs font-bold text-zinc-500">
-            Loading trip details...
+            Loading booking details...
           </div>
         ) : !booking ? (
           <GlassCard className="py-16 text-center border border-zinc-200">
             <span className="text-4xl">🧳</span>
-            <h3 className="text-lg font-bold text-zinc-950 mt-3">Trip Record Not Found</h3>
-            <p className="text-xs text-zinc-500 mt-1">Check your trip ID or return to list.</p>
+            <h3 className="text-lg font-bold text-zinc-950 mt-3">Booking Record Not Found</h3>
+            <p className="text-xs text-zinc-500 mt-1">Check your booking ID or return to list.</p>
             <Link href="/trips" className="mt-4 inline-block rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold">
-              View My Trips
+              View My Bookings
             </Link>
           </GlassCard>
         ) : (
@@ -163,7 +163,7 @@ export default function TripDetailPage({
                   }`}>
                     {booking.status}
                   </span>
-                  <span className="text-xs text-zinc-500 font-mono">Trip ID: {booking.id}</span>
+                  <span className="text-xs text-zinc-500 font-mono">Booking ID: {booking.id}</span>
                 </div>
                 <h1 className="text-2xl font-black text-zinc-950">
                   {booking.propertyTitle || `Property #${booking.propertyId}`}
@@ -223,7 +223,7 @@ export default function TripDetailPage({
                     disabled={cancelLoading}
                     className="rounded-xl border border-red-300 hover:bg-red-50 text-red-700 font-bold text-xs px-4 py-2.5 cursor-pointer disabled:opacity-50"
                   >
-                    {cancelLoading ? "Cancelling..." : "Cancel Trip"}
+                    {cancelLoading ? "Cancelling..." : "Cancel Booking"}
                   </button>
                 )}
               </div>

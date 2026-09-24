@@ -7,7 +7,7 @@ export default function WhyStayTrack() {
     {
       icon: "🤝",
       title: "Direct Owner Contact",
-      desc: "Chat directly with hosts before booking. No brokers, no hidden commission fees.",
+      desc: "Chat directly with hosts before booking. Clear details and transparent communication.",
     },
     {
       icon: "⏱️",

@@ -2,6 +2,7 @@ package com.staytrack.backend.security;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.staytrack.backend.exception.UnauthorizedException;
 
 public final class SecurityUtils {
 
@@ -18,7 +19,7 @@ public final class SecurityUtils {
         if (authentication == null ||
                 !authentication.isAuthenticated()) {
 
-            throw new RuntimeException(
+            throw new UnauthorizedException(
                     "User is not authenticated"
             );
         }
@@ -27,7 +28,7 @@ public final class SecurityUtils {
 
         if (!(principal instanceof AuthenticatedUser user)) {
 
-            throw new RuntimeException(
+            throw new UnauthorizedException(
                     "Invalid authenticated user"
             );
         }

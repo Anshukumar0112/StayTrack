@@ -50,7 +50,7 @@ export default function PropertyFilters({
         </label>
         <input
           type="text"
-          placeholder="e.g. Gurugram, Bangalore"
+          placeholder="e.g. Delhi, Gurugram, Noida"
           value={city}
           onChange={(e) => setCity(e.target.value)}
           className="glass-input w-full px-3 py-2 rounded-xl text-xs font-semibold"
@@ -64,7 +64,7 @@ export default function PropertyFilters({
         </label>
         <input
           type="text"
-          placeholder="e.g. Cyber City, Koramangala"
+          placeholder="e.g. Cyber City, Sector 62, Connaught Place"
           value={area}
           onChange={(e) => setArea(e.target.value)}
           className="glass-input w-full px-3 py-2 rounded-xl text-xs font-semibold"

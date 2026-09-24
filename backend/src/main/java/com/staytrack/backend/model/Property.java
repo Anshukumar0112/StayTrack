@@ -40,8 +40,27 @@ public class Property {
 
     private String listingStatus;
 
+    private Boolean topVerified;
+    private Boolean showInStay;
+
     private Double averageRating;
     private Long reviewCount;
+
+    public Boolean getTopVerified() {
+        return topVerified;
+    }
+
+    public void setTopVerified(Boolean topVerified) {
+        this.topVerified = topVerified;
+    }
+
+    public Boolean getShowInStay() {
+        return showInStay;
+    }
+
+    public void setShowInStay(Boolean showInStay) {
+        this.showInStay = showInStay;
+    }
 
     public String getPropertyId() {
         return propertyId;

@@ -46,8 +46,8 @@ export default function HostPropertiesListPage() {
           <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading your properties...</div>
         ) : properties.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {properties.map((p) => (
-              <GlassCard key={p.id} hoverEffect className="border border-zinc-200 p-5 space-y-3">
+            {properties.map((p, idx) => (
+              <GlassCard key={p.id || (p as any).propertyId || `host-prop-${idx}`} hoverEffect className="border border-zinc-200 p-5 space-y-3">
                 <div className="flex justify-between items-start">
                   <span className="clay-badge px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
                     {p.propertyType || "Flat"}
@@ -84,7 +84,7 @@ export default function HostPropertiesListPage() {
           <GlassCard className="py-16 text-center border border-zinc-200">
             <span className="text-4xl">🏢</span>
             <h3 className="text-base font-bold text-zinc-950 mt-3">No properties listed yet</h3>
-            <p className="text-xs text-zinc-500 mt-1">Add your first property listing with zero brokerage.</p>
+            <p className="text-xs text-zinc-500 mt-1">Add your first property listing to connect directly with guests.</p>
             <Link
               href="/host/properties/new"
               className="mt-4 inline-block rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold"

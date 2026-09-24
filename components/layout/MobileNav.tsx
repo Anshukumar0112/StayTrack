@@ -12,11 +12,13 @@ export default function MobileNav() {
 
   const role = userProfile?.role || "customer";
 
+  const bookingsPath = firebaseUser ? "/trips" : "/auth?mode=login&returnTo=/trips";
+
   const items = [
-    { label: "Stays", icon: "🔍", path: "/properties" },
     { label: "Explore", icon: "🏠", path: "/" },
-    { label: "Trips", icon: "🧳", path: "/trips" },
-    { label: "Chat", icon: "💬", path: "/chat" },
+    { label: "Stays", icon: "🔍", path: "/properties" },
+    { label: "Bookings", icon: "🧳", path: bookingsPath },
+    ...(firebaseUser ? [{ label: "Chat", icon: "💬", path: "/chat" }] : []),
   ];
 
   if (role === "host") {
@@ -24,7 +26,8 @@ export default function MobileNav() {
   } else if (role === "admin") {
     items.push({ label: "Admin", icon: "⚙️", path: "/admin" });
   } else {
-    items.push({ label: "Profile", icon: "👤", path: firebaseUser ? "/profile" : "/login" });
+    const loginHref = pathname && pathname !== "/" ? `/auth?mode=login&returnTo=${encodeURIComponent(pathname)}` : "/auth?mode=login";
+    items.push({ label: firebaseUser ? "Profile" : "Login", icon: "👤", path: firebaseUser ? "/profile" : loginHref });
   }
 
   return (

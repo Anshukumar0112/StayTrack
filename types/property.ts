@@ -8,6 +8,9 @@ export interface Property {
   pricePerNight?: number;
   pricePerMonth?: number;
   pricePerHour?: number;
+  dailyPrice?: number;
+  monthlyPrice?: number;
+  hourlyPrice?: number;
   price?: number;
   city: string;
   area: string;
@@ -19,6 +22,8 @@ export interface Property {
   images?: string[];
   verificationStatus?: 'pending' | 'approved' | 'changes_required' | 'rejected';
   listingStatus?: 'active' | 'hidden' | 'inactive';
+  topVerified?: boolean;
+  showInStay?: boolean;
   adminNote?: string;
   rejectionReason?: string;
   createdAt?: string;

@@ -24,7 +24,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
             />
             <div className="absolute top-4 left-4 z-10 flex gap-2">
               <span className="clay-badge px-3 py-1 text-xs font-extrabold">Verified Listing</span>
-              <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">₹0 Brokerage</span>
+              <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">Direct Host</span>
             </div>
           </div>
 
@@ -53,7 +53,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
 
           <div className="absolute top-4 left-4 z-20 flex gap-2">
             <span className="clay-badge px-3 py-1 text-xs font-extrabold">Verified Listing</span>
-            <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">₹0 Brokerage</span>
+            <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">Direct Host</span>
           </div>
         </div>
       )}
