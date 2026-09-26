@@ -491,6 +491,7 @@ public class PropertyService {
             case "pg":
             case "hostel":
             case "hotel":
+            case "bnb":
             case "vacationstay":
             case "vacation_stay":
                 return;

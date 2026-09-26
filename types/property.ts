@@ -3,7 +3,7 @@ export interface Property {
   title: string;
   description: string;
   hostId: string;
-  propertyType: 'Flat' | 'PG' | 'Room' | 'Hotel' | string;
+  propertyType: 'BNB' | 'HOSTEL' | 'PG' | 'HOTEL' | 'FLAT' | 'Hostel' | 'Hotel' | 'Flat' | string;
   bookingType: 'daily' | 'monthly' | 'hourly' | string;
   pricePerNight?: number;
   pricePerMonth?: number;

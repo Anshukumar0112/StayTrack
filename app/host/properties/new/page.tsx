@@ -7,13 +7,14 @@ import Footer from "@/components/layout/Footer";
 import GlassCard from "@/components/ui/GlassCard";
 import { createProperty } from "@/lib/api";
 import { SUPPORTED_LOCATIONS, isSupportedLocation } from "@/lib/locations";
+import { ACCOMMODATION_CATEGORIES } from "@/lib/categories";
 
 export default function CreateNewPropertyPage() {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [propertyType, setPropertyType] = useState("Flat");
+  const [propertyType, setPropertyType] = useState("BNB");
   const [bookingType, setBookingType] = useState("daily");
   const [price, setPrice] = useState("");
   const [city, setCity] = useState("Gurugram");
@@ -123,10 +124,11 @@ export default function CreateNewPropertyPage() {
                   onChange={(e) => setPropertyType(e.target.value)}
                   className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold text-zinc-900"
                 >
-                  <option value="Flat">Home / Flat</option>
-                  <option value="PG">PG / Hostel</option>
-                  <option value="Room">Single Room</option>
-                  <option value="Hotel">Hotel / BNB</option>
+                  {ACCOMMODATION_CATEGORIES.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.id} ({cat.label})
+                    </option>
+                  ))}
                 </select>
               </div>
 

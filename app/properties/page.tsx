@@ -11,12 +11,14 @@ import GlassCard from "@/components/ui/GlassCard";
 import { searchProperties, searchWithAi, getStayProperties } from "@/lib/api";
 import { Property, SearchRequest } from "@/types/property";
 import { isSupportedLocation } from "@/lib/locations";
+import { getCategoryLabel, normalizeCategoryKey, getCategoryConfig } from "@/lib/categories";
 
 function PropertySearchContent() {
   const searchParams = useSearchParams();
   const cityParam = searchParams.get("city") || searchParams.get("location") || "";
   const areaParam = searchParams.get("area") || "";
-  const categoryParam = searchParams.get("propertyType") || "all";
+  const rawCat = searchParams.get("category") || searchParams.get("propertyType") || "all";
+  const categoryParam = rawCat !== "all" ? normalizeCategoryKey(rawCat) : "all";
   const stayTypeParam = searchParams.get("stayType") || "";
   const aiPromptParam = searchParams.get("aiPrompt") || "";
 
@@ -110,12 +112,20 @@ function PropertySearchContent() {
         <div className="mb-8 flex justify-between items-start flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">
-              {aiPromptParam ? "✨ AI Recommended Stays" : "Discover Delhi NCR Stays"}
+              {aiPromptParam
+                ? "✨ AI Recommended Stays"
+                : propertyType !== "all"
+                ? `Discover ${getCategoryLabel(propertyType)} ${city ? `in ${city}` : "in Delhi NCR"}`
+                : city
+                ? `Stays in ${city}`
+                : "Discover Delhi NCR Stays"}
             </h1>
             <p className="text-xs text-zinc-500 font-semibold mt-1">
               {aiPromptParam
                 ? `Matched properties for: "${aiPromptParam}"`
-                : "Filter by location, stay model, price slider, and furnished status across Delhi NCR"}
+                : propertyType !== "all"
+                ? getCategoryConfig(propertyType)?.description || `Explore verified ${getCategoryLabel(propertyType).toLowerCase()} across Delhi NCR`
+                : "Filter by location, stay model, price slider, and category across Delhi NCR"}
             </p>
           </div>
         </div>

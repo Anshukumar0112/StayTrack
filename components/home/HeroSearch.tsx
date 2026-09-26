@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getCities, searchWithAi } from "@/lib/api";
 import { LocationArea } from "@/types/user";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
+import { ACCOMMODATION_CATEGORIES } from "@/lib/categories";
 
 export default function HeroSearch() {
   const router = useRouter();
@@ -40,7 +41,10 @@ export default function HeroSearch() {
     const queryParams = new URLSearchParams();
     if (city.trim()) queryParams.set("city", city.trim());
     if (stayType) queryParams.set("stayType", stayType);
-    if (propertyType && propertyType !== "all") queryParams.set("propertyType", propertyType);
+    if (propertyType && propertyType !== "all") {
+      queryParams.set("category", propertyType);
+      queryParams.set("propertyType", propertyType);
+    }
 
     router.push(`/properties?${queryParams.toString()}`);
   };
@@ -128,10 +132,11 @@ export default function HeroSearch() {
                 className="glass-input w-full px-4 py-3 rounded-xl text-sm font-semibold text-zinc-900"
               >
                 <option value="all">All Categories</option>
-                <option value="Flat">Homes & Flats</option>
-                <option value="PG">PGs & Hostels</option>
-                <option value="Room">Private Rooms</option>
-                <option value="Hotel">Hotels & BNBs</option>
+                {ACCOMMODATION_CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </option>
+                ))}
               </select>
             </div>
 

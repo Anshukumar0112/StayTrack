@@ -5,7 +5,7 @@ import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import HeroSearch from "@/components/home/HeroSearch";
 import PopularDestinations from "@/components/home/PopularDestinations";
-import FeaturedProperties from "@/components/home/FeaturedProperties";
+import CategoryShowcase from "@/components/home/CategoryShowcase";
 import WhyStayTrack from "@/components/home/WhyStayTrack";
 import GlassCard from "@/components/ui/GlassCard";
 import Link from "next/link";
@@ -35,8 +35,8 @@ export default function RootHomePage() {
         {/* Popular Destinations */}
         <PopularDestinations />
 
-        {/* Featured Properties (Real Backend Data) */}
-        <FeaturedProperties />
+        {/* 5 Canonical Accommodation Category Sections */}
+        <CategoryShowcase />
 
         {/* Stay Type & Features Explanation */}
         <WhyStayTrack />

@@ -1,6 +1,7 @@
 "use client";
 
 import GlassCard from "@/components/ui/GlassCard";
+import { ACCOMMODATION_CATEGORIES, normalizeCategoryKey } from "@/lib/categories";
 
 interface PropertyFiltersProps {
   city: string;
@@ -76,20 +77,30 @@ export default function PropertyFilters({
         <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider">
           Property Type
         </label>
-        {["all", "Flat", "PG", "Room", "Hotel"].map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setPropertyType(cat)}
-            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              propertyType === cat
-                ? "bg-black text-white"
-                : "text-zinc-600 hover:bg-zinc-100"
-            }`}
-          >
-            {cat === "all" ? "All Categories" : cat}
-          </button>
-        ))}
+        {[
+          { id: "all", label: "All Categories" },
+          ...ACCOMMODATION_CATEGORIES,
+        ].map((cat) => {
+          const isSelected =
+            cat.id === "all"
+              ? propertyType === "all" || !propertyType
+              : normalizeCategoryKey(propertyType) === cat.id;
+
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setPropertyType(cat.id)}
+              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isSelected
+                  ? "bg-black text-white"
+                  : "text-zinc-600 hover:bg-zinc-100"
+              }`}
+            >
+              {cat.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Stay Model */}

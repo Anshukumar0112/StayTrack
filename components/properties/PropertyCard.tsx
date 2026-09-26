@@ -5,6 +5,7 @@ import Link from "next/link";
 import GlassCard from "@/components/ui/GlassCard";
 import { formatCurrency } from "@/lib/utils";
 import { Property } from "@/types/property";
+import { getCategoryLabel } from "@/lib/categories";
 
 interface PropertyCardProps {
   property?: Property;
@@ -63,7 +64,7 @@ export default function PropertyCard(props: PropertyCardProps) {
         {/* Top Badges */}
         <div className="absolute top-3 left-3 z-20 flex gap-2">
           <span className="clay-badge px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider">
-            {category}
+            {getCategoryLabel(category)}
           </span>
           <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm">
             Verified
