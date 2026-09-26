@@ -315,10 +315,14 @@ function AuthContent() {
         </div>
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-white text-xl font-black shadow-md">
-            S
-          </div>
-          <h1 className="text-2xl font-black text-zinc-950 mt-3">
+          <Link href="/" className="inline-block">
+            <img
+              src="/logo.png"
+              alt="StayTrack"
+              className="h-10 w-auto mx-auto object-contain"
+            />
+          </Link>
+          <h1 className="text-2xl font-black text-zinc-950 mt-4">
             {isRegister ? "Create StayTrack Account" : "Welcome Back"}
           </h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">

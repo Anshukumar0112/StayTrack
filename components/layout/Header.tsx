@@ -84,15 +84,12 @@ export default function Header() {
     <header className="glass-nav sticky top-0 z-50 transition-all duration-300 bg-white/85 backdrop-blur-md border-b border-zinc-200">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3.5">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black text-white shadow-md group-hover:scale-105 transition-transform">
-            <span className="text-lg font-black tracking-tight">S</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black tracking-tight text-zinc-950">
-              STAYTRACK
-            </span>
-          </div>
+        <Link href="/" className="flex items-center gap-2 group">
+          <img
+            src="/logo.png"
+            alt="StayTrack"
+            className="h-8 sm:h-9 w-auto object-contain group-hover:scale-105 transition-transform"
+          />
         </Link>
 
         {/* Desktop Navigation Links */}

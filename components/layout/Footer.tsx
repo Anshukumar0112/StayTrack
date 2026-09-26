@@ -6,12 +6,13 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 grid gap-8 md:grid-cols-4">
         {/* Brand info */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-white font-black text-sm">
-              S
-            </div>
-            <span className="text-xl font-black tracking-tight text-zinc-950">STAYTRACK</span>
-          </div>
+          <Link href="/" className="inline-block mb-4">
+            <img
+              src="/logo.png"
+              alt="StayTrack"
+              className="h-8 w-auto object-contain"
+            />
+          </Link>
           <p className="text-xs leading-relaxed text-zinc-500">
             India's direct property/stay marketplace connecting customers directly with hosts. Hourly, daily, and monthly stays across Delhi NCR.
           </p>

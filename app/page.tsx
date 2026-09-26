@@ -19,11 +19,6 @@ export default function RootHomePage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative px-6 pt-16 pb-12 text-center max-w-7xl mx-auto w-full">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-1.5 text-xs font-bold text-emerald-900">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            Direct Host Connect • Verified Properties
-          </div>
-
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-zinc-950 max-w-4xl mx-auto leading-tight">
             Find Your <span className="underline decoration-emerald-500 decoration-wavy">Perfect Stay</span> in Delhi NCR
           </h1>
