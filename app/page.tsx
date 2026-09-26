@@ -6,7 +6,6 @@ import MobileNav from "@/components/layout/MobileNav";
 import HeroSearch from "@/components/home/HeroSearch";
 import PopularDestinations from "@/components/home/PopularDestinations";
 import FeaturedProperties from "@/components/home/FeaturedProperties";
-import Offers from "@/components/home/Offers";
 import WhyStayTrack from "@/components/home/WhyStayTrack";
 import GlassCard from "@/components/ui/GlassCard";
 import Link from "next/link";
@@ -41,9 +40,6 @@ export default function RootHomePage() {
 
         {/* Stay Type & Features Explanation */}
         <WhyStayTrack />
-
-        {/* Promotions & Offers */}
-        <Offers />
 
         {/* Host CTA Banner */}
         <section className="mx-auto max-w-7xl px-6 py-16 w-full">
