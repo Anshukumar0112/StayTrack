@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { getSubscriptionSettings, updateSubscriptionSettings, getAiSettings, updateAiSettings } from "@/lib/api";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
@@ -77,10 +74,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-10 w-full flex-1">
+    <main className="mx-auto max-w-4xl px-4 sm:px-6 py-10 w-full flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-black text-zinc-950">System Configuration</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">Configure global host pricing, property limits, and AI model parameters</p>
@@ -186,9 +180,5 @@ export default function AdminSettingsPage() {
           </div>
         )}
       </main>
-
-      <Footer />
-      <MobileNav />
-    </div>
   );
 }

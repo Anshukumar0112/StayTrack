@@ -5,22 +5,22 @@ import ClayCard from "@/components/ui/ClayCard";
 export default function WhyStayTrack() {
   const features = [
     {
-      icon: "🤝",
+      image: "/icons/handshake.png",
       title: "Direct Owner Contact",
       desc: "Chat directly with hosts before booking. Clear details and transparent communication.",
     },
     {
-      icon: "⏱️",
+      image: "/icons/clock.png",
       title: "Flexible Stay Models",
       desc: "Choose between hourly transit slots, daily hotel stays, or monthly PG/Flat rentals.",
     },
     {
-      icon: "💳",
+      image: "/icons/credit-card.png",
       title: "Secure Payment Gateway",
       desc: "Razorpay integration ensures safe transactions directly routed to verified hosts.",
     },
     {
-      icon: "🔍",
+      image: "/icons/shield-check.png",
       title: "Verified Property Listings",
       desc: "Admin verification ensures listed photos, address, and amenities match reality.",
     },
@@ -37,8 +37,10 @@ export default function WhyStayTrack() {
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((f, i) => (
-          <ClayCard key={i} className="p-6 text-center border border-zinc-200 hover:scale-[1.02] transition-transform">
-            <div className="text-4xl mb-3">{f.icon}</div>
+          <ClayCard key={i} className="p-6 text-center border border-zinc-200 hover:scale-[1.02] transition-transform flex flex-col items-center justify-start">
+            <div className="h-12 w-12 flex items-center justify-center mb-3">
+              <img src={f.image} alt="" className="h-11 w-11 object-contain" />
+            </div>
             <h3 className="text-base font-bold text-zinc-950">{f.title}</h3>
             <p className="text-xs text-zinc-600 mt-2 leading-relaxed font-medium">{f.desc}</p>
           </ClayCard>

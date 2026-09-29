@@ -821,6 +821,10 @@ public class AdminService {
                             "propertyId",
                             property.getId()
                     );
+                    item.put(
+                            "id",
+                            property.getId()
+                    );
 
                     properties.add(item);
                 }
@@ -2771,24 +2775,18 @@ public class AdminService {
                         : false
         );
 
-        Object createdAt =
-                data.get("createdAt");
-
-        if (createdAt != null) {
-            result.put(
-                    "createdAt",
-                    createdAt
-            );
+        Object createdAt = data.get("createdAt");
+        if (createdAt instanceof Timestamp ts) {
+            result.put("createdAt", ts.toDate().toInstant().toString());
+        } else if (createdAt != null) {
+            result.put("createdAt", createdAt.toString());
         }
 
-        Object updatedAt =
-                data.get("updatedAt");
-
-        if (updatedAt != null) {
-            result.put(
-                    "updatedAt",
-                    updatedAt
-            );
+        Object updatedAt = data.get("updatedAt");
+        if (updatedAt instanceof Timestamp ts) {
+            result.put("updatedAt", ts.toDate().toInstant().toString());
+        } else if (updatedAt != null) {
+            result.put("updatedAt", updatedAt.toString());
         }
 
         return result;
@@ -2918,6 +2916,159 @@ public class AdminService {
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Unable to update property assignment", e);
+        }
+    }
+
+    public void logAdminActivity(String adminId, String eventType, String targetType, String targetId, String description) {
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            Map<String, Object> activity = new HashMap<>();
+            String id = java.util.UUID.randomUUID().toString();
+            activity.put("id", id);
+            activity.put("eventId", id);
+            activity.put("eventType", eventType);
+            activity.put("adminId", adminId != null ? adminId : "admin");
+            activity.put("actorId", adminId != null ? adminId : "admin");
+            activity.put("targetType", targetType);
+            activity.put("targetId", targetId);
+            activity.put("description", description);
+            activity.put("createdAt", Timestamp.now());
+            db.collection("admin_activities").document(id).set(activity);
+        } catch (Exception ignored) {}
+    }
+
+    public List<Map<String, Object>> getRecentAdminActivities(AuthenticatedUser admin, int limit) {
+        requireAdmin(admin);
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> docs = db.collection("admin_activities")
+                    .get().get().getDocuments();
+
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (QueryDocumentSnapshot doc : docs) {
+                if (doc.exists()) {
+                    Map<String, Object> map = new HashMap<>(doc.getData());
+                    map.put("id", doc.getId());
+                    if (map.get("createdAt") instanceof Timestamp ts) {
+                        map.put("createdAt", ts.toDate().toInstant().toString());
+                    }
+                    list.add(map);
+                }
+            }
+
+            list.sort((a, b) -> {
+                String ca = String.valueOf(a.getOrDefault("createdAt", ""));
+                String cb = String.valueOf(b.getOrDefault("createdAt", ""));
+                return cb.compareTo(ca);
+            });
+
+            if (list.size() > limit) {
+                return list.subList(0, limit);
+            }
+            return list;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    public Map<String, Object> suspendHost(AuthenticatedUser admin, String hostId, String reason) {
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+        Timestamp now = Timestamp.now();
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", "suspended");
+        updates.put("suspensionReason", reason != null ? reason.trim() : "Suspended by Administrator");
+        updates.put("updatedAt", now);
+
+        try {
+            userRepository.update(cleanHostId, updates);
+            logAdminActivity(admin.getUid(), "HOST_SUSPENDED", "host", cleanHostId, "Suspended host account: " + cleanHostId + (reason != null ? " Reason: " + reason : ""));
+            return sanitizeAdminUser(getExistingUser(cleanHostId));
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to suspend host", e);
+        }
+    }
+
+    public Map<String, Object> banHost(AuthenticatedUser admin, String hostId, String reason) {
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+        Timestamp now = Timestamp.now();
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", "banned");
+        updates.put("banReason", reason != null ? reason.trim() : "Banned by Administrator");
+        updates.put("updatedAt", now);
+
+        try {
+            userRepository.update(cleanHostId, updates);
+            logAdminActivity(admin.getUid(), "HOST_BANNED", "host", cleanHostId, "Banned host account: " + cleanHostId);
+            return sanitizeAdminUser(getExistingUser(cleanHostId));
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to ban host", e);
+        }
+    }
+
+    public Map<String, Object> reactivateHost(AuthenticatedUser admin, String hostId) {
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+        Timestamp now = Timestamp.now();
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", "active");
+        updates.put("updatedAt", now);
+
+        try {
+            userRepository.update(cleanHostId, updates);
+            logAdminActivity(admin.getUid(), "HOST_REACTIVATED", "host", cleanHostId, "Reactivated host account: " + cleanHostId);
+            return sanitizeAdminUser(getExistingUser(cleanHostId));
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to reactivate host", e);
+        }
+    }
+
+    public Map<String, Object> pauseHostSubscription(AuthenticatedUser admin, String hostId) {
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> subs = db.collection("subscriptions")
+                    .whereEqualTo("hostId", cleanHostId)
+                    .get().get().getDocuments();
+
+            for (QueryDocumentSnapshot sub : subs) {
+                db.collection("subscriptions").document(sub.getId()).update("status", "paused", "updatedAt", Timestamp.now());
+            }
+
+            logAdminActivity(admin.getUid(), "SUBSCRIPTION_PAUSED", "subscription", cleanHostId, "Paused subscription for host: " + cleanHostId);
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("hostId", cleanHostId);
+            res.put("status", "paused");
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to pause subscription", e);
+        }
+    }
+
+    public Map<String, Object> resumeHostSubscription(AuthenticatedUser admin, String hostId) {
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> subs = db.collection("subscriptions")
+                    .whereEqualTo("hostId", cleanHostId)
+                    .get().get().getDocuments();
+
+            for (QueryDocumentSnapshot sub : subs) {
+                db.collection("subscriptions").document(sub.getId()).update("status", "active", "updatedAt", Timestamp.now());
+            }
+
+            logAdminActivity(admin.getUid(), "SUBSCRIPTION_RESUMED", "subscription", cleanHostId, "Resumed subscription for host: " + cleanHostId);
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("hostId", cleanHostId);
+            res.put("status", "active");
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to resume subscription", e);
         }
     }
 

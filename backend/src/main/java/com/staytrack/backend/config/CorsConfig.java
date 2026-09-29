@@ -34,12 +34,14 @@ public class CorsConfig {
                 List.of(
                         "Authorization",
                         "Content-Type",
-                        "Accept"
+                        "Accept",
+                        "X-Admin-Session",
+                        "x-admin-session"
                 )
         );
 
         configuration.setExposedHeaders(
-                List.of("Authorization")
+                List.of("Authorization", "X-Admin-Session")
         );
 
         configuration.setAllowCredentials(true);

@@ -16,17 +16,32 @@ import {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+function getAdminToken(): string | null {
+  if (typeof window !== "undefined") {
+    const token = sessionStorage.getItem("staytrack_admin_token");
+    if (token) return token;
+  }
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|; )staytrack_admin_session=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 /**
- * Generic fetch wrapper attaching Firebase Auth Bearer token if available
+ * Generic fetch wrapper attaching Firebase Auth Bearer token and Admin Session token if available
  */
 async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   let token = await getIdToken();
+  const adminSessionToken = getAdminToken();
 
   const makeRequest = async (authToken: string | null) => {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
     };
+
+    if (adminSessionToken && endpoint.startsWith("/api/admin")) {
+      headers["X-Admin-Session"] = adminSessionToken;
+    }
 
     if (authToken) {
       headers["Authorization"] = `Bearer ${authToken}`;
@@ -35,6 +50,7 @@ async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): P
     return fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
+      credentials: "include",
     });
   };
 
@@ -384,8 +400,28 @@ export async function getMyReviews(): Promise<Review[]> {
 // ==========================================
 // ADMIN API
 // ==========================================
+function buildQueryString(params?: Record<string, any>): string {
+  if (!params) return "";
+  const clean: Record<string, string> = {};
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") {
+      clean[k] = String(v);
+    }
+  });
+  const str = new URLSearchParams(clean).toString();
+  return str ? `?${str}` : "";
+}
+
 export async function getAdminSummary(): Promise<AdminDashboardSummary> {
   return apiFetch<AdminDashboardSummary>("/api/admin/dashboard/summary");
+}
+
+export async function getAdminActivities(): Promise<any[]> {
+  try {
+    return await apiFetch<any[]>("/api/admin/activities");
+  } catch {
+    return [];
+  }
 }
 
 export async function listAdminUsers(params?: {
@@ -395,8 +431,8 @@ export async function listAdminUsers(params?: {
   page?: number;
   pageSize?: number;
 }): Promise<any> {
-  const query = new URLSearchParams(params as any).toString();
-  return apiFetch(`/api/admin/users?${query}`);
+  const query = buildQueryString(params);
+  return apiFetch(`/api/admin/users${query}`);
 }
 
 export async function updateAdminUserStatus(userId: string, status: string): Promise<any> {
@@ -407,6 +443,28 @@ export async function updateAdminUserRole(userId: string, role: string): Promise
   return apiFetch(`/api/admin/users/${userId}/role?role=${encodeURIComponent(role)}`, { method: "PUT" });
 }
 
+export async function suspendAdminHost(hostId: string, reason?: string): Promise<any> {
+  const q = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  return apiFetch(`/api/admin/hosts/${hostId}/suspend${q}`, { method: "PUT" });
+}
+
+export async function banAdminHost(hostId: string, reason?: string): Promise<any> {
+  const q = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  return apiFetch(`/api/admin/hosts/${hostId}/ban${q}`, { method: "PUT" });
+}
+
+export async function reactivateAdminHost(hostId: string): Promise<any> {
+  return apiFetch(`/api/admin/hosts/${hostId}/reactivate`, { method: "PUT" });
+}
+
+export async function pauseHostSubscription(hostId: string): Promise<any> {
+  return apiFetch(`/api/admin/hosts/${hostId}/subscription/pause`, { method: "PUT" });
+}
+
+export async function resumeHostSubscription(hostId: string): Promise<any> {
+  return apiFetch(`/api/admin/hosts/${hostId}/subscription/resume`, { method: "PUT" });
+}
+
 export async function listAdminProperties(params?: {
   verificationStatus?: string;
   listingStatus?: string;
@@ -414,8 +472,8 @@ export async function listAdminProperties(params?: {
   page?: number;
   pageSize?: number;
 }): Promise<any> {
-  const query = new URLSearchParams(params as any).toString();
-  return apiFetch(`/api/admin/properties?${query}`);
+  const query = buildQueryString(params);
+  return apiFetch(`/api/admin/properties${query}`);
 }
 
 export async function approveProperty(propertyId: string, note?: string): Promise<any> {
@@ -453,8 +511,8 @@ export async function listAdminHostApplications(params?: {
   page?: number;
   pageSize?: number;
 }): Promise<any> {
-  const query = new URLSearchParams(params as any).toString();
-  return apiFetch(`/api/admin/host-applications?${query}`);
+  const query = buildQueryString(params);
+  return apiFetch(`/api/admin/host-applications${query}`);
 }
 
 export async function approveHostApplication(applicationId: string, adminNote?: string): Promise<any> {

@@ -18,7 +18,7 @@ export default function MobileNav() {
     { label: "Explore", icon: "🏠", path: "/" },
     { label: "Stays", icon: "🔍", path: "/properties" },
     { label: "Bookings", icon: "🧳", path: bookingsPath },
-    ...(firebaseUser ? [{ label: "Chat", icon: "💬", path: "/chat" }] : []),
+    ...(firebaseUser ? [{ label: "Chat", icon: "/icons/chat-bubble.png", path: "/chat" }] : []),
   ];
 
   if (role === "host") {
@@ -43,7 +43,11 @@ export default function MobileNav() {
                 isActive ? "text-black font-bold scale-105" : "text-zinc-500 font-medium hover:text-zinc-900"
               }`}
             >
-              <span className="text-lg leading-none">{item.icon}</span>
+              {item.icon.startsWith("/") ? (
+                <img src={item.icon} alt="" className="w-5 h-5 object-contain" />
+              ) : (
+                <span className="text-lg leading-none">{item.icon}</span>
+              )}
               <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
             </Link>
           );

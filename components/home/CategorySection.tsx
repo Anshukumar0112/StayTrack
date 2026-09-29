@@ -14,13 +14,19 @@ interface CategorySectionProps {
 
 export default function CategorySection({ category, properties, loading }: CategorySectionProps) {
   const exploreUrl = `/properties?category=${category.id}`;
+  const sectionId = category.id.toLowerCase();
+  const pluralId = sectionId === "bnb" ? "bnbs" : sectionId === "hostel" ? "hostels" : sectionId === "pg" ? "pgs" : sectionId === "hotel" ? "hotels" : "flats";
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-10 w-full border-b border-zinc-100 last:border-0">
+    <section id={pluralId} className="mx-auto max-w-7xl px-6 py-10 w-full border-b border-zinc-100 last:border-0 scroll-mt-28 sm:scroll-mt-32">
       <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{category.icon || "🏡"}</span>
+            {category.icon?.startsWith("/") ? (
+              <img src={category.icon} alt="" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
+            ) : (
+              <span className="text-2xl">{category.icon || "🏡"}</span>
+            )}
             <h2 className="text-2xl sm:text-3xl font-black text-zinc-950">{category.label}</h2>
           </div>
           <p className="text-xs text-zinc-500 font-semibold mt-1 max-w-xl">
@@ -52,8 +58,12 @@ export default function CategorySection({ category, properties, loading }: Categ
           ))}
         </div>
       ) : (
-        <GlassCard className="py-10 px-6 text-center border border-zinc-200 bg-zinc-50/40">
-          <span className="text-4xl">{category.icon || "🏠"}</span>
+        <GlassCard className="py-10 px-6 text-center border border-zinc-200 bg-zinc-50/40 flex flex-col items-center justify-center">
+          {category.icon?.startsWith("/") ? (
+            <img src={category.icon} alt="" className="w-14 h-14 sm:w-16 sm:h-16 object-contain" />
+          ) : (
+            <span className="text-4xl">{category.icon || "🏠"}</span>
+          )}
           <h3 className="text-base font-bold text-zinc-950 mt-3">
             No {category.label} listed yet in Delhi NCR
           </h3>

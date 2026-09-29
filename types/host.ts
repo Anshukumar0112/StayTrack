@@ -36,11 +36,13 @@ export interface HostSubscription {
 
 export interface AdminDashboardSummary {
   totalUsers: number;
-  totalHosts: number;
-  totalProperties: number;
+  totalHosts?: number;
+  hosts?: number;
+  totalProperties?: number;
+  activeProperties?: number;
   pendingProperties: number;
   pendingHostApplications: number;
-  totalBookings: number;
-  activeBookings: number;
-  totalRevenue: number;
+  totalBookings?: number;
+  activeBookings?: number;
+  totalRevenue?: number;
 }

@@ -27,6 +27,9 @@ export function useAdminGuard() {
         if (sessionRes.ok) {
           const sessionData = await sessionRes.json();
           if (sessionData.authenticated) {
+            if (typeof window !== "undefined" && sessionData.adminToken) {
+              sessionStorage.setItem("staytrack_admin_token", sessionData.adminToken);
+            }
             setIsAdmin(true);
             setLoading(false);
             return;

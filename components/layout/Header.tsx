@@ -76,7 +76,7 @@ export default function Header() {
     { name: "Explore", path: "/" },
     { name: "Stays", path: "/properties" },
     { name: "My Bookings", path: myBookingsPath },
-    ...(firebaseUser ? [{ name: "Chat", path: "/chat" }] : []),
+    ...(firebaseUser ? [{ name: "Chat", path: "/chat", icon: "/icons/chat-bubble.png" }] : []),
     { name: listPropertyLabel, path: listPropertyPath },
   ];
 
@@ -100,13 +100,14 @@ export default function Header() {
               <Link
                 key={item.path}
                 href={item.path}
-                className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all ${
+                className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all flex items-center gap-1.5 ${
                   isActive
                     ? "bg-black text-white shadow-sm"
                     : "text-zinc-700 hover:bg-zinc-100 hover:text-black"
                 }`}
               >
-                {item.name}
+                {item.icon && <img src={item.icon} alt="" className="w-4 h-4 object-contain" />}
+                <span>{item.name}</span>
               </Link>
             );
           })}
@@ -118,11 +119,11 @@ export default function Header() {
             <div className="relative">
               <button
                 onClick={toggleNotifications}
-                className="p-2 rounded-xl border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 transition-all relative cursor-pointer"
+                className="p-2 rounded-xl border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 transition-all relative cursor-pointer flex items-center justify-center"
                 title="Notifications"
                 aria-label="Notifications"
               >
-                🔔
+                <img src="/icons/bell.png" alt="" className="w-5 h-5 object-contain" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
                     {unreadCount > 9 ? "9+" : unreadCount}

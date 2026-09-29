@@ -89,13 +89,14 @@ export default function HeroSearch() {
           <button
             type="button"
             onClick={() => setSearchMode("ai")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
               searchMode === "ai"
                 ? "bg-emerald-600 text-white shadow-sm"
                 : "text-zinc-700 hover:text-black"
             }`}
           >
-            ✨ AI Search
+            <img src="/icons/sparkles.png" alt="" className="w-3.5 h-3.5 object-contain" />
+            <span>AI Search</span>
           </button>
         </div>
       </div>
@@ -107,14 +108,21 @@ export default function HeroSearch() {
               <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1 px-1">
                 City / Location (Delhi NCR)
               </label>
-              <input
-                type="text"
-                list="city-suggestions"
-                placeholder="Search Delhi NCR (e.g. Delhi, Gurugram, Noida)..."
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="glass-input w-full px-4 py-3 rounded-xl text-sm font-semibold placeholder-zinc-400"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  list="city-suggestions"
+                  placeholder="Search Delhi NCR (e.g. Delhi, Gurugram, Noida)..."
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-sm font-semibold placeholder-zinc-400"
+                />
+                <img
+                  src="/icons/location-pin.png"
+                  alt=""
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 object-contain pointer-events-none"
+                />
+              </div>
               <datalist id="city-suggestions">
                 {SUPPORTED_LOCATIONS.map((loc) => (
                   <option key={loc.id} value={loc.name} />
@@ -171,7 +179,8 @@ export default function HeroSearch() {
                 disabled={aiLoading}
                 className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 px-6 shadow-md transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
-                <span>{aiLoading ? "Searching AI..." : "✨ Find Stays with AI"}</span>
+                <img src="/icons/sparkles.png" alt="" className="w-4 h-4 object-contain" />
+                <span>{aiLoading ? "Searching AI..." : "Find Stays with AI"}</span>
               </button>
             </div>
           </div>

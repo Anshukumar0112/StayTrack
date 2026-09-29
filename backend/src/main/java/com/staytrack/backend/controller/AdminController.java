@@ -588,4 +588,48 @@ public class AdminController {
                 )
         );
     }
+
+    @PutMapping("/hosts/{hostId}/suspend")
+    public ResponseEntity<Map<String, Object>> suspendHost(
+            @PathVariable String hostId,
+            @RequestParam(required = false) String reason) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.suspendHost(admin, hostId, reason));
+    }
+
+    @PutMapping("/hosts/{hostId}/ban")
+    public ResponseEntity<Map<String, Object>> banHost(
+            @PathVariable String hostId,
+            @RequestParam(required = false) String reason) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.banHost(admin, hostId, reason));
+    }
+
+    @PutMapping("/hosts/{hostId}/reactivate")
+    public ResponseEntity<Map<String, Object>> reactivateHost(
+            @PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.reactivateHost(admin, hostId));
+    }
+
+    @PutMapping("/hosts/{hostId}/subscription/pause")
+    public ResponseEntity<Map<String, Object>> pauseHostSubscription(
+            @PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.pauseHostSubscription(admin, hostId));
+    }
+
+    @PutMapping("/hosts/{hostId}/subscription/resume")
+    public ResponseEntity<Map<String, Object>> resumeHostSubscription(
+            @PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.resumeHostSubscription(admin, hostId));
+    }
+
+    @GetMapping("/activities")
+    public ResponseEntity<List<Map<String, Object>>> getRecentActivities(
+            @RequestParam(defaultValue = "15") int limit) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.getRecentAdminActivities(admin, limit));
+    }
 }

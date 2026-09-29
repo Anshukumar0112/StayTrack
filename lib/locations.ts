@@ -15,7 +15,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Delhi",
     state: "Delhi",
     region: NCR_SERVICE_REGION,
-    image: "🏛️",
+    image: "/icons/location-pin.png",
     description: "Capital region stays & central hubs",
   },
   {
@@ -23,7 +23,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Gurugram",
     state: "Haryana",
     region: NCR_SERVICE_REGION,
-    image: "🏙️",
+    image: "/icons/location-pin.png",
     description: "Cyber City, Golf Course & tech corridors",
   },
   {
@@ -31,7 +31,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Noida",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    image: "🏢",
+    image: "/icons/location-pin.png",
     description: "Sector hubs, IT parks & expressways",
   },
   {
@@ -39,7 +39,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Greater Noida",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    image: "🏬",
+    image: "/icons/location-pin.png",
     description: "Knowledge parks & educational hubs",
   },
   {
@@ -47,7 +47,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Ghaziabad",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    image: "🏘️",
+    image: "/icons/location-pin.png",
     description: "Indirapuram, Vaishali & residential zones",
   },
   {
@@ -55,7 +55,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Faridabad",
     state: "Haryana",
     region: NCR_SERVICE_REGION,
-    image: "🏙️",
+    image: "/icons/location-pin.png",
     description: "Industrial hubs & connectivity corridors",
   },
 ];

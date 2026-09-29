@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { listAdminUsers, updateAdminUserStatus, updateAdminUserRole } from "@/lib/api";
 import { User } from "@/types/user";
@@ -27,13 +24,8 @@ export default function AdminUsersPage() {
       pageSize: 30,
     })
       .then((res) => {
-        if (res && Array.isArray(res.content)) {
-          setUsers(res.content);
-        } else if (Array.isArray(res)) {
-          setUsers(res);
-        } else {
-          setUsers([]);
-        }
+        const userList = res?.users || res?.content || res?.data || (Array.isArray(res) ? res : []);
+        setUsers(Array.isArray(userList) ? userList : []);
       })
       .catch((err) => console.warn("Fetch admin users error:", err))
       .finally(() => setLoading(false));
@@ -86,10 +78,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">User Account Management</h1>
@@ -177,10 +166,6 @@ export default function AdminUsersPage() {
             </div>
           )}
         </GlassCard>
-      </main>
-
-      <Footer />
-      <MobileNav />
-    </div>
+    </main>
   );
 }

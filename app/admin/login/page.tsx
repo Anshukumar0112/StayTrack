@@ -3,10 +3,8 @@
 import { FormEvent, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import GlassCard from "@/components/ui/GlassCard";
-import { signInWithEmail, signInWithGoogle, getIdToken } from "@/lib/auth";
+import { signInWithGoogle, getIdToken } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/api";
 
 function AdminLoginContent() {
@@ -50,6 +48,9 @@ function AdminLoginContent() {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        if (typeof window !== "undefined" && data.adminToken) {
+          sessionStorage.setItem("staytrack_admin_token", data.adminToken);
+        }
         setMessage("Admin authenticated successfully! Redirecting to command console...");
         setTimeout(() => {
           window.location.href = returnTarget.startsWith("/admin") ? returnTarget : "/admin";
@@ -86,12 +87,27 @@ function AdminLoginContent() {
         throw new Error("Unable to retrieve authentication token.");
       }
 
-      const userProfile = await getCurrentUser(token);
-      if (userProfile && userProfile.role === "admin") {
+      const res = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isGoogleAuth: true }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        if (typeof window !== "undefined" && data.adminToken) {
+          sessionStorage.setItem("staytrack_admin_token", data.adminToken);
+        }
         setMessage("Administrator verified! Redirecting to command console...");
-        router.replace(returnTarget.startsWith("/admin") ? returnTarget : "/admin");
+        setTimeout(() => {
+          window.location.href = returnTarget.startsWith("/admin") ? returnTarget : "/admin";
+        }, 500);
       } else {
-        setError("Access Denied: This account is not registered as an Admin in StayTrack.");
+        setError(data.error || "Access Denied: This account is not registered as an Admin in StayTrack.");
         setLoading(false);
         setGoogleLoading(false);
       }
@@ -103,8 +119,8 @@ function AdminLoginContent() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-12 w-full flex-1 flex items-center justify-center">
-      <GlassCard className="p-8 border border-zinc-200 shadow-2xl w-full relative">
+    <main className="mx-auto max-w-md px-6 py-16 w-full flex-1 flex items-center justify-center">
+      <GlassCard className="p-8 border border-zinc-200 bg-white/95 backdrop-blur-md shadow-2xl w-full relative rounded-3xl">
         {/* Header Badge & Title */}
         <div className="text-center mb-6">
           <span className="inline-block px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-wider rounded-full mb-3 shadow-xs">
@@ -146,7 +162,7 @@ function AdminLoginContent() {
               value={adminId}
               onChange={(e) => setAdminId(e.target.value)}
               disabled={loading || googleLoading}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-zinc-50 text-xs font-semibold text-black outline-none focus:border-black focus:bg-white transition"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-zinc-50 text-xs font-semibold text-zinc-900 outline-none focus:border-black focus:bg-white transition"
             />
           </div>
 
@@ -162,7 +178,7 @@ function AdminLoginContent() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading || googleLoading}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-zinc-50 text-xs font-semibold text-black outline-none focus:border-black focus:bg-white transition"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-300 bg-zinc-50 text-xs font-semibold text-zinc-900 outline-none focus:border-black focus:bg-white transition"
             />
           </div>
 
@@ -187,7 +203,7 @@ function AdminLoginContent() {
           type="button"
           onClick={handleGoogleAdminSignIn}
           disabled={loading || googleLoading}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-xs font-bold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-50 cursor-pointer"
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-300 bg-white hover:bg-zinc-50 px-4 py-3 text-xs font-bold text-zinc-800 transition disabled:opacity-50 cursor-pointer shadow-xs"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -211,7 +227,7 @@ function AdminLoginContent() {
         </button>
 
         <div className="mt-6 text-center text-xs text-zinc-500 pt-4 border-t border-zinc-100">
-          <Link href="/" className="font-bold text-zinc-700 hover:text-black">
+          <Link href="/" className="font-bold text-zinc-700 hover:text-black transition">
             ← Return to Public StayTrack Site
           </Link>
         </div>
@@ -222,18 +238,14 @@ function AdminLoginContent() {
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-      <Suspense
-        fallback={
-          <div className="flex-1 flex items-center justify-center py-16 text-xs font-bold text-zinc-500">
-            Loading Admin Gateway...
-          </div>
-        }
-      >
-        <AdminLoginContent />
-      </Suspense>
-      <Footer />
-    </div>
+    <Suspense
+      fallback={
+        <div className="flex-1 flex items-center justify-center py-16 text-xs font-bold text-zinc-500">
+          Loading Admin Gateway...
+        </div>
+      }
+    >
+      <AdminLoginContent />
+    </Suspense>
   );
 }

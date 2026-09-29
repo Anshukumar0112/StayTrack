@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const DEFAULT_ADMIN_ID = "admin";
-const DEFAULT_ADMIN_PASS = "admin123";
-
 async function sha256(message: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(message);
@@ -38,48 +35,54 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("staytrack_admin_session")?.value;
-
-  if (!token) {
+  const loginRedirect = () => {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("returnTo", pathname);
     return NextResponse.redirect(loginUrl);
+  };
+
+  const expectedAdminId = process.env.ADMIN_ID || null;
+  const expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH?.trim() || null;
+  const devPassword = process.env.ADMIN_PASSWORD || null;
+
+  // Determine HMAC secret (prefer ADMIN_SECRET, then ADMIN_PASSWORD_HASH, then dev ADMIN_PASSWORD)
+  let secret = process.env.ADMIN_SECRET?.trim() || expectedPasswordHash;
+  if (!secret && devPassword) {
+    secret = await sha256(devPassword);
+  }
+
+  // If server admin credentials/secret are not configured, block access to /admin/*
+  if (!expectedAdminId || !secret) {
+    return loginRedirect();
+  }
+
+  const token = request.cookies.get("staytrack_admin_session")?.value;
+
+  if (!token) {
+    return loginRedirect();
   }
 
   const parts = token.split(":");
   if (parts.length !== 3) {
-    const loginUrl = new URL("/admin/login", request.url);
-    loginUrl.searchParams.set("returnTo", pathname);
-    return NextResponse.redirect(loginUrl);
+    return loginRedirect();
   }
 
   const [adminId, timestampStr, hmac] = parts;
   const timestamp = parseInt(timestampStr, 10);
 
-  // Check timestamp expiration (24 hours)
+  // Check timestamp expiration (24 hours = 86,400,000 ms)
   if (isNaN(timestamp) || Date.now() - timestamp > 24 * 60 * 60 * 1000) {
-    const loginUrl = new URL("/admin/login", request.url);
-    loginUrl.searchParams.set("returnTo", pathname);
-    return NextResponse.redirect(loginUrl);
+    return loginRedirect();
   }
-
-  const expectedAdminId = process.env.ADMIN_ID || DEFAULT_ADMIN_ID;
-  const expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH;
-  const expectedPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASS;
 
   if (adminId.toLowerCase() !== expectedAdminId.toLowerCase()) {
-    const loginUrl = new URL("/admin/login", request.url);
-    loginUrl.searchParams.set("returnTo", pathname);
-    return NextResponse.redirect(loginUrl);
+    return loginRedirect();
   }
 
-  const secret = process.env.ADMIN_SECRET || expectedPasswordHash || (await sha256(expectedPassword));
   const expectedHmac = await hmacSha256(secret, `${expectedAdminId}:${timestampStr}`);
 
   if (hmac !== expectedHmac) {
-    const loginUrl = new URL("/admin/login", request.url);
-    loginUrl.searchParams.set("returnTo", pathname);
-    return NextResponse.redirect(loginUrl);
+    return loginRedirect();
   }
 
   return NextResponse.next();

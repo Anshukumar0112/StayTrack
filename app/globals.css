@@ -17,6 +17,15 @@ body {
   overflow-x: hidden;
 }
 
+/* Hide scrollbar utility for clean touch/horizontal scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 /* Glassmorphism Design Utilities (Light White & Black Theme) */
 .glass-card {
   background: rgba(255, 255, 255, 0.85);

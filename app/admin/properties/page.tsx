@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { listAdminProperties, approveProperty, requestPropertyChanges, rejectProperty, updatePropertyAssignment } from "@/lib/api";
 import { Property } from "@/types/property";
@@ -29,13 +26,8 @@ export default function AdminPropertiesPage() {
       pageSize: 30,
     })
       .then((res) => {
-        if (res && Array.isArray(res.content)) {
-          setProperties(res.content);
-        } else if (Array.isArray(res)) {
-          setProperties(res);
-        } else {
-          setProperties([]);
-        }
+        const propList = res?.properties || res?.content || res?.data || (Array.isArray(res) ? res : []);
+        setProperties(Array.isArray(propList) ? propList : []);
       })
       .catch((err) => console.warn("Fetch admin properties error:", err))
       .finally(() => setLoading(false));
@@ -94,10 +86,7 @@ export default function AdminPropertiesPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-950">Property Verification Queue</h1>
@@ -124,8 +113,10 @@ export default function AdminPropertiesPage() {
             <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading properties queue...</div>
           ) : properties.length > 0 ? (
             <div className="divide-y divide-zinc-200">
-              {properties.map((p) => (
-                <div key={p.id} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {properties.map((p, idx) => {
+                const propKey = p.id || p.propertyId || `prop_${idx}`;
+                return (
+                  <div key={propKey} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="clay-badge px-2.5 py-0.5 text-[10px] font-bold uppercase">{p.propertyType || "Flat"}</span>
@@ -208,7 +199,8 @@ export default function AdminPropertiesPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           ) : (
             <div className="py-16 text-center text-xs font-semibold text-zinc-400">
@@ -253,9 +245,5 @@ export default function AdminPropertiesPage() {
           </div>
         )}
       </main>
-
-      <Footer />
-      <MobileNav />
-    </div>
   );
 }
