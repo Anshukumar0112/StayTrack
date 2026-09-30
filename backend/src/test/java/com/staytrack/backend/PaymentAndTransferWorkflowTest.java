@@ -31,50 +31,62 @@ public class PaymentAndTransferWorkflowTest {
         String hostUid = "test_user_host_applicant_001";
         String bookingId = "test_booking_001";
 
-        // 1. Create Payment Record (Task F)
-        Map<String, Object> payment = paymentService.createPaymentRecord(
-                customerUid,
-                bookingId,
-                null,
-                "booking",
-                6000L,
-                "INR",
-                "razorpay"
-        );
-        assertNotNull(payment, "Payment record should not be null");
+        String paymentId = null;
+        String transferId = null;
 
-        String paymentId = (String) payment.get("paymentId");
-        assertNotNull(paymentId, "Payment ID should be generated");
-        assertEquals("created", payment.get("status"), "Payment status should be created");
-        assertEquals(6000L, ((Number) payment.get("amount")).longValue(), "Amount should be 6000");
+        try {
+            // 1. Create Payment Record (Task F)
+            Map<String, Object> payment = paymentService.createPaymentRecord(
+                    customerUid,
+                    bookingId,
+                    null,
+                    "booking",
+                    6000L,
+                    "INR",
+                    "razorpay"
+            );
+            assertNotNull(payment, "Payment record should not be null");
 
-        // Verify in live Firestore payments collection
-        DocumentSnapshot paymentDoc = db.collection("payments").document(paymentId).get().get();
-        assertTrue(paymentDoc.exists(), "Payment document must exist in Firestore");
-        assertEquals("created", paymentDoc.getString("status"));
-        assertEquals("booking", paymentDoc.getString("type"));
+            paymentId = (String) payment.get("paymentId");
+            assertNotNull(paymentId, "Payment ID should be generated");
+            assertEquals("created", payment.get("status"), "Payment status should be created");
+            assertEquals(6000L, ((Number) payment.get("amount")).longValue(), "Amount should be 6000");
 
-        // 2. Create Host Pending Transfer (Task G)
-        String linkedAccountId = "acc_test_linked_account_001";
-        Map<String, Object> transfer = transferService.createPendingTransfer(
-                paymentId,
-                bookingId,
-                hostUid,
-                linkedAccountId,
-                5400L,
-                "INR"
-        );
-        assertNotNull(transfer, "Transfer record should not be null");
+            // Verify in live Firestore payments collection
+            DocumentSnapshot paymentDoc = db.collection("payments").document(paymentId).get().get();
+            assertTrue(paymentDoc.exists(), "Payment document must exist in Firestore");
+            assertEquals("created", paymentDoc.getString("status"));
+            assertEquals("booking", paymentDoc.getString("type"));
 
-        String transferId = (String) transfer.get("transferId");
-        assertEquals(paymentId, transferId, "Transfer ID should match Payment ID");
-        assertEquals("pending", transfer.get("status"), "Transfer status should be pending");
-        assertEquals("pending", transfer.get("settlementStatus"), "Settlement status should be pending");
+            // 2. Create Host Pending Transfer (Task G)
+            String linkedAccountId = "acc_test_linked_account_001";
+            Map<String, Object> transfer = transferService.createPendingTransfer(
+                    paymentId,
+                    bookingId,
+                    hostUid,
+                    linkedAccountId,
+                    5400L,
+                    "INR"
+            );
+            assertNotNull(transfer, "Transfer record should not be null");
 
-        // Verify in live Firestore transfers collection
-        DocumentSnapshot transferDoc = db.collection("transfers").document(transferId).get().get();
-        assertTrue(transferDoc.exists(), "Transfer document must exist in Firestore");
-        assertEquals("pending", transferDoc.getString("status"));
-        assertEquals(hostUid, transferDoc.getString("hostId"));
+            transferId = (String) transfer.get("transferId");
+            assertEquals(paymentId, transferId, "Transfer ID should match Payment ID");
+            assertEquals("pending", transfer.get("status"), "Transfer status should be pending");
+            assertEquals("pending", transfer.get("settlementStatus"), "Settlement status should be pending");
+
+            // Verify in live Firestore transfers collection
+            DocumentSnapshot transferDoc = db.collection("transfers").document(transferId).get().get();
+            assertTrue(transferDoc.exists(), "Transfer document must exist in Firestore");
+            assertEquals("pending", transferDoc.getString("status"));
+            assertEquals(hostUid, transferDoc.getString("hostId"));
+        } finally {
+            if (transferId != null) {
+                try { db.collection("transfers").document(transferId).delete().get(); } catch (Exception ignored) {}
+            }
+            if (paymentId != null) {
+                try { db.collection("payments").document(paymentId).delete().get(); } catch (Exception ignored) {}
+            }
+        }
     }
 }

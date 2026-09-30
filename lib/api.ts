@@ -3,6 +3,7 @@ import {
   SearchRequest,
   AiSearchRequest,
   Property,
+  getPropertyId,
   Booking,
   Review,
   Conversation,
@@ -178,27 +179,54 @@ export async function searchLocations(q: string): Promise<LocationArea[]> {
 export async function getPublicProperties(): Promise<Property[]> {
   return apiFetch<Property[]>("/api/properties/stay-section");
 }
-
 export async function getTopVerifiedProperties(): Promise<Property[]> {
-  return apiFetch<Property[]>("/api/properties/top-verified");
+  const list = await apiFetch<Property[]>("/api/properties/top-verified");
+  return (list || []).map((p) => ({ ...p, id: getPropertyId(p) }));
 }
 
 export async function getStayProperties(): Promise<Property[]> {
-  return apiFetch<Property[]>("/api/properties/stay-section");
+  const list = await apiFetch<Property[]>("/api/properties/stay-section");
+  return (list || []).map((p) => ({ ...p, id: getPropertyId(p) }));
 }
 
 export async function getPropertyDetails(propertyId: string): Promise<Property> {
-  return apiFetch<Property>(`/api/properties/${propertyId}`);
+  const res = await apiFetch<Property>(`/api/properties/${propertyId}`);
+  if (res) {
+    res.id = getPropertyId(res);
+  }
+  return res;
 }
 
 export async function getMyProperties(): Promise<Property[]> {
-  return apiFetch<Property[]>("/api/properties/mine");
+  const list = await apiFetch<Property[]>("/api/properties/mine");
+  return (list || []).map((p) => ({ ...p, id: getPropertyId(p) }));
 }
 
 export async function createProperty(data: Partial<Property>): Promise<any> {
-  return apiFetch("/api/properties", {
+  const res = await apiFetch<any>("/api/properties", {
     method: "POST",
     body: JSON.stringify(data),
+  });
+  if (res) {
+    res.id = getPropertyId(res);
+  }
+  return res;
+}
+
+export async function updateProperty(propertyId: string, data: Partial<Property>): Promise<any> {
+  const res = await apiFetch<any>(`/api/properties/${propertyId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  if (res) {
+    res.id = getPropertyId(res);
+  }
+  return res;
+}
+
+export async function deleteProperty(propertyId: string): Promise<any> {
+  return apiFetch<any>(`/api/properties/${propertyId}`, {
+    method: "DELETE",
   });
 }
 
@@ -207,8 +235,13 @@ export async function createProperty(data: Partial<Property>): Promise<any> {
 // ==========================================
 export async function createBooking(data: {
   propertyId: string;
+  bookingType: string;
   startDate: string;
   endDate: string;
+  startTime?: string;
+  endTime?: string;
+  guestName?: string;
+  contactPhone?: string;
 }): Promise<any> {
   return apiFetch("/api/bookings", {
     method: "POST",
@@ -324,7 +357,21 @@ export async function getMyHostApplication(): Promise<HostApplication | null> {
 // ==========================================
 // CONVERSATIONS & CHAT
 // ==========================================
-export async function createConversation(data: { participantId: string; propertyId?: string }): Promise<Conversation> {
+export async function checkPropertyAvailability(
+  propertyId: string,
+  params: { startDate?: string; endDate?: string; startTime?: string; endTime?: string; bookingType?: string }
+): Promise<{ available: boolean; reason?: string }> {
+  const query = new URLSearchParams();
+  if (params.startDate) query.set("startDate", params.startDate);
+  if (params.endDate) query.set("endDate", params.endDate);
+  if (params.startTime) query.set("startTime", params.startTime);
+  if (params.endTime) query.set("endTime", params.endTime);
+  if (params.bookingType) query.set("bookingType", params.bookingType);
+
+  return apiFetch<{ available: boolean; reason?: string }>(`/api/properties/${propertyId}/availability?${query.toString()}`);
+}
+
+export async function createConversation(data: { propertyId: string; bookingId?: string; participantId?: string }): Promise<Conversation> {
   return apiFetch<Conversation>("/api/conversations", {
     method: "POST",
     body: JSON.stringify(data),
@@ -346,7 +393,7 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
 export async function sendMessage(conversationId: string, text: string): Promise<Message> {
   return apiFetch<Message>(`/api/conversations/${conversationId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ content: text, text }),
   });
 }
 
@@ -457,6 +504,20 @@ export async function reactivateAdminHost(hostId: string): Promise<any> {
   return apiFetch(`/api/admin/hosts/${hostId}/reactivate`, { method: "PUT" });
 }
 
+export async function getHostSubscription(hostId: string): Promise<any> {
+  return apiFetch(`/api/admin/hosts/${hostId}/subscription`);
+}
+
+export async function grantHostSubscription(
+  hostId: string,
+  data?: { plan?: string; durationDays?: number; reason?: string }
+): Promise<any> {
+  return apiFetch(`/api/admin/hosts/${hostId}/subscription/grant`, {
+    method: "POST",
+    body: JSON.stringify(data || {}),
+  });
+}
+
 export async function pauseHostSubscription(hostId: string): Promise<any> {
   return apiFetch(`/api/admin/hosts/${hostId}/subscription/pause`, { method: "PUT" });
 }
@@ -505,6 +566,18 @@ export async function updatePropertyAssignment(
   });
 }
 
+export async function updatePropertyListingStatus(
+  propertyId: string,
+  listingStatus: string,
+  reason?: string
+): Promise<any> {
+  const query = reason ? `&reason=${encodeURIComponent(reason)}` : "";
+  return apiFetch(
+    `/api/admin/properties/${propertyId}/listing-status?listingStatus=${encodeURIComponent(listingStatus)}${query}`,
+    { method: "PUT" }
+  );
+}
+
 export async function listAdminHostApplications(params?: {
   verificationStatus?: string;
   search?: string;
@@ -550,4 +623,65 @@ export async function updateAiSettings(data: any): Promise<any> {
     method: "PUT",
     body: JSON.stringify(data),
   });
+}
+
+export async function deleteAdminUser(userId: string): Promise<any> {
+  try {
+    return await apiFetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+  } catch {
+    return await apiFetch(`/api/admin/users/${userId}/delete`, { method: "POST" });
+  }
+}
+
+export async function deleteAdminHost(hostId: string): Promise<any> {
+  try {
+    return await apiFetch(`/api/admin/hosts/${hostId}`, { method: "DELETE" });
+  } catch {
+    return await apiFetch(`/api/admin/hosts/${hostId}/delete`, { method: "POST" });
+  }
+}
+
+export async function unbanAdminHost(hostId: string): Promise<any> {
+  try {
+    return await apiFetch(`/api/admin/hosts/${hostId}/unban`, { method: "PUT" });
+  } catch {
+    return await apiFetch(`/api/admin/hosts/${hostId}/unban`, { method: "POST" });
+  }
+}
+
+export async function deleteAdminProperty(propertyId: string, reason?: string): Promise<any> {
+  const query = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  try {
+    return await apiFetch(`/api/admin/properties/${propertyId}${query}`, { method: "DELETE" });
+  } catch {
+    return await apiFetch(`/api/admin/properties/${propertyId}/delete${query}`, { method: "POST" });
+  }
+}
+
+export async function deleteAdminHostApplication(applicationId: string): Promise<any> {
+  try {
+    return await apiFetch(`/api/admin/host-applications/${applicationId}`, { method: "DELETE" });
+  } catch {
+    return await apiFetch(`/api/admin/host-applications/${applicationId}/delete`, { method: "POST" });
+  }
+}
+
+export async function deleteAdminReview(reviewId: string): Promise<any> {
+  try {
+    return await apiFetch(`/api/admin/reviews/${reviewId}`, { method: "DELETE" });
+  } catch {
+    return await apiFetch(`/api/admin/reviews/${reviewId}/delete`, { method: "POST" });
+  }
+}
+
+export async function clearAdminActivities(): Promise<any> {
+  try {
+    return await apiFetch("/api/admin/activities", { method: "DELETE" });
+  } catch {
+    try {
+      return await apiFetch("/api/admin/activities/clear", { method: "POST" });
+    } catch {
+      return await apiFetch("/api/admin/activities/delete", { method: "POST" });
+    }
+  }
 }

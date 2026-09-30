@@ -2,17 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { getAdminSummary } from "@/lib/api";
 
 export function useAdminGuard() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminId, setAdminId] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAdminStatus() {
@@ -21,7 +18,7 @@ export function useAdminGuard() {
         return;
       }
 
-      // 1. Check HTTP-only Server Admin Session
+      // Check HTTP-only Dedicated Admin Server Session strictly
       try {
         const sessionRes = await fetch("/api/admin/auth/session");
         if (sessionRes.ok) {
@@ -31,42 +28,27 @@ export function useAdminGuard() {
               sessionStorage.setItem("staytrack_admin_token", sessionData.adminToken);
             }
             setIsAdmin(true);
+            setAdminId(sessionData.adminId || "admin");
             setLoading(false);
             return;
           }
         }
       } catch (e) {
-        // Session check failed, continue to Firebase Auth check fallback
+        // Session verification failed
       }
 
-      // 2. Fallback to Firebase Auth check
-      const user = auth.currentUser;
-      if (user) {
-        setFirebaseUser(user);
-        try {
-          await getAdminSummary();
-          setIsAdmin(true);
-          setLoading(false);
-          return;
-        } catch (err) {
-          console.warn("Admin backend check notice:", err);
-        }
-      }
-
-      // 3. Unauthorized -> Redirect to Admin Login
+      // Unauthorized dedicated admin session -> Clear state & redirect to Admin Login
       setIsAdmin(false);
+      setAdminId(null);
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("staytrack_admin_token");
+      }
       setLoading(false);
       router.replace(`/admin/login?returnTo=${encodeURIComponent(pathname)}`);
     }
 
-    const unsubscribe = onAuthStateChanged(auth, () => {
-      checkAdminStatus();
-    });
-
     checkAdminStatus();
-
-    return () => unsubscribe();
   }, [pathname, router]);
 
-  return { firebaseUser, isAdmin, loading };
+  return { isAdmin, adminId, loading };
 }

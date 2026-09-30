@@ -88,6 +88,18 @@ public class ReviewRepository {
         }
     }
 
+    public void delete(String reviewId) {
+        try {
+            getDb()
+                    .collection(COLLECTION)
+                    .document(reviewId)
+                    .delete()
+                    .get();
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to delete review", e);
+        }
+    }
+
     public static String buildReviewId(
             String reviewerId,
             String bookingId

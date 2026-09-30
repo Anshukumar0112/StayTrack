@@ -35,6 +35,9 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
+        String uri = request.getRequestURI();
+        boolean isAdminRoute = uri != null && uri.startsWith("/api/admin") && !uri.startsWith("/api/admin/auth");
+
         // 1. Check for Admin Security Gateway Session Token (X-Admin-Session header or staytrack_admin_session cookie)
         String adminSessionToken = request.getHeader("X-Admin-Session");
         if (adminSessionToken == null || adminSessionToken.isBlank()) {
@@ -69,7 +72,14 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        // 2. Check for Firebase User Bearer Token
+        // For /api/admin/** endpoints, if admin session token is invalid or missing, do NOT fallback to normal Firebase user tokens
+        if (isAdminRoute) {
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 2. Check for Firebase User Bearer Token (for public/customer/host API endpoints)
         String authorizationHeader = request.getHeader("Authorization");
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {

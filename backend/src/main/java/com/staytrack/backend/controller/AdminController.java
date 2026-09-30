@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -203,7 +204,8 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>>
     updatePropertyListingStatus(
             @PathVariable String propertyId,
-            @RequestParam String listingStatus) {
+            @RequestParam String listingStatus,
+            @RequestParam(required = false) String reason) {
 
         AuthenticatedUser admin =
                 SecurityUtils.getCurrentUser();
@@ -212,7 +214,8 @@ public class AdminController {
                 adminService.updatePropertyListingStatus(
                         admin,
                         propertyId,
-                        listingStatus
+                        listingStatus,
+                        reason
                 )
         );
     }
@@ -612,8 +615,53 @@ public class AdminController {
         return ResponseEntity.ok(adminService.reactivateHost(admin, hostId));
     }
 
+    @GetMapping("/hosts/{hostId}/subscription")
+    public ResponseEntity<Map<String, Object>> getHostSubscription(
+            @PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.getHostSubscription(admin, hostId));
+    }
+
+    @PostMapping("/hosts/{hostId}/subscription/grant")
+    public ResponseEntity<Map<String, Object>> grantHostSubscription(
+            @PathVariable String hostId,
+            @RequestBody(required = false) Map<String, Object> body,
+            @RequestParam(required = false) String plan,
+            @RequestParam(required = false) Long durationDays,
+            @RequestParam(required = false) String reason) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        String targetPlan = plan;
+        Long targetDuration = durationDays;
+        String targetReason = reason;
+        if (body != null) {
+            if (targetPlan == null && body.get("plan") != null) targetPlan = String.valueOf(body.get("plan"));
+            if (targetDuration == null && body.get("durationDays") != null) {
+                targetDuration = ((Number) body.get("durationDays")).longValue();
+            }
+            if (targetReason == null && body.get("reason") != null) targetReason = String.valueOf(body.get("reason"));
+        }
+        return ResponseEntity.ok(adminService.grantHostSubscription(admin, hostId, targetPlan, targetDuration, targetReason));
+    }
+
+    @PutMapping("/hosts/{hostId}/subscription/grant")
+    public ResponseEntity<Map<String, Object>> grantHostSubscriptionPut(
+            @PathVariable String hostId,
+            @RequestBody(required = false) Map<String, Object> body,
+            @RequestParam(required = false) String plan,
+            @RequestParam(required = false) Long durationDays,
+            @RequestParam(required = false) String reason) {
+        return grantHostSubscription(hostId, body, plan, durationDays, reason);
+    }
+
     @PutMapping("/hosts/{hostId}/subscription/pause")
     public ResponseEntity<Map<String, Object>> pauseHostSubscription(
+            @PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.pauseHostSubscription(admin, hostId));
+    }
+
+    @PostMapping("/hosts/{hostId}/subscription/pause")
+    public ResponseEntity<Map<String, Object>> pauseHostSubscriptionPost(
             @PathVariable String hostId) {
         AuthenticatedUser admin = SecurityUtils.getCurrentUser();
         return ResponseEntity.ok(adminService.pauseHostSubscription(admin, hostId));
@@ -626,10 +674,123 @@ public class AdminController {
         return ResponseEntity.ok(adminService.resumeHostSubscription(admin, hostId));
     }
 
+    @PostMapping("/hosts/{hostId}/subscription/resume")
+    public ResponseEntity<Map<String, Object>> resumeHostSubscriptionPost(
+            @PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.resumeHostSubscription(admin, hostId));
+    }
+
     @GetMapping("/activities")
     public ResponseEntity<List<Map<String, Object>>> getRecentActivities(
             @RequestParam(defaultValue = "15") int limit) {
         AuthenticatedUser admin = SecurityUtils.getCurrentUser();
         return ResponseEntity.ok(adminService.getRecentAdminActivities(admin, limit));
+    }
+
+    @DeleteMapping("/activities")
+    public ResponseEntity<Map<String, Object>> clearActivities() {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.clearAdminActivities(admin));
+    }
+
+    @PostMapping("/activities/clear")
+    public ResponseEntity<Map<String, Object>> clearActivitiesPost() {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.clearAdminActivities(admin));
+    }
+
+    @PostMapping("/activities/delete")
+    public ResponseEntity<Map<String, Object>> clearActivitiesDeletePost() {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.clearAdminActivities(admin));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable String userId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteUser(admin, userId));
+    }
+
+    @PostMapping("/users/{userId}/delete")
+    public ResponseEntity<Map<String, Object>> deleteUserPost(@PathVariable String userId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteUser(admin, userId));
+    }
+
+    @DeleteMapping("/hosts/{hostId}")
+    public ResponseEntity<Map<String, Object>> deleteHost(@PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteHost(admin, hostId));
+    }
+
+    @PostMapping("/hosts/{hostId}/delete")
+    public ResponseEntity<Map<String, Object>> deleteHostPost(@PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteHost(admin, hostId));
+    }
+
+    @PutMapping("/hosts/{hostId}/unban")
+    public ResponseEntity<Map<String, Object>> unbanHost(@PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.unbanHost(admin, hostId));
+    }
+
+    @PostMapping("/hosts/{hostId}/unban")
+    public ResponseEntity<Map<String, Object>> unbanHostPost(@PathVariable String hostId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.unbanHost(admin, hostId));
+    }
+
+    @DeleteMapping("/properties/{propertyId}")
+    public ResponseEntity<Map<String, Object>> deleteProperty(
+            @PathVariable String propertyId,
+            @RequestParam(required = false) String reason) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteProperty(admin, propertyId, reason));
+    }
+
+    @PostMapping("/properties/{propertyId}/delete")
+    public ResponseEntity<Map<String, Object>> deletePropertyPost(
+            @PathVariable String propertyId,
+            @RequestParam(required = false) String reason) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteProperty(admin, propertyId, reason));
+    }
+
+    @DeleteMapping("/host-applications/{applicationId}")
+    public ResponseEntity<Map<String, Object>> deleteHostApplication(@PathVariable String applicationId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteHostApplication(admin, applicationId));
+    }
+
+    @PostMapping("/host-applications/{applicationId}/delete")
+    public ResponseEntity<Map<String, Object>> deleteHostApplicationPost(@PathVariable String applicationId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteHostApplication(admin, applicationId));
+    }
+
+    @DeleteMapping("/reviews/{reviewId}")
+    public ResponseEntity<Map<String, Object>> deleteReview(@PathVariable String reviewId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteReview(admin, reviewId));
+    }
+
+    @PostMapping("/reviews/{reviewId}/delete")
+    public ResponseEntity<Map<String, Object>> deleteReviewPost(@PathVariable String reviewId) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.deleteReview(admin, reviewId));
+    }
+
+    @PostMapping("/properties/migrate-locations")
+    public ResponseEntity<Map<String, Object>> migratePropertyLocations() {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.migratePropertyLocationNormalization(admin));
+    }
+
+    @PostMapping("/system/clean-test-data")
+    public ResponseEntity<Map<String, Object>> cleanTestData() {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.cleanupTestArtifacts(admin));
     }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { signOutUser } from "@/lib/auth";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 
 interface AdminHeaderProps {
   onToggleMobileSidebar?: () => void;
@@ -40,13 +40,17 @@ function LogOutIcon({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 export default function AdminHeader({ onToggleMobileSidebar }: AdminHeaderProps) {
+  const { adminId } = useAdminGuard();
+
   const handleAdminLogout = async () => {
     try {
       await fetch("/api/admin/auth/logout", { method: "POST" });
     } catch (e) {
       // Ignore network errors
     }
-    await signOutUser();
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("staytrack_admin_token");
+    }
     window.location.href = "/admin/login";
   };
 
@@ -76,11 +80,11 @@ export default function AdminHeader({ onToggleMobileSidebar }: AdminHeaderProps)
             </Link>
           </div>
 
-          {/* Right: Actions (Session badge, Public site, Sign Out) */}
+          {/* Right: Actions (Dedicated Admin identity, Public site link, Dedicated Sign Out) */}
           <div className="flex items-center gap-3 shrink-0">
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-[11px] font-bold text-emerald-400">
               <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-400" />
-              Admin Session Active
+              <span>Admin: <strong className="text-white">{adminId || "admin"}</strong></span>
             </span>
 
             <Link

@@ -79,48 +79,68 @@ public class BookingLifecycleWorkflowTest {
         pReq.setFurnished(true);
         pReq.setAreaSqFt(1800.0);
 
-        Map<String, Object> property = propertyService.createProperty(hostUser, pReq);
-        String propertyId = (String) property.get("propertyId");
+        String propertyId = null;
+        String bookingId = null;
+        try {
+            Map<String, Object> property = propertyService.createProperty(hostUser, pReq);
+            propertyId = (String) property.get("propertyId");
 
-        adminService.approveProperty(adminUser, propertyId, "Verified");
+            adminService.approveProperty(adminUser, propertyId, "Verified");
 
-        // 4. Customer submits booking request
-        BookingRequest bReq = new BookingRequest();
-        bReq.setPropertyId(propertyId);
-        bReq.setBookingType("daily");
-        bReq.setStartDate("2026-10-01");
-        bReq.setEndDate("2026-10-05");
+            // 4. Customer submits booking request
+            BookingRequest bReq = new BookingRequest();
+            bReq.setPropertyId(propertyId);
+            bReq.setBookingType("daily");
+            bReq.setStartDate("2026-10-01");
+            bReq.setEndDate("2026-10-05");
 
-        Map<String, Object> booking = bookingService.createBooking(customerUser, bReq);
-        assertNotNull(booking, "Booking payload should not be null");
+            Map<String, Object> booking = bookingService.createBooking(customerUser, bReq);
+            assertNotNull(booking, "Booking payload should not be null");
 
-        String bookingId = (String) booking.get("bookingId");
-        assertNotNull(bookingId, "Booking ID should be set");
-        assertEquals("requested", booking.get("bookingStatus"), "Booking status should be requested");
-        assertEquals("created", booking.get("paymentStatus"), "Payment status should be created");
-        assertEquals(6000L, ((Number) booking.get("amount")).longValue(), "Daily rate 1500 * 4 nights should be 6000");
+            bookingId = (String) booking.get("bookingId");
+            assertNotNull(bookingId, "Booking ID should be set");
+            assertEquals("requested", booking.get("bookingStatus"), "Booking status should be requested");
+            assertEquals("created", booking.get("paymentStatus"), "Payment status should be created");
+            assertEquals(6000L, ((Number) booking.get("amount")).longValue(), "Daily rate 1500 * 4 nights should be 6000");
 
-        // 5. Verify live Firestore document in bookings collection
-        DocumentSnapshot bookingDoc = db.collection("bookings").document(bookingId).get().get();
-        assertTrue(bookingDoc.exists(), "Booking document must exist in Firestore");
-        assertEquals("requested", bookingDoc.getString("bookingStatus"));
-        assertEquals(customerUid, bookingDoc.getString("customerId"));
+            // 5. Verify live Firestore document in bookings collection
+            DocumentSnapshot bookingDoc = db.collection("bookings").document(bookingId).get().get();
+            assertTrue(bookingDoc.exists(), "Booking document must exist in Firestore");
+            assertEquals("requested", bookingDoc.getString("bookingStatus"));
+            assertEquals(customerUid, bookingDoc.getString("customerId"));
 
-        // 6. Verify transactional lock / double booking prevention
-        String customer2Uid = "test_user_customer_002";
-        AuthenticatedUser customer2User = new AuthenticatedUser(customer2Uid, "+919666655555", "customer");
-        userService.getOrCreateUser(customer2User);
+            // 6. Verify transactional lock / double booking prevention
+            String customer2Uid = "test_user_customer_002";
+            AuthenticatedUser customer2User = new AuthenticatedUser(customer2Uid, "+919666655555", "customer");
+            userService.getOrCreateUser(customer2User);
 
-        BookingRequest bReqOverlap = new BookingRequest();
-        bReqOverlap.setPropertyId(propertyId);
-        bReqOverlap.setBookingType("daily");
-        bReqOverlap.setStartDate("2026-10-03"); // Overlaps with 2026-10-01 to 2026-10-05
-        bReqOverlap.setEndDate("2026-10-07");
+            BookingRequest bReqOverlap = new BookingRequest();
+            bReqOverlap.setPropertyId(propertyId);
+            bReqOverlap.setBookingType("daily");
+            bReqOverlap.setStartDate("2026-10-03"); // Overlaps with 2026-10-01 to 2026-10-05
+            bReqOverlap.setEndDate("2026-10-07");
 
-        Exception exception = assertThrows(RuntimeException.class, () -> {
-            bookingService.createBooking(customer2User, bReqOverlap);
-        }, "Overlapping booking request must throw an exception due to date locks");
+            Exception exception = assertThrows(RuntimeException.class, () -> {
+                bookingService.createBooking(customer2User, bReqOverlap);
+            }, "Overlapping booking request must throw an exception due to date locks");
 
-        assertNotNull(exception.getMessage(), "Exception message should explain double-booking conflict");
+            assertNotNull(exception.getMessage(), "Exception message should explain double-booking conflict");
+        } finally {
+            if (bookingId != null) {
+                try {
+                    db.collection("bookings").document(bookingId).delete().get();
+                } catch (Exception ignored) {}
+            }
+            if (propertyId != null) {
+                try {
+                    db.collection("properties").document(propertyId).delete().get();
+                } catch (Exception ignored) {}
+            }
+            try { db.collection("subscriptions").document("test_sub_host_001").delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(hostUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(adminUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(customerUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document("test_user_customer_002").delete().get(); } catch (Exception ignored) {}
+        }
     }
 }

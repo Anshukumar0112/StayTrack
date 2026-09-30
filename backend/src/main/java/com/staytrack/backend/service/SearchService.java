@@ -4,6 +4,7 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.staytrack.backend.dto.search.SearchRequest;
 import com.staytrack.backend.repository.BookingRepository;
 import com.staytrack.backend.repository.PropertyRepository;
+import com.staytrack.backend.util.LocationUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -55,6 +56,7 @@ public class SearchService {
                 }
 
                 property = new HashMap<>(property);
+                property.put("id", document.getId());
                 property.put("propertyId", document.getId());
 
                 if (!matches(property, request)) {
@@ -116,6 +118,7 @@ public class SearchService {
                     new HashMap<>();
 
             response.put("results", pageResults);
+            response.put("content", pageResults);
             response.put("page", page);
             response.put("pageSize", pageSize);
             response.put("totalResults", total);
@@ -144,12 +147,26 @@ public class SearchService {
             Map<String, Object> property,
             SearchRequest request
     ) {
-        if (!contains(property.get("city"), request.getCity())) {
-            return false;
+        String reqCityNorm = LocationUtils.normalizeLocation(request.getCity());
+        if (!reqCityNorm.isBlank()) {
+            String propCityNorm = stringValue(property.get("cityNormalized"));
+            if (propCityNorm.isBlank()) {
+                propCityNorm = LocationUtils.normalizeLocation(stringValue(property.get("city")));
+            }
+            if (!propCityNorm.contains(reqCityNorm)) {
+                return false;
+            }
         }
 
-        if (!contains(property.get("area"), request.getArea())) {
-            return false;
+        String reqAreaNorm = LocationUtils.normalizeLocation(request.getArea());
+        if (!reqAreaNorm.isBlank()) {
+            String propAreaNorm = stringValue(property.get("areaNormalized"));
+            if (propAreaNorm.isBlank()) {
+                propAreaNorm = LocationUtils.normalizeLocation(stringValue(property.get("area")));
+            }
+            if (!propAreaNorm.contains(reqAreaNorm)) {
+                return false;
+            }
         }
 
         if (!contains(property.get("propertyType"),
@@ -411,7 +428,6 @@ public class SearchService {
                         );
 
                 if (!Set.of(
-                        "requested",
                         "accepted",
                         "payment_pending",
                         "confirmed"
@@ -837,10 +853,6 @@ public class SearchService {
     }
 
     private String normalize(String value) {
-        return value == null
-                ? ""
-                : value.trim().toLowerCase(
-                        Locale.ROOT
-                );
+        return LocationUtils.normalizeLocation(value);
     }
 }

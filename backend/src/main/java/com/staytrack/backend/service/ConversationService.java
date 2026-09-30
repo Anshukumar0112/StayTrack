@@ -767,9 +767,17 @@ public class ConversationService {
                     "messageId",
                     id
             );
+            result.put(
+                    "id",
+                    id
+            );
         } else {
             result.put(
                     "conversationId",
+                    id
+            );
+            result.put(
+                    "id",
                     id
             );
         }

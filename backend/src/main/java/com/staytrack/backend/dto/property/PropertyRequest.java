@@ -10,11 +10,18 @@ public class PropertyRequest {
     private String description;
 
     private String propertyType;
+    private String category;
+    private String bookingType;
+    private String stayModel;
     private List<String> stayTypes;
 
     private Double hourlyPrice;
     private Double dailyPrice;
     private Double monthlyPrice;
+    private Double price;
+    private Double pricePerNight;
+    private Double pricePerMonth;
+    private Double pricePerHour;
 
     private String address;
     private String city;
@@ -63,6 +70,14 @@ public class PropertyRequest {
 
     public void setPropertyType(String propertyType) {
         this.propertyType = propertyType;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public List<String> getStayTypes() {
@@ -175,6 +190,54 @@ public class PropertyRequest {
 
     public void setAmenities(List<String> amenities) {
         this.amenities = amenities;
+    }
+
+    public String getBookingType() {
+        return bookingType;
+    }
+
+    public void setBookingType(String bookingType) {
+        this.bookingType = bookingType;
+    }
+
+    public String getStayModel() {
+        return stayModel;
+    }
+
+    public void setStayModel(String stayModel) {
+        this.stayModel = stayModel;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
+
+    public Double getPricePerNight() {
+        return pricePerNight;
+    }
+
+    public void setPricePerNight(Double pricePerNight) {
+        this.pricePerNight = pricePerNight;
+    }
+
+    public Double getPricePerMonth() {
+        return pricePerMonth;
+    }
+
+    public void setPricePerMonth(Double pricePerMonth) {
+        this.pricePerMonth = pricePerMonth;
+    }
+
+    public Double getPricePerHour() {
+        return pricePerHour;
+    }
+
+    public void setPricePerHour(Double pricePerHour) {
+        this.pricePerHour = pricePerHour;
     }
 
     public List<String> getImages() {

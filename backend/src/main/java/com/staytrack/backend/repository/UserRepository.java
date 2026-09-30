@@ -40,4 +40,15 @@ public class UserRepository {
                 .update(updates)
                 .get();
     }
+
+    public void delete(
+            String userId)
+            throws ExecutionException, InterruptedException {
+
+        getDb()
+                .collection(COLLECTION)
+                .document(userId)
+                .delete()
+                .get();
+    }
 }

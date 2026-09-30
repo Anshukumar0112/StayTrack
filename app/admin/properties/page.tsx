@@ -2,19 +2,37 @@
 
 import { useEffect, useState } from "react";
 import GlassCard from "@/components/ui/GlassCard";
-import { listAdminProperties, approveProperty, requestPropertyChanges, rejectProperty, updatePropertyAssignment } from "@/lib/api";
+import {
+  listAdminProperties,
+  approveProperty,
+  requestPropertyChanges,
+  rejectProperty,
+  updatePropertyAssignment,
+  updatePropertyListingStatus,
+  deleteAdminProperty,
+} from "@/lib/api";
 import { Property } from "@/types/property";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+
+const TABS = [
+  { key: "all", label: "All" },
+  { key: "approved", label: "Approved" },
+  { key: "changes_required", label: "Changes Required" },
+  { key: "rejected", label: "Rejected" },
+  { key: "pending", label: "Pending" },
+];
+
+type ModalMode = "approve" | "changes" | "reject" | "hide" | "activate" | "delete";
 
 export default function AdminPropertiesPage() {
   const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [verificationFilter, setVerificationFilter] = useState("pending");
+  const [verificationFilter, setVerificationFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const [modalProperty, setModalProperty] = useState<Property | null>(null);
-  const [modalMode, setModalMode] = useState<"approve" | "changes" | "reject" | null>(null);
+  const [modalMode, setModalMode] = useState<ModalMode | null>(null);
   const [noteInput, setNoteInput] = useState("");
 
   const fetchProperties = () => {
@@ -23,7 +41,7 @@ export default function AdminPropertiesPage() {
     listAdminProperties({
       verificationStatus: verificationFilter !== "all" ? verificationFilter : undefined,
       page: 1,
-      pageSize: 30,
+      pageSize: 50,
     })
       .then((res) => {
         const propList = res?.properties || res?.content || res?.data || (Array.isArray(res) ? res : []);
@@ -53,81 +71,170 @@ export default function AdminPropertiesPage() {
       await updatePropertyAssignment(propertyId, assignment);
       fetchProperties();
     } catch (err: any) {
-      alert("Failed to update property assignment: " + err.message);
+      alert("Failed to update property assignment: " + (err.message || "Unknown error"));
     } finally {
       setActionLoadingId(null);
     }
   };
 
+  const handleOpenModal = (property: Property, mode: ModalMode) => {
+    setModalProperty(property);
+    setModalMode(mode);
+    setNoteInput("");
+  };
+
   const handleExecuteModalAction = async () => {
     if (!modalProperty || !modalMode) return;
-    setActionLoadingId(modalProperty.id);
+    const propId = modalProperty.id || modalProperty.propertyId || "";
+    if (!propId) return;
+
+    if (
+      (modalMode === "changes" || modalMode === "reject" || modalMode === "hide" || modalMode === "delete") &&
+      !noteInput.trim()
+    ) {
+      alert("Please provide a reason/note for this administrative action.");
+      return;
+    }
+
+    setActionLoadingId(propId);
 
     try {
       if (modalMode === "approve") {
-        await approveProperty(modalProperty.id, noteInput);
-        alert(`Property "${modalProperty.title}" approved!`);
+        await approveProperty(propId, noteInput);
       } else if (modalMode === "changes") {
-        await requestPropertyChanges(modalProperty.id, noteInput);
-        alert("Requested changes from host.");
+        await requestPropertyChanges(propId, noteInput);
       } else if (modalMode === "reject") {
-        await rejectProperty(modalProperty.id, noteInput);
-        alert("Property listing rejected.");
+        await rejectProperty(propId, noteInput);
+      } else if (modalMode === "hide") {
+        await updatePropertyListingStatus(propId, "hidden", noteInput);
+      } else if (modalMode === "activate") {
+        await updatePropertyListingStatus(propId, "active", noteInput);
+      } else if (modalMode === "delete") {
+        await deleteAdminProperty(propId, noteInput);
       }
+
       setModalProperty(null);
       setModalMode(null);
       setNoteInput("");
       fetchProperties();
     } catch (err: any) {
-      alert("Action failed: " + err.message);
+      alert("Action failed: " + (err.message || "Unknown error"));
     } finally {
       setActionLoadingId(null);
     }
   };
 
+  const getEmptyMessage = (filter: string) => {
+    switch (filter) {
+      case "approved":
+        return "No approved properties found.";
+      case "changes_required":
+        return "No properties requiring changes found.";
+      case "rejected":
+        return "No rejected properties found.";
+      case "pending":
+        return "No properties awaiting verification found.";
+      case "all":
+      default:
+        return "No properties found.";
+    }
+  };
+
+  const getModalTitle = (mode: ModalMode) => {
+    switch (mode) {
+      case "approve":
+        return "Approve Property";
+      case "changes":
+        return "Request Changes for Property";
+      case "reject":
+        return "Reject Property";
+      case "hide":
+        return "Hide Property Listing";
+      case "activate":
+        return "Activate Property Listing";
+      case "delete":
+        return "Delete Property Listing";
+    }
+  };
+
+  const getModalPrompt = (mode: ModalMode) => {
+    switch (mode) {
+      case "changes":
+        return "Specify what changes or corrections the host must make before re-verification (sent to host):";
+      case "reject":
+        return "Specify the reason for rejecting this property listing (sent to host):";
+      case "hide":
+        return "Specify the reason for hiding this listing from public view (sent to host):";
+      case "activate":
+        return "Provide an optional note for activating this listing:";
+      case "delete":
+        return "Specify the reason for deleting this property listing (sent to host):";
+      case "approve":
+      default:
+        return "Provide an optional approval note for the host:";
+    }
+  };
+
   return (
     <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
-        <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-zinc-950">Property Verification Queue</h1>
-            <p className="text-xs text-zinc-500 font-semibold mt-1">Review host submissions and control property section assignments</p>
-          </div>
-
-          <div className="flex gap-2 p-1 bg-zinc-100 border border-zinc-200 rounded-xl">
-            {["pending", "approved", "changes_required", "rejected", "all"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setVerificationFilter(status)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer capitalize ${
-                  verificationFilter === status ? "bg-black text-white" : "text-zinc-600 hover:text-black"
-                }`}
-              >
-                {status.replace("_", " ")}
-              </button>
-            ))}
-          </div>
+      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-zinc-950">Property Management</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-1">
+            Manage property lifecycle, verification, visibility, and section assignments
+          </p>
         </div>
 
-        <GlassCard className="border border-zinc-200">
-          {loading ? (
-            <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading properties queue...</div>
-          ) : properties.length > 0 ? (
-            <div className="divide-y divide-zinc-200">
-              {properties.map((p, idx) => {
-                const propKey = p.id || p.propertyId || `prop_${idx}`;
-                return (
-                  <div key={propKey} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex gap-2 p-1 bg-zinc-100 border border-zinc-200 rounded-xl flex-wrap">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setVerificationFilter(tab.key)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                verificationFilter === tab.key ? "bg-black text-white" : "text-zinc-600 hover:text-black"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <GlassCard className="border border-zinc-200">
+        {loading ? (
+          <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading properties...</div>
+        ) : properties.length > 0 ? (
+          <div className="divide-y divide-zinc-200">
+            {properties.map((p, idx) => {
+              const targetId = p.id || p.propertyId || `prop_${idx}`;
+              const vStatus = (p.verificationStatus || "pending").toLowerCase();
+              const lStatus = (p.listingStatus || "hidden").toLowerCase();
+              const isApproved = vStatus === "approved";
+
+              return (
+                <div key={targetId} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="clay-badge px-2.5 py-0.5 text-[10px] font-bold uppercase">{p.propertyType || "Flat"}</span>
-                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                        p.verificationStatus === "approved"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : p.verificationStatus === "rejected"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-amber-100 text-amber-900 animate-pulse"
-                      }`}>
-                        {p.verificationStatus || "Pending"}
+
+                      {/* Canonical Verification Status Badge */}
+                      <span
+                        className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                          vStatus === "approved"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : vStatus === "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : vStatus === "changes_required"
+                            ? "bg-amber-100 text-amber-900"
+                            : "bg-yellow-100 text-yellow-800 animate-pulse"
+                        }`}
+                      >
+                        {vStatus.replace("_", " ")}
+                      </span>
+
+                      {/* Listing Visibility Pill */}
+                      <span className="bg-zinc-100 text-zinc-700 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-zinc-200">
+                        {lStatus}
                       </span>
 
                       {p.topVerified && (
@@ -141,16 +248,18 @@ export default function AdminPropertiesPage() {
                         </span>
                       )}
                     </div>
+
                     <h3 className="text-sm font-bold text-zinc-950">{p.title}</h3>
                     <p className="text-xs text-zinc-500 mt-0.5">
-                      📍 {p.city}, {p.area} • Host ID: <span className="font-mono text-zinc-700">{p.hostId}</span> • Price: ₹{p.price || p.pricePerNight || 0}
+                      📍 {p.city}, {p.area} • Host ID: <span className="font-mono text-zinc-700">{p.hostId}</span> • Price: ₹
+                      {p.price || p.pricePerNight || 0}
                     </p>
 
                     {/* Section Assignment Toggles */}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <button
-                        onClick={() => handleToggleAssignment(p.id, { topVerified: !p.topVerified })}
-                        disabled={actionLoadingId === p.id}
+                        onClick={() => handleToggleAssignment(targetId, { topVerified: !p.topVerified })}
+                        disabled={actionLoadingId === targetId}
                         className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                           p.topVerified
                             ? "bg-amber-500 text-white border-amber-600 shadow-sm"
@@ -161,8 +270,8 @@ export default function AdminPropertiesPage() {
                         {p.topVerified ? "⭐ Remove Top Verified" : "⭐ Assign Top Verified"}
                       </button>
                       <button
-                        onClick={() => handleToggleAssignment(p.id, { showInStay: !p.showInStay })}
-                        disabled={actionLoadingId === p.id}
+                        onClick={() => handleToggleAssignment(targetId, { showInStay: !p.showInStay })}
+                        disabled={actionLoadingId === targetId}
                         className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                           p.showInStay
                             ? "bg-emerald-600 text-white border-emerald-700 shadow-sm"
@@ -175,75 +284,131 @@ export default function AdminPropertiesPage() {
                     </div>
                   </div>
 
+                  {/* Comprehensive Action Controls */}
                   <div className="flex items-center gap-2 flex-wrap">
+                    {!isApproved && (
+                      <button
+                        onClick={() => handleOpenModal(p, "approve")}
+                        disabled={actionLoadingId === targetId}
+                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        ✓ Approve
+                      </button>
+                    )}
+
                     <button
-                      onClick={() => { setModalProperty(p); setModalMode("approve"); setNoteInput(""); }}
-                      disabled={actionLoadingId === p.id}
-                      className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      onClick={() => { setModalProperty(p); setModalMode("changes"); setNoteInput(""); }}
-                      disabled={actionLoadingId === p.id}
+                      onClick={() => handleOpenModal(p, "changes")}
+                      disabled={actionLoadingId === targetId}
                       className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                     >
                       ✏ Request Changes
                     </button>
+
+                    {!isApproved && (
+                      <button
+                        onClick={() => handleOpenModal(p, "reject")}
+                        disabled={actionLoadingId === targetId}
+                        className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        ✕ Reject
+                      </button>
+                    )}
+
+                    {isApproved && (
+                      <button
+                        onClick={() => handleOpenModal(p, lStatus === "active" ? "hide" : "activate")}
+                        disabled={actionLoadingId === targetId}
+                        className={`rounded-xl font-bold text-xs px-3 py-2 transition-all cursor-pointer border ${
+                          lStatus === "active"
+                            ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border-zinc-300"
+                            : "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                        }`}
+                      >
+                        {lStatus === "active" ? "🙈 Hide Listing" : "👁 Activate Listing"}
+                      </button>
+                    )}
+
                     <button
-                      onClick={() => { setModalProperty(p); setModalMode("reject"); setNoteInput(""); }}
-                      disabled={actionLoadingId === p.id}
-                      className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                      onClick={() => handleOpenModal(p, "delete")}
+                      disabled={actionLoadingId === targetId}
+                      className="rounded-xl border border-red-300 hover:bg-red-100 text-red-800 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                     >
-                      ✕ Reject
+                      🗑 Delete
                     </button>
                   </div>
                 </div>
               );
             })}
-            </div>
-          ) : (
-            <div className="py-16 text-center text-xs font-semibold text-zinc-400">
-              No properties found matching status filter "{verificationFilter}".
-            </div>
-          )}
-        </GlassCard>
+          </div>
+        ) : (
+          <div className="py-16 text-center text-xs font-semibold text-zinc-400">
+            {getEmptyMessage(verificationFilter)}
+          </div>
+        )}
+      </GlassCard>
 
-        {/* Verification Note Modal */}
-        {modalProperty && modalMode && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-zinc-200 shadow-2xl space-y-4">
-              <h3 className="text-base font-black text-zinc-950 capitalize">
-                {modalMode} Property: {modalProperty.title}
-              </h3>
-              <p className="text-xs text-zinc-500">
-                Provide an administrative note or feedback reason for the host:
-              </p>
+      {/* Action Dialog Modal */}
+      {modalProperty && modalMode && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-zinc-200 shadow-2xl space-y-4">
+            <h3 className="text-base font-black text-zinc-950">
+              {getModalTitle(modalMode)}: {modalProperty.title}
+            </h3>
+
+            {modalMode === "delete" && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800">
+                ⚠️ WARNING: This will permanently remove the listing from StayTrack. Host will be notified.
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs text-zinc-600 font-semibold">{getModalPrompt(modalMode)}</p>
               <textarea
                 rows={3}
-                placeholder={modalMode === "reject" ? "Reason for rejection..." : "Note to host..."}
+                placeholder={
+                  modalMode === "changes"
+                    ? "e.g., Please update property photos and correct room pricing..."
+                    : modalMode === "reject"
+                    ? "e.g., Property address does not match submitted documents..."
+                    : modalMode === "hide"
+                    ? "e.g., Temporarily hidden for safety inspection..."
+                    : modalMode === "delete"
+                    ? "e.g., Duplicate property listing..."
+                    : "Optional note for host..."
+                }
                 value={noteInput}
                 onChange={(e) => setNoteInput(e.target.value)}
                 className="w-full p-3 text-xs border border-zinc-300 rounded-xl focus:border-black outline-none"
               />
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  onClick={() => { setModalProperty(null); setModalMode(null); }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold border border-zinc-300 hover:bg-zinc-100 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleExecuteModalAction}
-                  disabled={actionLoadingId === modalProperty.id}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-zinc-800 cursor-pointer disabled:opacity-50"
-                >
-                  Confirm Action
-                </button>
-              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setModalProperty(null);
+                  setModalMode(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-zinc-300 hover:bg-zinc-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExecuteModalAction}
+                disabled={
+                  actionLoadingId === (modalProperty.id || modalProperty.propertyId) ||
+                  ((modalMode === "changes" || modalMode === "reject" || modalMode === "hide" || modalMode === "delete") &&
+                    !noteInput.trim())
+                }
+                className={`px-5 py-2 rounded-xl text-xs font-bold text-white transition cursor-pointer disabled:opacity-50 ${
+                  modalMode === "delete" || modalMode === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-black hover:bg-zinc-800"
+                }`}
+              >
+                Confirm Action
+              </button>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+    </main>
   );
 }

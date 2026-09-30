@@ -99,28 +99,42 @@ public class ReviewWorkflowTest {
         String reviewId = ReviewRepository.buildReviewId(customerUid, bookingId);
         db.collection("reviews").document(reviewId).delete().get();
 
-        // 4. Submit review as customer
-        ReviewRequest reviewRequest = new ReviewRequest();
-        reviewRequest.setBookingId(bookingId);
-        reviewRequest.setRating(5);
-        reviewRequest.setComment("Exceptional stay and wonderful host!");
+        String returnedReviewId = null;
+        try {
+            // 4. Submit review as customer
+            ReviewRequest reviewRequest = new ReviewRequest();
+            reviewRequest.setBookingId(bookingId);
+            reviewRequest.setRating(5);
+            reviewRequest.setComment("Exceptional stay and wonderful host!");
 
-        Map<String, Object> result = reviewService.createReview(customerUser, reviewRequest);
-        assertNotNull(result, "Review result should not be null");
+            Map<String, Object> result = reviewService.createReview(customerUser, reviewRequest);
+            assertNotNull(result, "Review result should not be null");
 
-        String returnedReviewId = (String) result.get("reviewId");
-        assertNotNull(returnedReviewId, "Review ID should be returned");
-        assertEquals(5, ((Number) result.get("rating")).intValue());
+            returnedReviewId = (String) result.get("reviewId");
+            assertNotNull(returnedReviewId, "Review ID should be returned");
+            assertEquals(5, ((Number) result.get("rating")).intValue());
 
-        // 5. Verify live Firestore review document
-        DocumentSnapshot reviewDoc = db.collection("reviews").document(returnedReviewId).get().get();
-        assertTrue(reviewDoc.exists(), "Review document must exist in Firestore");
-        assertEquals("Exceptional stay and wonderful host!", reviewDoc.getString("comment"));
+            // 5. Verify live Firestore review document
+            DocumentSnapshot reviewDoc = db.collection("reviews").document(returnedReviewId).get().get();
+            assertTrue(reviewDoc.exists(), "Review document must exist in Firestore");
+            assertEquals("Exceptional stay and wonderful host!", reviewDoc.getString("comment"));
 
-        // 6. Verify property average rating and review count updated in Firestore
-        DocumentSnapshot propDoc = db.collection("properties").document(propertyId).get().get();
-        assertTrue(propDoc.exists(), "Property document must exist");
-        assertEquals(5.0, ((Number) propDoc.get("averageRating")).doubleValue(), 0.01);
-        assertEquals(1L, ((Number) propDoc.get("reviewCount")).longValue());
+            // 6. Verify property average rating and review count updated in Firestore
+            DocumentSnapshot propDoc = db.collection("properties").document(propertyId).get().get();
+            assertTrue(propDoc.exists(), "Property document must exist");
+            assertEquals(5.0, ((Number) propDoc.get("averageRating")).doubleValue(), 0.01);
+            assertEquals(1L, ((Number) propDoc.get("reviewCount")).longValue());
+        } finally {
+            if (returnedReviewId != null) {
+                try { db.collection("reviews").document(returnedReviewId).delete().get(); } catch (Exception ignored) {}
+            }
+            try { db.collection("reviews").document(reviewId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("bookings").document(bookingId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("properties").document(propertyId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("subscriptions").document(subId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(hostUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(adminUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(customerUid).delete().get(); } catch (Exception ignored) {}
+        }
     }
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import GlassCard from "@/components/ui/GlassCard";
 import ClayCard from "@/components/ui/ClayCard";
 import Link from "next/link";
-import { getAdminSummary, getAdminActivities } from "@/lib/api";
+import { getAdminSummary, getAdminActivities, clearAdminActivities } from "@/lib/api";
 import { AdminDashboardSummary } from "@/types/host";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 
@@ -63,6 +63,8 @@ export default function AdminPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const fetchSummary = () => {
     if (!isAdmin) return;
@@ -96,6 +98,19 @@ export default function AdminPage() {
       </div>
     );
   }
+
+  const handleClearActivities = async () => {
+    setClearing(true);
+    try {
+      await clearAdminActivities();
+      setActivities([]);
+      setShowClearModal(false);
+    } catch (err: any) {
+      alert("Failed to clear activity log: " + (err.message || "Unknown error"));
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const stats = [
     {
@@ -221,10 +236,10 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <Link
-                    href="/admin/hosts"
+                    href="/admin/hosts?filter=pending"
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-xs"
                   >
-                    <span>Review Applications</span>
+                    <span>Review Host Applications ({pendingHostAppsCount})</span>
                     <ArrowRightIcon className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -249,10 +264,10 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <Link
-                    href="/admin/properties"
+                    href="/admin/properties?verificationStatus=pending"
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-xs"
                   >
-                    <span>Review Properties</span>
+                    <span>Review Properties ({pendingPropsCount})</span>
                     <ArrowRightIcon className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -272,7 +287,18 @@ export default function AdminPage() {
 
       {/* Section B: Recent Activity */}
       <div className="space-y-4">
-        <h2 className="text-lg font-black text-zinc-950">Recent Activity</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-black text-zinc-950">Recent Activity</h2>
+          {activities.length > 0 && (
+            <button
+              onClick={() => setShowClearModal(true)}
+              className="px-3 py-1.5 rounded-xl border border-red-200 hover:bg-red-50 text-red-700 text-xs font-bold transition cursor-pointer"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
+
         {activities.length > 0 ? (
           <GlassCard className="border border-zinc-200 p-4 bg-white">
             <div className="divide-y divide-zinc-100">
@@ -344,6 +370,37 @@ export default function AdminPage() {
           </Link>
         </div>
       </div>
+
+      {/* Clear Recent Activity Confirmation Modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 border border-zinc-200 shadow-2xl animate-in fade-in zoom-in-95">
+            <h3 className="text-lg font-black text-zinc-950">Clear recent activity?</h3>
+            <p className="text-xs text-zinc-600 font-semibold leading-relaxed">
+              This will permanently remove all activity entries from the admin activity log. This action cannot be undone.
+            </p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800">
+              Note: Clearing log entries only removes event history. It does not undo any underlying host, account, or subscription changes.
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowClearModal(false)}
+                disabled={clearing}
+                className="px-4 py-2 rounded-xl border border-zinc-300 hover:bg-zinc-100 text-xs font-bold text-zinc-800 transition cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearActivities}
+                disabled={clearing}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition cursor-pointer disabled:opacity-50"
+              >
+                {clearing ? "Clearing..." : "Clear All"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

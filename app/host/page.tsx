@@ -9,7 +9,7 @@ import ClayCard from "@/components/ui/ClayCard";
 import Link from "next/link";
 import { getMyProperties, getHostBookings, acceptBooking, rejectBooking, getEligibility, getMySubscription } from "@/lib/api";
 import { Property } from "@/types/property";
-import { Booking } from "@/types/booking";
+import { Booking, getBookingId, getBookingStatus, getBookingStatusLabel } from "@/types/booking";
 
 export default function HostDashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -82,7 +82,10 @@ export default function HostDashboardPage() {
 
   const activePropsCount = properties.filter((p) => p.verificationStatus === "approved").length;
   const pendingPropsCount = properties.filter((p) => p.verificationStatus === "pending").length;
-  const upcomingBookingsCount = bookings.filter((b) => b.status === "ACCEPTED" || b.status === "CONFIRMED" || b.status === "PAYMENT_PENDING").length;
+  const upcomingBookingsCount = bookings.filter((b) => {
+    const st = getBookingStatus(b);
+    return st === "accepted" || st === "confirmed" || st === "payment_pending";
+  }).length;
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -171,43 +174,49 @@ export default function HostDashboardPage() {
                 <div className="py-12 text-center text-xs font-bold text-zinc-500">Loading booking requests...</div>
               ) : bookings.length > 0 ? (
                 <div className="space-y-3">
-                  {bookings.slice(0, 5).map((b, idx) => (
-                    <div key={b.id || (b as any).bookingId || `host-booking-${idx}`} className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                            b.status === "REQUESTED" ? "bg-amber-100 text-amber-800 animate-pulse" : "bg-emerald-100 text-emerald-800"
-                          }`}>
-                            {b.status}
-                          </span>
-                          <span className="text-xs text-zinc-500 font-mono">#{b.id}</span>
-                        </div>
-                        <h4 className="text-sm font-bold text-zinc-950 mt-1">{b.propertyTitle || `Property #${b.propertyId}`}</h4>
-                        <p className="text-xs text-zinc-500 font-semibold mt-0.5">Guest: {b.userName || b.userId}</p>
-                      </div>
+                  {bookings.slice(0, 5).map((b, idx) => {
+                    const id = getBookingId(b);
+                    const st = getBookingStatus(b);
+                    const isRequested = st === "requested";
 
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                        {b.status === "REQUESTED" && (
-                          <>
-                            <button
-                              onClick={() => handleAccept(b.id)}
-                              disabled={actionLoadingId === b.id}
-                              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 cursor-pointer transition-all disabled:opacity-50"
-                            >
-                              {actionLoadingId === b.id ? "Accepting..." : "✓ Accept"}
-                            </button>
-                            <button
-                              onClick={() => handleReject(b.id)}
-                              disabled={actionLoadingId === b.id}
-                              className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 cursor-pointer transition-all disabled:opacity-50"
-                            >
-                              ✕ Reject
-                            </button>
-                          </>
-                        )}
+                    return (
+                      <div key={id || `host-booking-${idx}`} className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                              isRequested ? "bg-amber-100 text-amber-800 animate-pulse" : "bg-emerald-100 text-emerald-800"
+                            }`}>
+                              {getBookingStatusLabel(st, "host")}
+                            </span>
+                            <span className="text-xs text-zinc-500 font-mono">#{id}</span>
+                          </div>
+                          <h4 className="text-sm font-bold text-zinc-950 mt-1">{b.propertyTitle || `Property #${b.propertyId}`}</h4>
+                          <p className="text-xs text-zinc-500 font-semibold mt-0.5">Guest: {b.userName || b.userId || b.customerId || "Guest"}</p>
+                        </div>
+
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                          {isRequested && (
+                            <>
+                              <button
+                                onClick={() => handleAccept(id)}
+                                disabled={actionLoadingId === id}
+                                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 cursor-pointer transition-all disabled:opacity-50"
+                              >
+                                {actionLoadingId === id ? "Accepting..." : "✓ Accept"}
+                              </button>
+                              <button
+                                onClick={() => handleReject(id)}
+                                disabled={actionLoadingId === id}
+                                className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 cursor-pointer transition-all disabled:opacity-50"
+                              >
+                                ✕ Reject
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="py-12 text-center text-xs font-semibold text-zinc-400">

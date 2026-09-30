@@ -51,6 +51,25 @@ public class PropertyController {
         );
     }
 
+    @GetMapping("/{propertyId}/availability")
+    public Map<String, Object> checkAvailability(
+            @PathVariable String propertyId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
+            @RequestParam(required = false) String bookingType) {
+
+        return propertyService.checkPropertyAvailability(
+                propertyId,
+                startDate,
+                endDate,
+                startTime,
+                endTime,
+                bookingType
+        );
+    }
+
     @GetMapping("/mine")
     public List<Map<String, Object>> getMyProperties() {
 
@@ -78,5 +97,22 @@ public class PropertyController {
     public List<Map<String, Object>> getStaySectionProperties() {
 
         return propertyService.getStaySectionProperties();
+    }
+
+    @PutMapping("/{propertyId}")
+    public Map<String, Object> updateProperty(
+            @PathVariable String propertyId,
+            @RequestBody PropertyRequest request) {
+
+        AuthenticatedUser user = SecurityUtils.getCurrentUser();
+        return propertyService.updateProperty(user, propertyId, request);
+    }
+
+    @DeleteMapping("/{propertyId}")
+    public Map<String, Object> deleteProperty(
+            @PathVariable String propertyId) {
+
+        AuthenticatedUser user = SecurityUtils.getCurrentUser();
+        return propertyService.deleteProperty(user, propertyId);
     }
 }

@@ -58,25 +58,31 @@ public class AdminHostApprovalWorkflowTest {
         appData.put("updatedAt", Timestamp.now());
         db.collection("hostApplications").document(applicantUid).set(appData).get();
 
-        // 3. Approve host application
-        Map<String, Object> result = adminService.approveHostApplication(
-                adminUser,
-                applicantUid,
-                "Approved via automated verification test"
-        );
+        try {
+            // 3. Approve host application
+            Map<String, Object> result = adminService.approveHostApplication(
+                    adminUser,
+                    applicantUid,
+                    "Approved via automated verification test"
+            );
 
-        // 4. Assert result payload
-        assertNotNull(result, "Result should not be null");
-        assertEquals("approved", result.get("verificationStatus"), "Verification status should be approved");
+            // 4. Assert result payload
+            assertNotNull(result, "Result should not be null");
+            assertEquals("approved", result.get("verificationStatus"), "Verification status should be approved");
 
-        // 5. Verify applicant user document in Firestore now has role = host
-        DocumentSnapshot userDoc = db.collection("users").document(applicantUid).get().get();
-        assertTrue(userDoc.exists(), "User document should exist");
-        assertEquals("host", userDoc.getString("role"), "User role should be updated to host");
+            // 5. Verify applicant user document in Firestore now has role = host
+            DocumentSnapshot userDoc = db.collection("users").document(applicantUid).get().get();
+            assertTrue(userDoc.exists(), "User document should exist");
+            assertEquals("host", userDoc.getString("role"), "User role should be updated to host");
 
-        // 6. Verify hostApplication document in Firestore has verificationStatus = approved
-        DocumentSnapshot appDoc = db.collection("hostApplications").document(applicantUid).get().get();
-        assertTrue(appDoc.exists(), "Host application document should exist");
-        assertEquals("approved", appDoc.getString("verificationStatus"), "Application status should be approved");
+            // 6. Verify hostApplication document in Firestore has verificationStatus = approved
+            DocumentSnapshot appDoc = db.collection("hostApplications").document(applicantUid).get().get();
+            assertTrue(appDoc.exists(), "Host application document should exist");
+            assertEquals("approved", appDoc.getString("verificationStatus"), "Application status should be approved");
+        } finally {
+            try { db.collection("users").document(adminUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(applicantUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("hostApplications").document(applicantUid).delete().get(); } catch (Exception ignored) {}
+        }
     }
 }

@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { getMyConversations, getMessages, sendMessage, markConversationAsRead } from "@/lib/api";
-import { Conversation, Message } from "@/types/booking";
+import { Conversation, Message, getConversationId, formatTimestamp, getMessageText, getMessageId } from "@/types/booking";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 
@@ -26,7 +26,7 @@ export default function ChatPage() {
       if (data && Array.isArray(data)) {
         setConversations(data);
         if (data.length > 0 && !activeConvoId) {
-          setActiveConvoId(data[0].id);
+          setActiveConvoId(getConversationId(data[0]));
         }
       } else {
         setConversations([]);
@@ -67,9 +67,8 @@ export default function ChatPage() {
       const newMsg = await sendMessage(activeConvoId, textToSend);
       if (newMsg) {
         setMessages((prev) => [...prev, newMsg]);
-      } else {
-        fetchConvos();
       }
+      fetchConvos();
     } catch (err: any) {
       alert("Failed to send message: " + err.message);
     } finally {
@@ -77,7 +76,7 @@ export default function ChatPage() {
     }
   };
 
-  const activeConvo = conversations.find((c) => c.id === activeConvoId);
+  const activeConvo = conversations.find((c) => getConversationId(c) === activeConvoId);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -105,27 +104,32 @@ export default function ChatPage() {
             {/* Conversations Sidebar */}
             <div className="w-full md:w-80 border-r border-zinc-200 bg-zinc-50 p-4 space-y-2">
               <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider px-2 mb-3">Conversations</h3>
-              {conversations.map((c) => (
-                <div
-                  key={c.id}
-                  onClick={() => setActiveConvoId(c.id)}
-                  className={`p-3 rounded-xl cursor-pointer transition-all ${
-                    activeConvoId === c.id
-                      ? "bg-black text-white"
-                      : "hover:bg-zinc-200/60 text-zinc-900"
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className="text-xs font-bold line-clamp-1">{c.propertyTitle || `Stay Chat #${c.id}`}</h4>
-                    <span className={`text-[10px] ${activeConvoId === c.id ? "text-zinc-300" : "text-zinc-500"}`}>
-                      {c.lastMessageTimestamp || ""}
-                    </span>
+              {conversations.map((c) => {
+                const convoId = getConversationId(c);
+                const isActive = activeConvoId === convoId;
+
+                return (
+                  <div
+                    key={convoId}
+                    onClick={() => setActiveConvoId(convoId)}
+                    className={`p-3 rounded-xl cursor-pointer transition-all ${
+                      isActive
+                        ? "bg-black text-white"
+                        : "hover:bg-zinc-200/60 text-zinc-900"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="text-xs font-bold line-clamp-1">{c.propertyTitle || `Stay Chat #${convoId}`}</h4>
+                      <span className={`text-[10px] ${isActive ? "text-zinc-300" : "text-zinc-500"}`}>
+                        {formatTimestamp(c.lastMessageTimestamp || c.lastMessageAt)}
+                      </span>
+                    </div>
+                    <p className={`text-[11px] truncate mt-1 ${isActive ? "text-zinc-400" : "text-zinc-500"}`}>
+                      {c.lastMessage || "Click to view thread"}
+                    </p>
                   </div>
-                  <p className={`text-[11px] truncate mt-1 ${activeConvoId === c.id ? "text-zinc-400" : "text-zinc-500"}`}>
-                    {c.lastMessage || "Click to view thread"}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Active Thread Window */}
@@ -154,18 +158,22 @@ export default function ChatPage() {
               {/* Messages List */}
               <div className="py-6 space-y-3 flex-1 overflow-y-auto max-h-[400px]">
                 {messages.length > 0 ? (
-                  messages.map((m) => {
+                  messages.map((m, idx) => {
                     const isMe = m.senderId === user?.uid;
+                    const msgId = getMessageId(m) || `msg-${idx}`;
+                    const msgContent = getMessageText(m);
+                    const msgTime = formatTimestamp(m.createdAt || m.timestamp) || "Just now";
+
                     return (
-                      <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div key={msgId} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                         <div
                           className={`max-w-xs rounded-2xl p-3 text-xs font-medium shadow-sm ${
                             isMe ? "bg-black text-white" : "bg-zinc-100 text-zinc-800 border border-zinc-200"
                           }`}
                         >
-                          {m.text}
+                          {msgContent}
                           <span className={`block text-[9px] mt-1 text-right ${isMe ? "text-zinc-400" : "text-zinc-400"}`}>
-                            {m.timestamp || "Just now"}
+                            {msgTime}
                           </span>
                         </div>
                       </div>

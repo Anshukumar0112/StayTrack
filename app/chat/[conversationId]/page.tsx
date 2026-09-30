@@ -7,7 +7,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import Link from "next/link";
 import { getConversation, getMessages, sendMessage, markConversationAsRead } from "@/lib/api";
-import { Conversation, Message } from "@/types/booking";
+import { Conversation, Message, formatTimestamp, getMessageText, getMessageId } from "@/types/booking";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function SingleConversationPage({
@@ -87,16 +87,19 @@ export default function SingleConversationPage({
               {messages.length > 0 ? (
                 messages.map((m) => {
                   const isMe = m.senderId === user?.uid;
+                  const msgId = getMessageId(m) || Math.random().toString();
+                  const msgText = getMessageText(m);
+                  const msgTime = formatTimestamp(m.createdAt || m.timestamp) || "Just now";
                   return (
-                    <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                    <div key={msgId} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`max-w-md rounded-2xl p-3 text-xs font-medium shadow-sm ${
                           isMe ? "bg-black text-white" : "bg-zinc-100 text-zinc-800 border border-zinc-200"
                         }`}
                       >
-                        {m.text}
+                        {msgText}
                         <span className={`block text-[9px] mt-1 text-right ${isMe ? "text-zinc-400" : "text-zinc-400"}`}>
-                          {m.timestamp || "Just now"}
+                          {msgTime}
                         </span>
                       </div>
                     </div>

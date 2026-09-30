@@ -71,41 +71,54 @@ public class PropertyWorkflowTest {
         request.setAmenities(List.of("WiFi", "AC", "Laundry"));
         request.setImages(List.of("https://example.com/pg1.jpg"));
 
-        // 5. Host creates property (Task C)
-        Map<String, Object> createdProperty = propertyService.createProperty(hostUser, request);
-        assertNotNull(createdProperty, "Created property should not be null");
+        String propertyId = null;
+        try {
+            // 5. Host creates property (Task C)
+            Map<String, Object> createdProperty = propertyService.createProperty(hostUser, request);
+            assertNotNull(createdProperty, "Created property should not be null");
 
-        String propertyId = (String) createdProperty.get("propertyId");
-        assertNotNull(propertyId, "Property ID should be generated");
-        assertEquals("pending", createdProperty.get("verificationStatus"), "Verification status should be pending");
-        assertEquals("hidden", createdProperty.get("listingStatus"), "Listing status should be hidden initially");
+            propertyId = (String) createdProperty.get("propertyId");
+            assertNotNull(propertyId, "Property ID should be generated");
+            assertEquals("pending", createdProperty.get("verificationStatus"), "Verification status should be pending");
+            assertEquals("hidden", createdProperty.get("listingStatus"), "Listing status should be hidden initially");
 
-        // Verify property document in live Firestore
-        DocumentSnapshot pendingDoc = db.collection("properties").document(propertyId).get().get();
-        assertTrue(pendingDoc.exists(), "Property document must exist in Firestore");
-        assertEquals("pending", pendingDoc.getString("verificationStatus"));
+            // Verify property document in live Firestore
+            DocumentSnapshot pendingDoc = db.collection("properties").document(propertyId).get().get();
+            assertTrue(pendingDoc.exists(), "Property document must exist in Firestore");
+            assertEquals("pending", pendingDoc.getString("verificationStatus"));
 
-        // 6. Admin approves property (Task D)
-        Map<String, Object> approvedProperty = adminService.approveProperty(
-                adminUser,
-                propertyId,
-                "Verified property documents and photos"
-        );
-        assertNotNull(approvedProperty, "Approved property payload should not be null");
-        assertEquals("approved", approvedProperty.get("verificationStatus"), "Verification status should update to approved");
-        assertEquals("active", approvedProperty.get("listingStatus"), "Listing status should update to active");
+            // 6. Admin approves property (Task D)
+            Map<String, Object> approvedProperty = adminService.approveProperty(
+                    adminUser,
+                    propertyId,
+                    "Verified property documents and photos"
+            );
+            assertNotNull(approvedProperty, "Approved property payload should not be null");
+            assertEquals("approved", approvedProperty.get("verificationStatus"), "Verification status should update to approved");
+            assertEquals("active", approvedProperty.get("listingStatus"), "Listing status should update to active");
 
-        // Verify property document status in live Firestore
-        DocumentSnapshot approvedDoc = db.collection("properties").document(propertyId).get().get();
-        assertTrue(approvedDoc.exists(), "Approved property document must exist");
-        assertEquals("approved", approvedDoc.getString("verificationStatus"));
-        assertEquals("active", approvedDoc.getString("listingStatus"));
+            // Verify property document status in live Firestore
+            DocumentSnapshot approvedDoc = db.collection("properties").document(propertyId).get().get();
+            assertTrue(approvedDoc.exists(), "Approved property document must exist");
+            assertEquals("approved", approvedDoc.getString("verificationStatus"));
+            assertEquals("active", approvedDoc.getString("listingStatus"));
 
-        // 7. Verify Public Marketplace Listing (Task D verification)
-        List<Map<String, Object>> publicProperties = propertyService.getPublicProperties();
-        assertNotNull(publicProperties, "Public properties list should not be null");
-        boolean foundInPublic = publicProperties.stream()
-                .anyMatch(p -> propertyId.equals(p.get("propertyId")));
-        assertTrue(foundInPublic, "Newly approved property must appear in public marketplace listing");
+            // 7. Verify Public Marketplace Listing (Task D verification)
+            List<Map<String, Object>> publicProperties = propertyService.getPublicProperties();
+            assertNotNull(publicProperties, "Public properties list should not be null");
+            final String targetId = propertyId;
+            boolean foundInPublic = publicProperties.stream()
+                    .anyMatch(p -> targetId.equals(p.get("propertyId")));
+            assertTrue(foundInPublic, "Newly approved property must appear in public marketplace listing");
+        } finally {
+            if (propertyId != null) {
+                try {
+                    db.collection("properties").document(propertyId).delete().get();
+                } catch (Exception ignored) {}
+            }
+            try { db.collection("subscriptions").document(subId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(hostUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(adminUid).delete().get(); } catch (Exception ignored) {}
+        }
     }
 }

@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -16,7 +17,9 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.staytrack.backend.repository.HostApplicationRepository;
 import com.staytrack.backend.repository.PropertyRepository;
 import com.staytrack.backend.repository.UserRepository;
+import com.google.firebase.auth.FirebaseAuth;
 import com.staytrack.backend.security.AuthenticatedUser;
+import com.staytrack.backend.util.LocationUtils;
 
 @Service
 public class AdminService {
@@ -25,17 +28,23 @@ public class AdminService {
     private final HostApplicationRepository hostApplicationRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final com.staytrack.backend.repository.ReviewRepository reviewRepository;
+    private final SubscriptionService subscriptionService;
 
     public AdminService(
             PropertyRepository propertyRepository,
             HostApplicationRepository hostApplicationRepository,
             UserRepository userRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            com.staytrack.backend.repository.ReviewRepository reviewRepository,
+            SubscriptionService subscriptionService) {
 
         this.propertyRepository = propertyRepository;
         this.hostApplicationRepository = hostApplicationRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.reviewRepository = reviewRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     // =========================================================
@@ -543,10 +552,11 @@ public class AdminService {
                 normalizeStatus(role);
 
         if (!"customer".equals(cleanRole)
-                && !"host".equals(cleanRole)) {
+                && !"host".equals(cleanRole)
+                && !"admin".equals(cleanRole)) {
 
             throw new RuntimeException(
-                    "User role must be customer or host"
+                    "User role must be customer, host, or admin"
             );
         }
 
@@ -562,32 +572,10 @@ public class AdminService {
         String currentRole =
                 getStringField(user, "role");
 
-        if ("admin".equalsIgnoreCase(currentRole)) {
-            throw new RuntimeException(
-                    "Admin role cannot be changed through this endpoint"
-            );
-        }
-
         if (cleanRole.equalsIgnoreCase(currentRole)) {
             return sanitizeAdminUser(user);
         }
 
-        /*
-         * A host role should represent an approved host.
-         * Do not allow an admin to bypass the host-application
-         * verification flow by manually promoting a customer.
-         */
-        if ("host".equals(cleanRole)) {
-            throw new RuntimeException(
-                    "A customer must be approved through the host application process"
-            );
-        }
-
-        /*
-         * Demoting a host to customer is allowed for admin
-         * account-management purposes. Existing host properties
-         * and payment-account records are not deleted here.
-         */
         Timestamp now = Timestamp.now();
 
         Map<String, Object> updates =
@@ -604,10 +592,50 @@ public class AdminService {
         );
 
         try {
-
             userRepository.update(
                     cleanUserId,
                     updates
+            );
+
+            // When an admin promotes a Customer -> Host directly, ensure host state consistency
+            if ("host".equals(cleanRole)) {
+                try {
+                    Firestore db = FirestoreClient.getFirestore();
+                    List<QueryDocumentSnapshot> apps = db.collection("hostApplications")
+                            .whereEqualTo("userId", cleanUserId)
+                            .get().get().getDocuments();
+
+                    if (!apps.isEmpty()) {
+                        for (QueryDocumentSnapshot app : apps) {
+                            db.collection("hostApplications")
+                                    .document(app.getId())
+                                    .update("verificationStatus", "approved", "reviewedAt", now, "reviewedBy", admin.getUid());
+                        }
+                    } else {
+                        String name = getStringField(user, "name");
+                        String email = getStringField(user, "email");
+                        String phone = getStringField(user, "phone");
+                        Map<String, Object> newApp = new HashMap<>();
+                        newApp.put("userId", cleanUserId);
+                        newApp.put("applicantName", name.isBlank() ? "Host User" : name);
+                        newApp.put("email", email);
+                        newApp.put("phone", phone);
+                        newApp.put("hostType", "PROPERTY_OWNER");
+                        newApp.put("verificationStatus", "approved");
+                        newApp.put("submittedAt", now);
+                        newApp.put("reviewedAt", now);
+                        newApp.put("reviewedBy", admin.getUid());
+                        db.collection("hostApplications").document(cleanUserId).set(newApp);
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            logAdminActivity(
+                    admin.getUid(),
+                    "USER_ROLE_UPDATED",
+                    "user",
+                    cleanUserId,
+                    "Updated role from " + currentRole + " to " + cleanRole + " for user: " + cleanUserId
             );
 
             return sanitizeAdminUser(
@@ -659,6 +687,7 @@ public class AdminService {
                 normalizeStatus(verificationStatus);
 
         if (!cleanVerification.isBlank()
+                && !"all".equals(cleanVerification)
                 && !"pending".equals(cleanVerification)
                 && !"approved".equals(cleanVerification)
                 && !"changes_required".equals(cleanVerification)
@@ -673,6 +702,7 @@ public class AdminService {
                 normalizeStatus(listingStatus);
 
         if (!cleanListing.isBlank()
+                && !"all".equals(cleanListing)
                 && !"active".equals(cleanListing)
                 && !"hidden".equals(cleanListing)
                 && !"inactive".equals(cleanListing)) {
@@ -710,6 +740,13 @@ public class AdminService {
                                 "verificationStatus"
                         ).toLowerCase();
 
+                if (verification.isBlank()) {
+                    verification = getStringField(document, "status").toLowerCase();
+                }
+                if (verification.isBlank()) {
+                    verification = "pending";
+                }
+
                 String listing =
                         getStringField(
                                 document,
@@ -717,11 +754,13 @@ public class AdminService {
                         ).toLowerCase();
 
                 if (!cleanVerification.isBlank()
+                        && !"all".equals(cleanVerification)
                         && !cleanVerification.equals(verification)) {
                     continue;
                 }
 
                 if (!cleanListing.isBlank()
+                        && !"all".equals(cleanListing)
                         && !cleanListing.equals(listing)) {
                     continue;
                 }
@@ -863,6 +902,14 @@ public class AdminService {
             AuthenticatedUser admin,
             String propertyId,
             String listingStatus) {
+        return updatePropertyListingStatus(admin, propertyId, listingStatus, null);
+    }
+
+    public Map<String, Object> updatePropertyListingStatus(
+            AuthenticatedUser admin,
+            String propertyId,
+            String listingStatus,
+            String reason) {
 
         requireAdmin(admin);
 
@@ -890,18 +937,6 @@ public class AdminService {
             );
         }
 
-        String verificationStatus =
-                getStringField(
-                        property,
-                        "verificationStatus"
-                );
-
-        if (!"approved".equalsIgnoreCase(verificationStatus)) {
-            throw new RuntimeException(
-                    "Only approved properties can have their listing status changed"
-            );
-        }
-
         Map<String, Object> updates =
                 new HashMap<>();
 
@@ -909,6 +944,10 @@ public class AdminService {
                 "listingStatus",
                 cleanStatus
         );
+
+        if (reason != null && !reason.isBlank()) {
+            updates.put("verificationNote", reason.trim());
+        }
 
         updates.put(
                 "updatedAt",
@@ -921,6 +960,18 @@ public class AdminService {
                     propertyId,
                     updates
             );
+
+            if (hostId != null && !hostId.isBlank()) {
+                String noteMsg = (reason != null && !reason.isBlank()) ? " Admin reason: " + reason.trim() : "";
+                notifyHostApplicant(
+                        hostId,
+                        "PROPERTY_LISTING_STATUS_CHANGED",
+                        "Property listing status updated",
+                        "Your property listing status has been changed to " + cleanStatus + "." + noteMsg,
+                        propertyId,
+                        "property"
+                );
+            }
 
             return getPropertyWithId(propertyId);
 
@@ -989,18 +1040,6 @@ public class AdminService {
             );
         }
 
-        String currentStatus =
-                getStringField(
-                        property,
-                        "verificationStatus"
-                );
-
-        if (!"pending".equalsIgnoreCase(currentStatus)) {
-            throw new RuntimeException(
-                    "Only pending properties can be approved"
-            );
-        }
-
         Map<String, Object> updates =
                 new HashMap<>();
 
@@ -1012,6 +1051,11 @@ public class AdminService {
         updates.put(
                 "listingStatus",
                 "active"
+        );
+
+        updates.put(
+                "showInStay",
+                true
         );
 
         updates.put(
@@ -1082,18 +1126,6 @@ public class AdminService {
         if (admin.getUid().equals(hostId)) {
             throw new RuntimeException(
                     "An admin cannot review their own property"
-            );
-        }
-
-        String currentStatus =
-                getStringField(
-                        property,
-                        "verificationStatus"
-                );
-
-        if (!"pending".equalsIgnoreCase(currentStatus)) {
-            throw new RuntimeException(
-                    "Only pending properties can have changes requested"
             );
         }
 
@@ -1179,18 +1211,6 @@ public class AdminService {
         if (admin.getUid().equals(hostId)) {
             throw new RuntimeException(
                     "An admin cannot reject their own property"
-            );
-        }
-
-        String currentStatus =
-                getStringField(
-                        property,
-                        "verificationStatus"
-                );
-
-        if (!"pending".equalsIgnoreCase(currentStatus)) {
-            throw new RuntimeException(
-                    "Only pending properties can be rejected"
             );
         }
 
@@ -1287,18 +1307,19 @@ public class AdminService {
                             .get()
                             .get();
 
-            if (!document.exists()) {
-                throw new RuntimeException(
-                        "Subscription settings were not found"
-                );
-            }
+            Map<String, Object> data = document.exists() && document.getData() != null
+                    ? new HashMap<>(document.getData())
+                    : new HashMap<>();
 
-            Map<String, Object> data =
-                    document.getData();
+            data.putIfAbsent("subscriptionMode", "paid");
+            data.putIfAbsent("standardPrice", 499L);
+            data.putIfAbsent("introductoryPrice", 20L);
+            data.putIfAbsent("introductoryEnabled", true);
+            data.putIfAbsent("currency", "INR");
+            data.putIfAbsent("listingPropertyLimit", 10L);
+            data.putIfAbsent("subscriptionDuration", 365L);
 
-            return data == null
-                    ? new HashMap<>()
-                    : new HashMap<>(data);
+            return data;
 
         } catch (Exception e) {
 
@@ -1309,10 +1330,6 @@ public class AdminService {
         }
     }
 
-    /**
-     * Update subscription pricing. Prices are stored in INR as rupee
-     * amounts and are read dynamically by SubscriptionService.
-     */
     public Map<String, Object> updateSubscriptionSettings(
             AuthenticatedUser admin,
             Map<String, Object> request) {
@@ -1325,77 +1342,45 @@ public class AdminService {
             );
         }
 
-        long introductoryPrice =
-                readNonNegativeLong(
-                        request,
-                        "introductoryPrice"
-                );
-
-        long standardPrice =
-                readNonNegativeLong(
-                        request,
-                        "standardPrice"
-                );
-
-        Object introductoryEnabledValue =
-                request.get("introductoryEnabled");
-
-        if (!(introductoryEnabledValue instanceof Boolean)) {
-            throw new RuntimeException(
-                    "introductoryEnabled must be boolean"
-            );
+        String mode = request.get("subscriptionMode") != null
+                ? request.get("subscriptionMode").toString().trim().toLowerCase()
+                : "paid";
+        if (!"free".equals(mode) && !"paid".equals(mode)) {
+            mode = "paid";
         }
 
-        boolean introductoryEnabled =
-                (Boolean) introductoryEnabledValue;
+        long introductoryPrice = readNonNegativeLong(request, "introductoryPrice");
+        long standardPrice = readNonNegativeLong(request, "standardPrice");
 
-        String currency =
-                request.get("currency") == null
-                        ? "INR"
-                        : request.get("currency")
-                                .toString()
-                                .trim()
-                                .toUpperCase();
+        Object introductoryEnabledValue = request.get("introductoryEnabled");
+        boolean introductoryEnabled = Boolean.TRUE.equals(introductoryEnabledValue);
 
-        if (!"INR".equals(currency)) {
-            throw new RuntimeException(
-                    "Only INR is supported"
-            );
+        String currency = request.get("currency") == null
+                ? "INR"
+                : request.get("currency").toString().trim().toUpperCase();
+
+        long listingPropertyLimit = readNonNegativeLong(request, "listingPropertyLimit");
+        if (listingPropertyLimit == 0 && request.containsKey("propertyLimit")) {
+            listingPropertyLimit = readNonNegativeLong(request, "propertyLimit");
+        }
+        if (listingPropertyLimit <= 0) {
+            listingPropertyLimit = 10L;
         }
 
-        if (standardPrice == 0) {
-            throw new RuntimeException(
-                    "standardPrice must be greater than 0"
-            );
+        long subscriptionDuration = readNonNegativeLong(request, "subscriptionDuration");
+        if (subscriptionDuration <= 0) {
+            subscriptionDuration = 365L;
         }
 
-        Map<String, Object> updates =
-                new HashMap<>();
-
-        updates.put(
-                "introductoryPrice",
-                introductoryPrice
-        );
-
-        updates.put(
-                "standardPrice",
-                standardPrice
-        );
-
-        updates.put(
-                "introductoryEnabled",
-                introductoryEnabled
-        );
-
-        updates.put(
-                "currency",
-                currency
-        );
-
-        updates.put(
-                "updatedAt",
-                Timestamp.now()
-        );
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("subscriptionMode", mode);
+        updates.put("introductoryPrice", introductoryPrice);
+        updates.put("standardPrice", standardPrice);
+        updates.put("introductoryEnabled", introductoryEnabled);
+        updates.put("currency", currency);
+        updates.put("listingPropertyLimit", listingPropertyLimit);
+        updates.put("subscriptionDuration", subscriptionDuration);
+        updates.put("updatedAt", Timestamp.now());
 
         try {
 
@@ -2553,6 +2538,11 @@ public class AdminService {
         }
 
         property.put(
+                "id",
+                document.getId()
+        );
+
+        property.put(
                 "propertyId",
                 document.getId()
         );
@@ -3024,6 +3014,117 @@ public class AdminService {
         }
     }
 
+    public Map<String, Object> getHostSubscription(AuthenticatedUser admin, String hostId) {
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+        return subscriptionService.getSubscriptionStatusForHost(cleanHostId);
+    }
+
+    public Map<String, Object> grantHostSubscription(
+            AuthenticatedUser admin,
+            String hostId,
+            String planName,
+            Long durationDaysInput,
+            String reasonInput) {
+
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+
+        long durationDays = (durationDaysInput != null && durationDaysInput > 0) ? durationDaysInput : 365L;
+        String plan = (planName != null && !planName.isBlank()) ? planName.trim() : "host_pro";
+        String reason = (reasonInput != null && !reasonInput.isBlank()) ? reasonInput.trim() : "Testing / complimentary access";
+
+        long nowMs = System.currentTimeMillis();
+        long addDurationMs = durationDays * 24L * 60L * 60L * 1000L;
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> existingSubs = db.collection("subscriptions")
+                    .whereEqualTo("hostId", cleanHostId)
+                    .get().get().getDocuments();
+
+            QueryDocumentSnapshot activeSub = null;
+            for (QueryDocumentSnapshot sub : existingSubs) {
+                String status = sub.getString("status");
+                Timestamp endDate = sub.getTimestamp("endDate");
+                if ("active".equalsIgnoreCase(status) && endDate != null && endDate.toDate().getTime() > nowMs) {
+                    activeSub = sub;
+                    break;
+                }
+            }
+
+            if (activeSub != null) {
+                // Idempotently extend existing active subscription
+                Timestamp currentEnd = activeSub.getTimestamp("endDate");
+                long currentEndMs = currentEnd != null ? currentEnd.toDate().getTime() : nowMs;
+                long newEndMs = Math.max(currentEndMs, nowMs) + addDurationMs;
+                Timestamp newEndDate = Timestamp.ofTimeSecondsAndNanos(newEndMs / 1000L, (int) ((newEndMs % 1000L) * 1000000L));
+
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("endDate", newEndDate);
+                updates.put("updatedAt", Timestamp.now());
+                updates.put("grantReason", reason);
+                updates.put("grantedBy", admin.getUid());
+
+                db.collection("subscriptions").document(activeSub.getId()).update(updates).get();
+
+                logAdminActivity(admin.getUid(), "SUBSCRIPTION_EXTENDED", "subscription", cleanHostId,
+                        "Extended subscription for host " + cleanHostId + " by " + durationDays + " days. Reason: " + reason);
+
+                notifyHostApplicant(
+                        cleanHostId,
+                        "SUBSCRIPTION_EXTENDED",
+                        "Subscription extended",
+                        "An administrator has extended your active subscription by " + durationDays + " days. Reason: " + reason,
+                        activeSub.getId(),
+                        "subscription"
+                );
+
+                return getHostSubscription(admin, cleanHostId);
+            }
+
+            // Create new active subscription document
+            String subscriptionId = UUID.randomUUID().toString();
+            long newEndMs = nowMs + addDurationMs;
+            Timestamp startDate = Timestamp.now();
+            Timestamp endDate = Timestamp.ofTimeSecondsAndNanos(newEndMs / 1000L, (int) ((newEndMs % 1000L) * 1000000L));
+
+            Map<String, Object> subData = new HashMap<>();
+            subData.put("subscriptionId", subscriptionId);
+            subData.put("hostId", cleanHostId);
+            subData.put("plan", plan);
+            subData.put("amount", 0L);
+            subData.put("currency", "INR");
+            subData.put("status", "active");
+            subData.put("startDate", startDate);
+            subData.put("endDate", endDate);
+            subData.put("paymentId", "ADMIN_GRANT");
+            subData.put("paymentSource", "admin");
+            subData.put("grantedBy", admin.getUid());
+            subData.put("grantReason", reason);
+            subData.put("createdAt", startDate);
+            subData.put("updatedAt", startDate);
+
+            db.collection("subscriptions").document(subscriptionId).set(subData).get();
+
+            logAdminActivity(admin.getUid(), "SUBSCRIPTION_GRANTED", "subscription", cleanHostId,
+                    "Granted " + durationDays + "-day subscription to host " + cleanHostId + ". Reason: " + reason);
+
+            notifyHostApplicant(
+                    cleanHostId,
+                    "SUBSCRIPTION_GRANTED",
+                    "Subscription activated",
+                    "An administrator has granted you an active subscription for " + durationDays + " days. Reason: " + reason,
+                    subscriptionId,
+                    "subscription"
+            );
+
+            return getHostSubscription(admin, cleanHostId);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to grant subscription: " + e.getMessage(), e);
+        }
+    }
+
     public Map<String, Object> pauseHostSubscription(AuthenticatedUser admin, String hostId) {
         requireAdmin(admin);
         String cleanHostId = requireUserId(hostId);
@@ -3034,15 +3135,14 @@ public class AdminService {
                     .get().get().getDocuments();
 
             for (QueryDocumentSnapshot sub : subs) {
-                db.collection("subscriptions").document(sub.getId()).update("status", "paused", "updatedAt", Timestamp.now());
+                String status = sub.getString("status");
+                if ("active".equalsIgnoreCase(status)) {
+                    db.collection("subscriptions").document(sub.getId()).update("status", "paused", "updatedAt", Timestamp.now());
+                }
             }
 
             logAdminActivity(admin.getUid(), "SUBSCRIPTION_PAUSED", "subscription", cleanHostId, "Paused subscription for host: " + cleanHostId);
-            Map<String, Object> res = new HashMap<>();
-            res.put("success", true);
-            res.put("hostId", cleanHostId);
-            res.put("status", "paused");
-            return res;
+            return getHostSubscription(admin, cleanHostId);
         } catch (Exception e) {
             throw new RuntimeException("Unable to pause subscription", e);
         }
@@ -3057,18 +3157,320 @@ public class AdminService {
                     .whereEqualTo("hostId", cleanHostId)
                     .get().get().getDocuments();
 
+            long now = System.currentTimeMillis();
+            boolean resumed = false;
+
             for (QueryDocumentSnapshot sub : subs) {
-                db.collection("subscriptions").document(sub.getId()).update("status", "active", "updatedAt", Timestamp.now());
+                String status = sub.getString("status");
+                if ("paused".equalsIgnoreCase(status)) {
+                    Timestamp endDate = sub.getTimestamp("endDate");
+                    if (endDate == null || endDate.toDate().getTime() <= now) {
+                        throw new RuntimeException("Cannot resume expired subscription. End date was " + (endDate != null ? endDate.toDate() : "past") + ". Please grant or purchase a new subscription.");
+                    }
+                    db.collection("subscriptions").document(sub.getId()).update("status", "active", "updatedAt", Timestamp.now());
+                    resumed = true;
+                }
+            }
+
+            if (!resumed) {
+                throw new RuntimeException("No paused subscription found to resume for host: " + cleanHostId);
             }
 
             logAdminActivity(admin.getUid(), "SUBSCRIPTION_RESUMED", "subscription", cleanHostId, "Resumed subscription for host: " + cleanHostId);
+            return getHostSubscription(admin, cleanHostId);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to resume subscription: " + e.getMessage(), e);
+        }
+    }
+
+    public Map<String, Object> deleteUser(AuthenticatedUser admin, String userId) {
+        requireAdmin(admin);
+        String cleanUserId = requireUserId(userId);
+
+        if (admin.getUid().equals(cleanUserId)) {
+            throw new RuntimeException("Your own administrator account cannot be deleted.");
+        }
+
+        try {
+            userRepository.delete(cleanUserId);
+
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> apps = db.collection("hostApplications")
+                    .whereEqualTo("userId", cleanUserId)
+                    .get().get().getDocuments();
+
+            for (QueryDocumentSnapshot app : apps) {
+                db.collection("hostApplications").document(app.getId()).delete();
+            }
+
+            try {
+                FirebaseAuth.getInstance().deleteUser(cleanUserId);
+            } catch (Exception ignored) {}
+
+            logAdminActivity(admin.getUid(), "USER_DELETED", "user", cleanUserId, "Deleted user account: " + cleanUserId);
             Map<String, Object> res = new HashMap<>();
             res.put("success", true);
-            res.put("hostId", cleanHostId);
-            res.put("status", "active");
+            res.put("message", "User deleted successfully");
+            res.put("userId", cleanUserId);
             return res;
         } catch (Exception e) {
-            throw new RuntimeException("Unable to resume subscription", e);
+            throw new RuntimeException("Unable to delete user", e);
+        }
+    }
+
+    public Map<String, Object> deleteHost(AuthenticatedUser admin, String hostId) {
+        return deleteUser(admin, hostId);
+    }
+
+    public Map<String, Object> unbanHost(AuthenticatedUser admin, String hostId) {
+        requireAdmin(admin);
+        String cleanHostId = requireUserId(hostId);
+        Timestamp now = Timestamp.now();
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", "active");
+        updates.put("updatedAt", now);
+
+        try {
+            userRepository.update(cleanHostId, updates);
+            logAdminActivity(admin.getUid(), "HOST_UNBANNED", "host", cleanHostId, "Restored/unbanned host account: " + cleanHostId);
+            return sanitizeAdminUser(getExistingUser(cleanHostId));
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to unban host", e);
+        }
+    }
+
+    public Map<String, Object> deleteProperty(AuthenticatedUser admin, String propertyId) {
+        return deleteProperty(admin, propertyId, null);
+    }
+
+    public Map<String, Object> deleteProperty(AuthenticatedUser admin, String propertyId, String reason) {
+        requireAdmin(admin);
+        if (propertyId == null || propertyId.isBlank()) {
+            throw new RuntimeException("Property ID is required");
+        }
+        try {
+            String cleanPropId = propertyId.trim();
+            DocumentSnapshot propDoc = null;
+            try {
+                propDoc = propertyRepository.findById(cleanPropId);
+            } catch (Exception ignored) {}
+
+            if (propDoc != null && propDoc.exists()) {
+                String hostId = getStringField(propDoc, "hostId");
+                String title = getStringField(propDoc, "title");
+                if (hostId != null && !hostId.isBlank()) {
+                    String reasonMsg = (reason != null && !reason.isBlank()) ? " Reason: " + reason.trim() : "";
+                    notifyHostApplicant(
+                            hostId,
+                            "PROPERTY_DELETED",
+                            "Property listing deleted",
+                            "Your property listing '" + (title.isBlank() ? cleanPropId : title) + "' has been deleted by an administrator." + reasonMsg,
+                            cleanPropId,
+                            "property"
+                    );
+                }
+            }
+
+            propertyRepository.delete(cleanPropId);
+            logAdminActivity(admin.getUid(), "PROPERTY_DELETED", "property", cleanPropId, "Deleted property: " + cleanPropId + (reason != null && !reason.isBlank() ? " (Reason: " + reason.trim() + ")" : ""));
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("message", "Property deleted successfully");
+            res.put("propertyId", cleanPropId);
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to delete property", e);
+        }
+    }
+
+    public Map<String, Object> deleteHostApplication(AuthenticatedUser admin, String applicationId) {
+        requireAdmin(admin);
+        if (applicationId == null || applicationId.isBlank()) {
+            throw new RuntimeException("Application ID is required");
+        }
+        try {
+            hostApplicationRepository.delete(applicationId.trim());
+            logAdminActivity(admin.getUid(), "HOST_APPLICATION_DELETED", "hostApplication", applicationId, "Deleted host application: " + applicationId);
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("message", "Host application deleted successfully");
+            res.put("applicationId", applicationId);
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to delete host application", e);
+        }
+    }
+
+    public Map<String, Object> deleteReview(AuthenticatedUser admin, String reviewId) {
+        requireAdmin(admin);
+        if (reviewId == null || reviewId.isBlank()) {
+            throw new RuntimeException("Review ID is required");
+        }
+        try {
+            reviewRepository.delete(reviewId.trim());
+            logAdminActivity(admin.getUid(), "REVIEW_DELETED", "review", reviewId, "Deleted review: " + reviewId);
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("message", "Review deleted successfully");
+            res.put("reviewId", reviewId);
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to delete review", e);
+        }
+    }
+
+    public Map<String, Object> migratePropertyLocationNormalization(AuthenticatedUser admin) {
+        requireAdmin(admin);
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> docs = db.collection("properties").get().get().getDocuments();
+            int updatedCount = 0;
+            int totalCount = docs.size();
+
+            for (QueryDocumentSnapshot doc : docs) {
+                String city = getStringField(doc, "city");
+                String area = getStringField(doc, "area");
+
+                String cityNorm = LocationUtils.normalizeLocation(city);
+                String areaNorm = LocationUtils.normalizeLocation(area);
+
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("cityNormalized", cityNorm);
+                updates.put("areaNormalized", areaNorm);
+
+                db.collection("properties").document(doc.getId()).update(updates).get();
+                updatedCount++;
+            }
+
+            logAdminActivity(admin.getUid(), "MIGRATE_LOCATIONS", "property", "all", "Migrated location normalization for " + updatedCount + " properties");
+
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("totalProperties", totalCount);
+            res.put("migratedProperties", updatedCount);
+            res.put("message", "Successfully migrated location normalization for " + updatedCount + " properties.");
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to migrate property location normalization", e);
+        }
+    }
+
+    public Map<String, Object> clearAdminActivities(AuthenticatedUser admin) {
+        requireAdmin(admin);
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> docs = db.collection("admin_activities")
+                    .get().get().getDocuments();
+
+            for (QueryDocumentSnapshot doc : docs) {
+                db.collection("admin_activities").document(doc.getId()).delete();
+            }
+
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("message", "All activity log entries cleared.");
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to clear admin activities", e);
+        }
+    }
+
+    public Map<String, Object> cleanupTestArtifacts(AuthenticatedUser admin) {
+        requireAdmin(admin);
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            int deletedUsersCount = 0;
+            int deletedPropertiesCount = 0;
+            int deletedAppsCount = 0;
+            int deletedSubsCount = 0;
+
+            List<String> knownTestUids = List.of(
+                    "test_user_host_applicant_submission_001",
+                    "test_user_host_applicant_001",
+                    "test_user_host_applicant_002",
+                    "test_user_customer_001",
+                    "test_user_customer_002",
+                    "test_admin_001"
+            );
+
+            for (QueryDocumentSnapshot doc : db.collection("users").get().get().getDocuments()) {
+                String uid = doc.getId();
+                String name = getStringField(doc, "name");
+
+                if ("rd3Tx5ucG6Zd3sq0Y9sSGQcH2cU2".equalsIgnoreCase(uid) || "Anshu Kumar".equalsIgnoreCase(name)) {
+                    continue;
+                }
+
+                if (knownTestUids.contains(uid) || uid.startsWith("test_user_") || uid.startsWith("test_admin_")) {
+                    db.collection("users").document(uid).delete().get();
+                    try {
+                        FirebaseAuth.getInstance().deleteUser(uid);
+                    } catch (Exception ignored) {}
+                    deletedUsersCount++;
+                }
+            }
+
+            for (String testUid : knownTestUids) {
+                try {
+                    FirebaseAuth.getInstance().deleteUser(testUid);
+                } catch (Exception ignored) {}
+            }
+
+            for (QueryDocumentSnapshot doc : db.collection("properties").get().get().getDocuments()) {
+                String propId = doc.getId();
+                String title = getStringField(doc, "title");
+                String hostId = getStringField(doc, "hostId");
+
+                if ("X STAYS".equalsIgnoreCase(title)) {
+                    continue;
+                }
+
+                boolean isTestProp = title.contains("Royal PG") || title.contains("Review Test")
+                        || title.contains("Chat & Notification") || title.contains("Sunshine Luxury")
+                        || title.toLowerCase().startsWith("test") || title.toLowerCase().contains("test pg")
+                        || knownTestUids.contains(hostId) || (hostId != null && hostId.startsWith("test_"));
+
+                if (isTestProp) {
+                    db.collection("properties").document(propId).delete().get();
+                    deletedPropertiesCount++;
+                }
+            }
+
+            for (QueryDocumentSnapshot doc : db.collection("hostApplications").get().get().getDocuments()) {
+                String appId = doc.getId();
+                String userId = getStringField(doc, "userId");
+
+                if (knownTestUids.contains(appId) || knownTestUids.contains(userId) || appId.startsWith("test_")) {
+                    db.collection("hostApplications").document(appId).delete().get();
+                    deletedAppsCount++;
+                }
+            }
+
+            for (QueryDocumentSnapshot doc : db.collection("subscriptions").get().get().getDocuments()) {
+                String subId = doc.getId();
+                String hostId = getStringField(doc, "hostId");
+
+                if (subId.startsWith("test_") || knownTestUids.contains(hostId)) {
+                    db.collection("subscriptions").document(subId).delete().get();
+                    deletedSubsCount++;
+                }
+            }
+
+            logAdminActivity(admin.getUid(), "CLEAN_TEST_DATA", "system", "all",
+                    "Cleaned " + deletedUsersCount + " test users, " + deletedPropertiesCount + " test properties");
+
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("deletedUsers", deletedUsersCount);
+            res.put("deletedProperties", deletedPropertiesCount);
+            res.put("deletedApplications", deletedAppsCount);
+            res.put("deletedSubscriptions", deletedSubsCount);
+            res.put("message", "Cleaned test data successfully.");
+            return res;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to clean test data", e);
         }
     }
 

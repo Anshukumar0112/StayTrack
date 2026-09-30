@@ -63,12 +63,29 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
 export const SUPPORTED_CITY_NAMES = SUPPORTED_LOCATIONS.map((loc) => loc.name);
 
 /**
+ * Canonical location normalization:
+ * - null/undefined -> ""
+ * - Unicode NFKC normalization
+ * - trim leading/trailing whitespace
+ * - collapse multiple internal spaces into single space
+ * - lowercase
+ */
+export function normalizeLocation(value?: string | null): string {
+  if (!value) return "";
+  return value
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+/**
  * Checks if a given query or location string falls within the supported Delhi NCR service area.
  * Returns true if empty/blank (defaults to searching within supported scope).
  */
 export function isSupportedLocation(cityName?: string | null): boolean {
-  if (!cityName || !cityName.trim()) return true;
-  const normalized = cityName.trim().toLowerCase();
+  const normalized = normalizeLocation(cityName);
+  if (!normalized) return true;
 
   if (
     normalized.includes("ncr") ||
@@ -80,8 +97,8 @@ export function isSupportedLocation(cityName?: string | null): boolean {
 
   return SUPPORTED_LOCATIONS.some(
     (loc) =>
-      loc.name.toLowerCase() === normalized ||
-      normalized.includes(loc.name.toLowerCase()) ||
-      loc.name.toLowerCase().includes(normalized)
+      normalizeLocation(loc.name) === normalized ||
+      normalized.includes(normalizeLocation(loc.name)) ||
+      normalizeLocation(loc.name).includes(normalized)
   );
 }

@@ -7,7 +7,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import Link from "next/link";
 import { getMyBookings, createBookingOrder, verifyBookingPayment, cancelBooking } from "@/lib/api";
-import { Booking } from "@/types/booking";
+import { Booking, getBookingId, getBookingStatus, getBookingAmount, getBookingStatusLabel } from "@/types/booking";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 declare global {
@@ -114,9 +114,10 @@ export default function MyTripsPage() {
   };
 
   const filteredBookings = bookings.filter((b) => {
-    if (activeTab === "upcoming") return b.status === "REQUESTED" || b.status === "ACCEPTED" || b.status === "PAYMENT_PENDING";
-    if (activeTab === "confirmed") return b.status === "CONFIRMED";
-    if (activeTab === "cancelled") return b.status === "CANCELLED" || b.status === "REJECTED";
+    const st = getBookingStatus(b);
+    if (activeTab === "upcoming") return st === "requested" || st === "accepted" || st === "payment_pending" || st === "confirmed";
+    if (activeTab === "confirmed") return st === "confirmed";
+    if (activeTab === "cancelled") return st === "cancelled" || st === "rejected";
     return true;
   });
 
@@ -158,12 +159,16 @@ export default function MyTripsPage() {
         ) : filteredBookings.length > 0 ? (
           <div className="space-y-4">
             {filteredBookings.map((b, idx) => {
-              const isAccepted = b.status === "ACCEPTED" || b.status === "PAYMENT_PENDING";
-              const isConfirmed = b.status === "CONFIRMED";
-              const isPending = b.status === "REQUESTED";
+              const id = getBookingId(b);
+              const st = getBookingStatus(b);
+              const amount = getBookingAmount(b);
+
+              const isAccepted = st === "accepted" || st === "payment_pending";
+              const isConfirmed = st === "confirmed";
+              const isPending = st === "requested";
 
               return (
-                <GlassCard key={b.id || (b as any).bookingId || `trip-idx-${idx}`} hoverEffect className="border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5">
+                <GlassCard key={id || `trip-idx-${idx}`} hoverEffect className="border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5">
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className={`clay-badge px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
@@ -175,9 +180,9 @@ export default function MyTripsPage() {
                           ? "bg-zinc-200 text-zinc-900 border border-zinc-300"
                           : "bg-red-100 text-red-700"
                       }`}>
-                        {b.status}
+                        {getBookingStatusLabel(st, "customer")}
                       </span>
-                      <span className="text-xs text-zinc-500 font-mono">ID: {b.id}</span>
+                      <span className="text-xs text-zinc-500 font-mono">ID: {id}</span>
                     </div>
 
                     <h3 className="text-base font-bold text-zinc-950">{b.propertyTitle || `Property #${b.propertyId}`}</h3>
@@ -189,23 +194,23 @@ export default function MyTripsPage() {
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-200">
                     <div className="text-left sm:text-right">
                       <span className="text-xs text-zinc-500 block font-semibold">Total Amount</span>
-                      <span className="text-lg font-black text-black">₹{b.totalPrice || 0}</span>
+                      <span className="text-lg font-black text-black">₹{amount.toLocaleString()}</span>
                     </div>
 
                     {isAccepted && (
                       <button
-                        onClick={() => handlePayNow(b.id)}
-                        disabled={actionLoadingId === b.id}
+                        onClick={() => handlePayNow(id)}
+                        disabled={actionLoadingId === id}
                         className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-md cursor-pointer disabled:opacity-50"
                       >
-                        {actionLoadingId === b.id ? "Processing..." : "💳 Pay Now (Razorpay)"}
+                        {actionLoadingId === id ? "Processing..." : "💳 Pay Now (Razorpay)"}
                       </button>
                     )}
 
                     {isPending && (
                       <button
-                        onClick={() => handleCancelBooking(b.id)}
-                        disabled={actionLoadingId === b.id}
+                        onClick={() => handleCancelBooking(id)}
+                        disabled={actionLoadingId === id}
                         className="rounded-xl border border-zinc-300 hover:bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition-all cursor-pointer disabled:opacity-50"
                       >
                         Cancel
@@ -213,7 +218,7 @@ export default function MyTripsPage() {
                     )}
 
                     <Link
-                      href={`/trips/${b.id}`}
+                      href={`/trips/${id}`}
                       className="rounded-xl bg-black hover:bg-zinc-800 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
                     >
                       Booking Details

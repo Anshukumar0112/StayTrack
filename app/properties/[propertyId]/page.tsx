@@ -49,14 +49,9 @@ export default function PropertyDetailPage({
   };
 
   const handleContactHost = async () => {
-    if (!property?.hostId) {
-      alert("Host information is unavailable for this stay.");
-      return;
-    }
     try {
       await createConversation({
-        participantId: property.hostId,
-        propertyId: property.id,
+        propertyId,
       });
       router.push("/chat");
     } catch {

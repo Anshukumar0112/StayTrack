@@ -23,19 +23,22 @@ public class PaymentService {
     private final SubscriptionService subscriptionService;
     private final BookingRepository bookingRepository;
     private final RefundService refundService;
+    private final NotificationService notificationService;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             PaymentProvider paymentProvider,
             SubscriptionService subscriptionService,
             BookingRepository bookingRepository,
-            RefundService refundService
+            RefundService refundService,
+            @org.springframework.context.annotation.Lazy NotificationService notificationService
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentProvider = paymentProvider;
         this.subscriptionService = subscriptionService;
         this.bookingRepository = bookingRepository;
         this.refundService = refundService;
+        this.notificationService = notificationService;
     }
 
     public List<Map<String, Object>> getMyPayments(
@@ -840,6 +843,37 @@ public class PaymentService {
             Map<String, Object> payment,
             String bookingId
     ) {
+        try {
+            DocumentSnapshot bDoc = bookingRepository.findById(bookingId);
+            if (bDoc.exists()) {
+                Map<String, Object> bData = bDoc.getData();
+                if (bData != null) {
+                    String customerId = String.valueOf(bData.get("customerId"));
+                    String hostId = String.valueOf(bData.get("hostId"));
+                    if (!customerId.isBlank()) {
+                        notificationService.createNotification(
+                                customerId,
+                                "booking_confirmed",
+                                "Booking Confirmed 🎉",
+                                "Your booking #" + bookingId + " has been confirmed!",
+                                bookingId,
+                                "booking"
+                        );
+                    }
+                    if (!hostId.isBlank()) {
+                        notificationService.createNotification(
+                                hostId,
+                                "booking_confirmed",
+                                "Booking Confirmed & Paid",
+                                "Booking #" + bookingId + " payment has been verified and confirmed.",
+                                bookingId,
+                                "booking"
+                        );
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
         response.put("paymentStatus", "captured");

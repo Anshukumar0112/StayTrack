@@ -81,78 +81,100 @@ public class MessagingNotificationAndReportWorkflowTest {
         pReq.setBedrooms(3);
         pReq.setBathrooms(3);
 
-        Map<String, Object> property = propertyService.createProperty(hostUser, pReq);
-        String propertyId = (String) property.get("propertyId");
-        adminService.approveProperty(adminUser, propertyId, "Approved");
-
-        // 3. Customer creates conversation (Task I)
-        ConversationRequest cReq = new ConversationRequest();
-        cReq.setPropertyId(propertyId);
-
-        Map<String, Object> conversation = conversationService.createConversation(customerUser, cReq);
-        assertNotNull(conversation, "Conversation should not be null");
-
-        String conversationId = (String) conversation.get("conversationId");
-        assertNotNull(conversationId, "Conversation ID should be returned");
-
-        // 4. Customer sends message (Task I)
-        MessageRequest mReq = new MessageRequest();
-        mReq.setContent("Hi Host, is check-in flexible around 2 PM?");
-        Map<String, Object> sentMessage = conversationService.sendMessage(customerUser, conversationId, mReq);
-        assertNotNull(sentMessage, "Sent message payload should not be null");
-
-        // 5. Host replies to message (Task I)
-        MessageRequest rReq = new MessageRequest();
-        rReq.setContent("Yes, 2 PM check-in works fine!");
-        Map<String, Object> replyMessage = conversationService.sendMessage(hostUser, conversationId, rReq);
-        assertNotNull(replyMessage, "Reply message payload should not be null");
-
-        // Verify conversation document in live Firestore
-        DocumentSnapshot convDoc = db.collection("conversations").document(conversationId).get().get();
-        assertTrue(convDoc.exists(), "Conversation document must exist in Firestore");
-        assertEquals(hostUid, convDoc.getString("hostId"));
-        assertEquals(customerUid, convDoc.getString("customerId"));
-
-        // 6. Test Notification Creation (Task J)
-        Map<String, Object> notification = notificationService.createNotification(
-                customerUid,
-                "BOOKING_CONFIRMED",
-                "Booking Confirmed!",
-                "Your booking for Chat & Notification Test PG is confirmed.",
-                propertyId,
-                "property"
-        );
-        assertNotNull(notification, "Notification should not be null");
-
-        String notificationId = (String) notification.get("notificationId");
-        assertNotNull(notificationId, "Notification ID should be returned");
-
-        // Verify notification document in live Firestore
-        DocumentSnapshot notifDoc = db.collection("notifications").document(notificationId).get().get();
-        assertTrue(notifDoc.exists(), "Notification document must exist in Firestore");
-        assertEquals("BOOKING_CONFIRMED", notifDoc.getString("type"));
-        assertEquals(false, notifDoc.getBoolean("read"));
-
-        // 7. Seed Webhook Event & System Report (Task K)
+        String propertyId = null;
+        String conversationId = null;
+        String notificationId = null;
         String webhookId = "evt_test_webhook_001";
-        Map<String, Object> webhookData = new HashMap<>();
-        webhookData.put("eventId", webhookId);
-        webhookData.put("event", "payment.captured");
-        webhookData.put("status", "processed");
-        webhookData.put("createdAt", Timestamp.now());
-        db.collection("webhookEvents").document(webhookId).set(webhookData).get();
-
-        DocumentSnapshot webhookDoc = db.collection("webhookEvents").document(webhookId).get().get();
-        assertTrue(webhookDoc.exists(), "Webhook event document must exist in Firestore");
-
         String reportId = "rep_test_report_001";
-        Map<String, Object> reportData = new HashMap<>();
-        reportData.put("reportId", reportId);
-        reportData.put("type", "daily_summary");
-        reportData.put("generatedAt", Timestamp.now());
-        db.collection("reports").document(reportId).set(reportData).get();
 
-        DocumentSnapshot reportDoc = db.collection("reports").document(reportId).get().get();
-        assertTrue(reportDoc.exists(), "Report document must exist in Firestore");
+        try {
+            Map<String, Object> property = propertyService.createProperty(hostUser, pReq);
+            propertyId = (String) property.get("propertyId");
+            adminService.approveProperty(adminUser, propertyId, "Approved");
+
+            // 3. Customer creates conversation (Task I)
+            ConversationRequest cReq = new ConversationRequest();
+            cReq.setPropertyId(propertyId);
+
+            Map<String, Object> conversation = conversationService.createConversation(customerUser, cReq);
+            assertNotNull(conversation, "Conversation should not be null");
+
+            conversationId = (String) conversation.get("conversationId");
+            assertNotNull(conversationId, "Conversation ID should be returned");
+
+            // 4. Customer sends message (Task I)
+            MessageRequest mReq = new MessageRequest();
+            mReq.setContent("Hi Host, is check-in flexible around 2 PM?");
+            Map<String, Object> sentMessage = conversationService.sendMessage(customerUser, conversationId, mReq);
+            assertNotNull(sentMessage, "Sent message payload should not be null");
+
+            // 5. Host replies to message (Task I)
+            MessageRequest rReq = new MessageRequest();
+            rReq.setContent("Yes, 2 PM check-in works fine!");
+            Map<String, Object> replyMessage = conversationService.sendMessage(hostUser, conversationId, rReq);
+            assertNotNull(replyMessage, "Reply message payload should not be null");
+
+            // Verify conversation document in live Firestore
+            DocumentSnapshot convDoc = db.collection("conversations").document(conversationId).get().get();
+            assertTrue(convDoc.exists(), "Conversation document must exist in Firestore");
+            assertEquals(hostUid, convDoc.getString("hostId"));
+            assertEquals(customerUid, convDoc.getString("customerId"));
+
+            // 6. Test Notification Creation (Task J)
+            Map<String, Object> notification = notificationService.createNotification(
+                    customerUid,
+                    "BOOKING_CONFIRMED",
+                    "Booking Confirmed!",
+                    "Your booking for Chat & Notification Test PG is confirmed.",
+                    propertyId,
+                    "property"
+            );
+            assertNotNull(notification, "Notification should not be null");
+
+            notificationId = (String) notification.get("notificationId");
+            assertNotNull(notificationId, "Notification ID should be returned");
+
+            // Verify notification document in live Firestore
+            DocumentSnapshot notifDoc = db.collection("notifications").document(notificationId).get().get();
+            assertTrue(notifDoc.exists(), "Notification document must exist in Firestore");
+            assertEquals("BOOKING_CONFIRMED", notifDoc.getString("type"));
+            assertEquals(false, notifDoc.getBoolean("read"));
+
+            // 7. Seed Webhook Event & System Report (Task K)
+            Map<String, Object> webhookData = new HashMap<>();
+            webhookData.put("eventId", webhookId);
+            webhookData.put("event", "payment.captured");
+            webhookData.put("status", "processed");
+            webhookData.put("createdAt", Timestamp.now());
+            db.collection("webhookEvents").document(webhookId).set(webhookData).get();
+
+            DocumentSnapshot webhookDoc = db.collection("webhookEvents").document(webhookId).get().get();
+            assertTrue(webhookDoc.exists(), "Webhook event document must exist in Firestore");
+
+            Map<String, Object> reportData = new HashMap<>();
+            reportData.put("reportId", reportId);
+            reportData.put("type", "daily_summary");
+            reportData.put("generatedAt", Timestamp.now());
+            db.collection("reports").document(reportId).set(reportData).get();
+
+            DocumentSnapshot reportDoc = db.collection("reports").document(reportId).get().get();
+            assertTrue(reportDoc.exists(), "Report document must exist in Firestore");
+        } finally {
+            if (notificationId != null) {
+                try { db.collection("notifications").document(notificationId).delete().get(); } catch (Exception ignored) {}
+            }
+            if (conversationId != null) {
+                try { db.collection("conversations").document(conversationId).delete().get(); } catch (Exception ignored) {}
+            }
+            if (propertyId != null) {
+                try { db.collection("properties").document(propertyId).delete().get(); } catch (Exception ignored) {}
+            }
+            try { db.collection("webhookEvents").document(webhookId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("reports").document(reportId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("subscriptions").document(subId).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(hostUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(adminUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(customerUid).delete().get(); } catch (Exception ignored) {}
+        }
     }
 }

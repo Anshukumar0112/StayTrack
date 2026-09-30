@@ -26,15 +26,18 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
     private final RefundService refundService;
+    private final NotificationService notificationService;
 
     public BookingService(
             BookingRepository bookingRepository,
             PropertyRepository propertyRepository,
-            RefundService refundService
+            RefundService refundService,
+            @org.springframework.context.annotation.Lazy NotificationService notificationService
     ) {
         this.bookingRepository = bookingRepository;
         this.propertyRepository = propertyRepository;
         this.refundService = refundService;
+        this.notificationService = notificationService;
     }
 
     /*
@@ -315,6 +318,17 @@ public class BookingService {
                             : ""
             );
 
+            try {
+                notificationService.createNotification(
+                        hostId,
+                        "booking_request",
+                        "New Booking Request",
+                        "You received a new booking request for your property.",
+                        bookingId,
+                        "booking"
+                );
+            } catch (Exception ignored) {}
+
             return booking;
 
         } catch (RuntimeException e) {
@@ -474,6 +488,23 @@ public class BookingService {
                     document.getId()
             );
 
+            booking.put(
+                    "id",
+                    document.getId()
+            );
+
+            if (!booking.containsKey("status") && booking.containsKey("bookingStatus")) {
+                booking.put("status", booking.get("bookingStatus"));
+            }
+
+            if (!booking.containsKey("totalAmount") && booking.containsKey("amount")) {
+                booking.put("totalAmount", booking.get("amount"));
+            }
+
+            if (!booking.containsKey("totalPrice") && booking.containsKey("amount")) {
+                booking.put("totalPrice", booking.get("amount"));
+            }
+
             return booking;
 
         } catch (RuntimeException e) {
@@ -523,6 +554,47 @@ public class BookingService {
             );
         }
 
+        String propertyId = stringValue(booking.get("propertyId"));
+        String startDate = stringValue(booking.get("startDate"));
+        String endDate = stringValue(booking.get("endDate"));
+        String startTime = stringValue(booking.get("startTime"));
+        String endTime = stringValue(booking.get("endTime"));
+        String bookingType = stringValue(booking.get("bookingType"));
+
+        try {
+            List<QueryDocumentSnapshot> existingBookings = bookingRepository.findByPropertyId(propertyId);
+            for (QueryDocumentSnapshot doc : existingBookings) {
+                if (doc.getId().equals(bookingId)) continue;
+                Map<String, Object> existing = doc.getData();
+                if (existing == null) continue;
+
+                String status = stringValue(existing.get("bookingStatus")).toLowerCase();
+                if (!java.util.Set.of("accepted", "payment_pending", "confirmed").contains(status)) {
+                    continue;
+                }
+
+                String existingStart = stringValue(existing.get("startDate"));
+                String existingEnd = stringValue(existing.get("endDate"));
+                if (existingStart.isBlank() || existingEnd.isBlank()) continue;
+
+                if (dateRangesOverlap(startDate, endDate, existingStart, existingEnd)) {
+                    if (!"hourly".equalsIgnoreCase(bookingType)) {
+                        throw new IllegalStateException("Property is already booked for the requested period");
+                    }
+                    if (startDate.equals(existingStart)) {
+                        String existingStartTime = stringValue(existing.get("startTime"));
+                        String existingEndTime = stringValue(existing.get("endTime"));
+                        if (timesOverlap(startTime, endTime, existingStartTime, existingEndTime)) {
+                            throw new IllegalStateException("Property is already booked for the requested period");
+                        }
+                    }
+                }
+            }
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception ignored) {
+        }
+
         try {
 
             Map<String, Object> updates =
@@ -551,6 +623,20 @@ public class BookingService {
             booking.putAll(
                     updates
             );
+
+            try {
+                String customerId = stringValue(booking.get("customerId"));
+                if (!customerId.isBlank()) {
+                    notificationService.createNotification(
+                            customerId,
+                            "booking_accepted",
+                            "Booking Request Accepted",
+                            "Your booking request was accepted! Complete payment to confirm your stay.",
+                            bookingId,
+                            "booking"
+                    );
+                }
+            } catch (Exception ignored) {}
 
             return booking;
 
@@ -625,6 +711,20 @@ public class BookingService {
             booking.putAll(
                     updates
             );
+
+            try {
+                String customerId = stringValue(booking.get("customerId"));
+                if (!customerId.isBlank()) {
+                    notificationService.createNotification(
+                            customerId,
+                            "booking_rejected",
+                            "Booking Request Rejected",
+                            "Your booking request was rejected by the host.",
+                            bookingId,
+                            "booking"
+                    );
+                }
+            } catch (Exception ignored) {}
 
             return booking;
 
@@ -913,32 +1013,65 @@ public class BookingService {
                         "stayTypes"
                 );
 
-        if (!(stayTypesObject instanceof List<?>)) {
+        boolean supported = false;
 
-            throw new RuntimeException(
-                    "Property has no valid stay types"
-            );
+        if (stayTypesObject instanceof List<?>) {
+            supported = ((List<?>) stayTypesObject).stream()
+                    .anyMatch(value -> bookingType.equalsIgnoreCase(String.valueOf(value)));
         }
 
-        boolean supported =
-                ((List<?>) stayTypesObject)
-                        .stream()
-                        .anyMatch(
-                                value ->
-                                        bookingType.equalsIgnoreCase(
-                                                String.valueOf(
-                                                        value
-                                                )
-                                        )
-                        );
+        if (!supported) {
+            String propBookingType = stringValue(property.get("bookingType"));
+            if (propBookingType.isBlank()) propBookingType = stringValue(property.get("stayModel"));
+            if (!propBookingType.isBlank() && bookingType.equalsIgnoreCase(propBookingType)) {
+                supported = true;
+            }
+        }
+
+        if (!supported && stayTypesObject == null && isBlank(stringValue(property.get("bookingType")))) {
+            supported = "daily".equalsIgnoreCase(bookingType);
+        }
 
         if (!supported) {
-
             throw new RuntimeException(
                     "Property does not support "
                             + bookingType
                             + " bookings"
             );
+        }
+    }
+
+    private boolean dateRangesOverlap(
+            String requestedStart,
+            String requestedEnd,
+            String existingStart,
+            String existingEnd
+    ) {
+        try {
+            LocalDate reqStart = LocalDate.parse(requestedStart.trim());
+            LocalDate reqEnd = LocalDate.parse(requestedEnd.trim());
+            LocalDate extStart = LocalDate.parse(existingStart.trim());
+            LocalDate extEnd = LocalDate.parse(existingEnd.trim());
+            return reqStart.isBefore(extEnd) && extStart.isBefore(reqEnd);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean timesOverlap(
+            String requestedStart,
+            String requestedEnd,
+            String existingStart,
+            String existingEnd
+    ) {
+        try {
+            LocalTime reqStart = LocalTime.parse(requestedStart.trim());
+            LocalTime reqEnd = LocalTime.parse(requestedEnd.trim());
+            LocalTime extStart = LocalTime.parse(existingStart.trim());
+            LocalTime extEnd = LocalTime.parse(existingEnd.trim());
+            return reqStart.isBefore(extEnd) && extStart.isBefore(reqEnd);
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -1069,36 +1202,26 @@ public class BookingService {
         switch (bookingType) {
 
             case "hourly":
-
-                price =
-                        numberValue(
-                                property.get(
-                                        "hourlyPrice"
-                                )
-                        );
-
+                price = numberValue(property.get("hourlyPrice"));
+                if (price <= 0) price = numberValue(property.get("pricePerHour"));
+                if (price <= 0) price = numberValue(property.get("price"));
                 break;
 
             case "daily":
-
-                price =
-                        numberValue(
-                                property.get(
-                                        "dailyPrice"
-                                )
-                        );
-
+                price = numberValue(property.get("dailyPrice"));
+                if (price <= 0) price = numberValue(property.get("pricePerNight"));
+                if (price <= 0) price = numberValue(property.get("price"));
                 break;
 
             case "monthly":
-
-                price =
-                        numberValue(
-                                property.get(
-                                        "monthlyPrice"
-                                )
-                        );
-
+                price = numberValue(property.get("monthlyPrice"));
+                if (price <= 0) price = numberValue(property.get("pricePerMonth"));
+                if (price <= 0) {
+                    double daily = numberValue(property.get("dailyPrice"));
+                    if (daily <= 0) daily = numberValue(property.get("pricePerNight"));
+                    if (daily <= 0) daily = numberValue(property.get("price"));
+                    if (daily > 0) price = daily * 30.0;
+                }
                 break;
 
             default:
@@ -1146,9 +1269,6 @@ public class BookingService {
                     );
                 }
 
-                /*
-                 * Hourly pricing is charged per started hour.
-                 */
                 units =
                         (minutes + 59L) / 60L;
 
@@ -1164,9 +1284,6 @@ public class BookingService {
                                         endDate
                                 );
 
-                /*
-                 * A same-day daily booking counts as one day.
-                 */
                 if (units == 0) {
                     units = 1;
                 }
@@ -1175,18 +1292,19 @@ public class BookingService {
 
             case "monthly":
 
-                Period period =
-                        Period.between(
-                                startDate,
-                                endDate
-                        );
+                long bookedDays =
+                        java.time.temporal.ChronoUnit
+                                .DAYS
+                                .between(
+                                        startDate,
+                                        endDate
+                                );
 
-                units =
-                        period.toTotalMonths();
-
-                if (units == 0) {
-                    units = 1;
+                if (bookedDays == 0) {
+                    bookedDays = 1;
                 }
+
+                units = (long) Math.ceil(bookedDays / 30.0);
 
                 break;
 
@@ -1241,6 +1359,23 @@ public class BookingService {
                         document.getId()
                 );
 
+                booking.put(
+                        "id",
+                        document.getId()
+                );
+
+                if (!booking.containsKey("status") && booking.containsKey("bookingStatus")) {
+                    booking.put("status", booking.get("bookingStatus"));
+                }
+
+                if (!booking.containsKey("totalAmount") && booking.containsKey("amount")) {
+                    booking.put("totalAmount", booking.get("amount"));
+                }
+
+                if (!booking.containsKey("totalPrice") && booking.containsKey("amount")) {
+                    booking.put("totalPrice", booking.get("amount"));
+                }
+
                 bookings.add(
                         booking
                 );
@@ -1254,11 +1389,19 @@ public class BookingService {
             Object value
     ) {
 
-        if (!(value instanceof Number)) {
+        if (value == null) {
             return 0;
         }
 
-        return ((Number) value).doubleValue();
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+
+        try {
+            return Double.parseDouble(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private String stringValue(

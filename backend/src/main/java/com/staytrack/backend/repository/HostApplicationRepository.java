@@ -80,4 +80,15 @@ public class HostApplicationRepository {
                 .update(updates)
                 .get();
     }
+
+    public void delete(
+            String applicationId)
+            throws ExecutionException, InterruptedException {
+
+        getDb()
+                .collection(COLLECTION)
+                .document(applicationId)
+                .delete()
+                .get();
+    }
 }

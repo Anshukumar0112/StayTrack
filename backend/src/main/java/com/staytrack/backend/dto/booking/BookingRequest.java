@@ -8,6 +8,8 @@ public class BookingRequest {
     private String endDate;
     private String startTime;
     private String endTime;
+    private String guestName;
+    private String contactPhone;
 
     public String getPropertyId() {
         return propertyId;
@@ -55,5 +57,21 @@ public class BookingRequest {
 
     public void setEndTime(String endTime) {
         this.endTime = endTime;
+    }
+
+    public String getGuestName() {
+        return guestName;
+    }
+
+    public void setGuestName(String guestName) {
+        this.guestName = guestName;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
     }
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import GlassCard from "@/components/ui/GlassCard";
-import { createProperty } from "@/lib/api";
+import PropertyImageUploader from "@/components/property/PropertyImageUploader";
+import { createProperty, getEligibility } from "@/lib/api";
 import { SUPPORTED_LOCATIONS, isSupportedLocation } from "@/lib/locations";
 import { ACCOMMODATION_CATEGORIES } from "@/lib/categories";
 
@@ -22,9 +23,17 @@ export default function CreateNewPropertyPage() {
   const [bedrooms, setBedrooms] = useState(1);
   const [bathrooms, setBathrooms] = useState(1);
   const [furnished, setFurnished] = useState(true);
+  const [images, setImages] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [eligibility, setEligibility] = useState<{ eligible?: boolean; status?: string; subscriptionMode?: string; reason?: string } | null>(null);
+
+  useEffect(() => {
+    getEligibility()
+      .then((res) => setEligibility(res))
+      .catch((err) => console.warn("Failed to check eligibility:", err));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,24 +52,30 @@ export default function CreateNewPropertyPage() {
     setLoading(true);
     try {
       const priceNum = parseFloat(price);
+      const stayTypeVal = bookingType.toLowerCase();
       await createProperty({
         title,
         description,
         propertyType,
         bookingType,
-        pricePerNight: bookingType === "daily" ? priceNum : undefined,
-        pricePerMonth: bookingType === "monthly" ? priceNum : undefined,
-        pricePerHour: bookingType === "hourly" ? priceNum : undefined,
+        stayTypes: [stayTypeVal],
+        pricePerNight: stayTypeVal === "daily" ? priceNum : undefined,
+        pricePerMonth: stayTypeVal === "monthly" ? priceNum : undefined,
+        pricePerHour: stayTypeVal === "hourly" ? priceNum : undefined,
+        dailyPrice: stayTypeVal === "daily" ? priceNum : undefined,
+        monthlyPrice: stayTypeVal === "monthly" ? priceNum : undefined,
+        hourlyPrice: stayTypeVal === "hourly" ? priceNum : undefined,
         price: priceNum,
         city,
         area,
         bedrooms: Number(bedrooms),
         bathrooms: Number(bathrooms),
         furnished,
+        images,
       });
 
       alert("Property submitted successfully for admin verification! 🎉");
-      router.push("/host/dashboard");
+      router.push("/host/properties");
     } catch (err: any) {
       setError(err.message || "Failed to create property.");
     } finally {
@@ -79,6 +94,24 @@ export default function CreateNewPropertyPage() {
             List your Delhi NCR accommodation on StayTrack
           </p>
         </div>
+
+        {eligibility && !eligibility.eligible && eligibility.subscriptionMode === "paid" && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-extrabold text-sm mb-1">⚠️ Active Subscription Required</p>
+              <p className="font-medium">
+                Platform billing mode is set to Paid. You need an active Host Subscription (Status: {eligibility.status || "Inactive"}) to publish properties.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/host/subscription")}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs shrink-0 cursor-pointer transition-all"
+            >
+              Manage Subscription
+            </button>
+          </div>
+        )}
 
         <GlassCard className="border border-zinc-200 p-8 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -226,6 +259,10 @@ export default function CreateNewPropertyPage() {
                   {furnished ? "✓ Furnished" : "Unfurnished"}
                 </button>
               </div>
+            </div>
+
+            <div className="pt-4 border-t border-zinc-100">
+              <PropertyImageUploader images={images} onChange={setImages} />
             </div>
 
             <div className="pt-4 border-t border-zinc-200 flex justify-end gap-3">

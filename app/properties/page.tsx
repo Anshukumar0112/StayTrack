@@ -60,7 +60,9 @@ function PropertySearchContent() {
           pageSize: 30,
         };
         const res = await searchProperties(requestPayload);
-        if (res && Array.isArray(res.content)) {
+        if (res && Array.isArray(res.results)) {
+          setProperties(res.results);
+        } else if (res && Array.isArray(res.content)) {
           setProperties(res.content);
         } else if (Array.isArray(res)) {
           setProperties(res);

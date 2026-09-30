@@ -34,16 +34,27 @@ public class SubscriptionService {
         return getCurrentPlan();
     }
 
+    public String getSubscriptionMode() {
+        try {
+            DocumentSnapshot settings = FirestoreClient.getFirestore()
+                    .collection("settings")
+                    .document("subscription")
+                    .get().get();
+            if (settings.exists()) {
+                String mode = settings.getString("subscriptionMode");
+                if ("free".equalsIgnoreCase(mode)) {
+                    return "free";
+                }
+            }
+        } catch (Exception ignored) {}
+        return "paid";
+    }
+
     /**
      * Returns the currently active/configured subscription plan.
-     *
-     * Pricing comes from:
-     * settings/subscription
      */
     public Map<String, Object> getCurrentPlan() {
-
         try {
-
             DocumentSnapshot settings =
                     FirestoreClient.getFirestore()
                             .collection("settings")
@@ -51,260 +62,182 @@ public class SubscriptionService {
                             .get()
                             .get();
 
-            if (!settings.exists()) {
-                throw new IllegalStateException(
-                        "Subscription pricing settings are not configured"
-                );
-            }
+            Map<String, Object> data = settings.exists() && settings.getData() != null
+                    ? settings.getData()
+                    : new HashMap<>();
 
-            Map<String, Object> data =
-                    settings.getData();
+            String subscriptionMode = String.valueOf(data.getOrDefault("subscriptionMode", "paid"));
+            boolean introductoryEnabled = Boolean.TRUE.equals(data.get("introductoryEnabled"));
+            Number introductoryPrice = (Number) data.get("introductoryPrice");
+            Number standardPrice = (Number) data.get("standardPrice");
+            String currency = String.valueOf(data.getOrDefault("currency", "INR")).toUpperCase();
+            Number limitNum = (Number) data.get("listingPropertyLimit");
+            long listingPropertyLimit = limitNum != null ? limitNum.longValue() : 10L;
+            Number durationNum = (Number) data.get("subscriptionDuration");
+            long subscriptionDuration = durationNum != null ? durationNum.longValue() : 365L;
 
-            if (data == null) {
-                throw new IllegalStateException(
-                        "Subscription pricing settings are empty"
-                );
-            }
+            long amount = 499L;
+            String plan = "standard";
 
-            boolean introductoryEnabled =
-                    Boolean.TRUE.equals(
-                            data.get("introductoryEnabled")
-                    );
-
-            Number introductoryPrice =
-                    (Number) data.get("introductoryPrice");
-
-            Number standardPrice =
-                    (Number) data.get("standardPrice");
-
-            String currency =
-                    String.valueOf(
-                            data.getOrDefault(
-                                    "currency",
-                                    "INR"
-                            )
-                    );
-
-            long amount;
-            String plan;
-
-            if (introductoryEnabled
-                    && introductoryPrice != null) {
-
+            if ("free".equalsIgnoreCase(subscriptionMode)) {
+                amount = 0L;
+                plan = "free";
+            } else if (introductoryEnabled && introductoryPrice != null) {
                 amount = introductoryPrice.longValue();
                 plan = "introductory";
-
-            } else if (standardPrice != null) {
-
+            } else if (standardPrice != null && standardPrice.longValue() > 0) {
                 amount = standardPrice.longValue();
                 plan = "standard";
-
-            } else {
-
-                throw new IllegalStateException(
-                        "No valid subscription price is configured"
-                );
             }
 
-            if (amount <= 0) {
-                throw new IllegalStateException(
-                        "Subscription price must be greater than zero"
-                );
-            }
-
-            Map<String, Object> result =
-                    new HashMap<>();
-
+            Map<String, Object> result = new HashMap<>();
             result.put("plan", plan);
             result.put("amount", amount);
-            result.put("currency", currency.toUpperCase());
-            result.put(
-                    "introductoryEnabled",
-                    introductoryEnabled
-            );
+            result.put("currency", currency);
+            result.put("subscriptionMode", subscriptionMode);
+            result.put("introductoryEnabled", introductoryEnabled);
+            result.put("introductoryPrice", introductoryPrice != null ? introductoryPrice.longValue() : 20L);
+            result.put("standardPrice", standardPrice != null ? standardPrice.longValue() : 499L);
+            result.put("listingPropertyLimit", listingPropertyLimit);
+            result.put("subscriptionDuration", subscriptionDuration);
 
             return result;
-
-        } catch (IllegalStateException e) {
-
-            throw e;
-
         } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Unable to load subscription pricing",
-                    e
-            );
+            throw new RuntimeException("Unable to load subscription pricing", e);
         }
     }
 
-    public Map<String, Object> getMySubscription(
-            AuthenticatedUser user
-    ) {
-
+    public Map<String, Object> getMySubscription(AuthenticatedUser user) {
         requireHost(user);
-
-        try {
-
-            List<QueryDocumentSnapshot> activeSubscriptions =
-                    subscriptionRepository.findActiveByHostId(
-                            user.getUid()
-                    );
-
-            if (activeSubscriptions == null
-                    || activeSubscriptions.isEmpty()) {
-
-                return Map.of(
-                        "hasActiveSubscription",
-                        false
-                );
-            }
-
-            /*
-             * The repository returns a list.
-             *
-             * We select the first active subscription.
-             */
-            QueryDocumentSnapshot active =
-                    activeSubscriptions.get(0);
-
-            Map<String, Object> subscription =
-                    active.getData();
-
-            if (subscription == null) {
-
-                return Map.of(
-                        "hasActiveSubscription",
-                        false
-                );
-            }
-
-            subscription.put(
-                    "subscriptionId",
-                    active.getId()
-            );
-
-            subscription.put(
-                    "hasActiveSubscription",
-                    true
-            );
-
-            return subscription;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(
-                    "Unable to get subscription",
-                    e
-            );
-        }
+        return getSubscriptionStatusForHost(user.getUid());
     }
 
-    public Map<String, Object> getEligibility(
-            AuthenticatedUser user
-    ) {
-
+    public Map<String, Object> getEligibility(AuthenticatedUser user) {
         requireHost(user);
+        Map<String, Object> subStatus = getSubscriptionStatusForHost(user.getUid());
+        boolean active = Boolean.TRUE.equals(subStatus.get("hasActiveSubscription"));
 
-        Map<String, Object> subscription =
-                getMySubscription(user);
-
-        boolean active =
-                Boolean.TRUE.equals(
-                        subscription.get(
-                                "hasActiveSubscription"
-                        )
-                );
-
-        Map<String, Object> response =
-                new HashMap<>();
-
-        response.put(
-                "eligible",
-                !active
-        );
-
-        response.put(
-                "hasActiveSubscription",
-                active
-        );
-
-        if (active) {
-
-            response.put(
-                    "subscription",
-                    subscription
-            );
+        Map<String, Object> response = new HashMap<>();
+        response.put("eligible", active);
+        response.put("hasActiveSubscription", active);
+        response.put("status", subStatus.get("status"));
+        response.put("subscriptionMode", subStatus.get("subscriptionMode"));
+        if (active && subStatus.get("subscription") != null) {
+            response.put("subscription", subStatus.get("subscription"));
         }
-
-        response.put(
-                "plan",
-                getCurrentPlan()
-        );
-
+        response.put("plan", getCurrentPlan());
         return response;
     }
 
-    public boolean hasActiveSubscription(
-            String hostId
-    ) {
-
+    public boolean isSubscriptionActiveInPaidMode(String hostId) {
         if (hostId == null || hostId.isBlank()) {
             return false;
         }
-
         try {
-
-            List<QueryDocumentSnapshot> subscriptions =
-                    subscriptionRepository.findActiveByHostId(
-                            hostId
-                    );
-
-            if (subscriptions == null
-                    || subscriptions.isEmpty()) {
-
+            List<QueryDocumentSnapshot> subscriptions = subscriptionRepository.findActiveByHostId(hostId);
+            if (subscriptions == null || subscriptions.isEmpty()) {
                 return false;
             }
-
-            long now =
-                    System.currentTimeMillis();
-
-            for (QueryDocumentSnapshot subscription
-                    : subscriptions) {
-
-                String status =
-                        subscription.getString(
-                                "status"
-                        );
-
-                if (!"active".equalsIgnoreCase(
-                        status
-                )) {
+            long now = System.currentTimeMillis();
+            for (QueryDocumentSnapshot subscription : subscriptions) {
+                String status = subscription.getString("status");
+                if (!"active".equalsIgnoreCase(status)) {
                     continue;
                 }
-
-                Timestamp endDate =
-                        subscription.getTimestamp(
-                                "endDate"
-                        );
-
-                if (endDate == null) {
-                    continue;
-                }
-
-                if (endDate.toDate().getTime() > now) {
+                Timestamp endDate = subscription.getTimestamp("endDate");
+                if (endDate != null && endDate.toDate().getTime() > now) {
                     return true;
                 }
             }
-
             return false;
-
         } catch (Exception e) {
+            return false;
+        }
+    }
 
-            throw new RuntimeException(
-                    "Unable to check subscription",
-                    e
-            );
+    public boolean hasActiveSubscription(String hostId) {
+        if ("free".equalsIgnoreCase(getSubscriptionMode())) {
+            return true;
+        }
+        return isSubscriptionActiveInPaidMode(hostId);
+    }
+
+    public Map<String, Object> getSubscriptionStatusForHost(String hostId) {
+        String mode = getSubscriptionMode();
+        Map<String, Object> plan = getCurrentPlan();
+        Map<String, Object> result = new HashMap<>();
+        result.put("hostId", hostId);
+        result.put("subscriptionMode", mode);
+        result.put("listingPropertyLimit", plan.get("listingPropertyLimit"));
+
+        if ("free".equalsIgnoreCase(mode)) {
+            result.put("hasActiveSubscription", true);
+            result.put("status", "FREE");
+            return result;
+        }
+
+        if (hostId == null || hostId.isBlank()) {
+            result.put("hasActiveSubscription", false);
+            result.put("status", "NONE");
+            return result;
+        }
+
+        try {
+            List<QueryDocumentSnapshot> subscriptions = subscriptionRepository.findByHostId(hostId);
+            if (subscriptions == null || subscriptions.isEmpty()) {
+                result.put("hasActiveSubscription", false);
+                result.put("status", "NONE");
+                return result;
+            }
+
+            long now = System.currentTimeMillis();
+            QueryDocumentSnapshot matchedActive = null;
+            QueryDocumentSnapshot matchedPaused = null;
+            QueryDocumentSnapshot matchedExpired = null;
+
+            for (QueryDocumentSnapshot sub : subscriptions) {
+                String status = sub.getString("status");
+                Timestamp endDate = sub.getTimestamp("endDate");
+                long endMs = endDate != null ? endDate.toDate().getTime() : 0L;
+
+                if ("active".equalsIgnoreCase(status) && endMs > now) {
+                    matchedActive = sub;
+                    break;
+                } else if ("paused".equalsIgnoreCase(status)) {
+                    if (matchedPaused == null) matchedPaused = sub;
+                } else if (endMs <= now) {
+                    if (matchedExpired == null) matchedExpired = sub;
+                }
+            }
+
+            if (matchedActive != null) {
+                result.put("hasActiveSubscription", true);
+                result.put("status", "ACTIVE");
+                Map<String, Object> subData = new HashMap<>(matchedActive.getData());
+                subData.put("subscriptionId", matchedActive.getId());
+                result.put("subscription", subData);
+            } else if (matchedPaused != null) {
+                result.put("hasActiveSubscription", false);
+                result.put("status", "PAUSED");
+                Map<String, Object> subData = new HashMap<>(matchedPaused.getData());
+                subData.put("subscriptionId", matchedPaused.getId());
+                result.put("subscription", subData);
+            } else if (matchedExpired != null) {
+                result.put("hasActiveSubscription", false);
+                result.put("status", "EXPIRED");
+                Map<String, Object> subData = new HashMap<>(matchedExpired.getData());
+                subData.put("subscriptionId", matchedExpired.getId());
+                result.put("subscription", subData);
+            } else {
+                result.put("hasActiveSubscription", false);
+                result.put("status", "NONE");
+            }
+
+            return result;
+        } catch (Exception e) {
+            result.put("hasActiveSubscription", false);
+            result.put("status", "NONE");
+            return result;
         }
     }
 

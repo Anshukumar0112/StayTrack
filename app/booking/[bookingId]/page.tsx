@@ -7,7 +7,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import Link from "next/link";
 import { getBooking, createBookingOrder, verifyBookingPayment, cancelBooking } from "@/lib/api";
-import { Booking } from "@/types/booking";
+import { Booking, getBookingId, getBookingStatus, getBookingAmount, getBookingStatusLabel } from "@/types/booking";
 
 declare global {
   interface Window {
@@ -109,9 +109,13 @@ export default function BookingDetailPage({
     }
   };
 
-  const isAccepted = booking?.status === "ACCEPTED" || booking?.status === "PAYMENT_PENDING";
-  const isConfirmed = booking?.status === "CONFIRMED";
-  const isPending = booking?.status === "REQUESTED";
+  const st = booking ? getBookingStatus(booking) : "";
+  const amount = booking ? getBookingAmount(booking) : 0;
+  const displayId = booking ? getBookingId(booking) : bookingId;
+
+  const isAccepted = st === "accepted" || st === "payment_pending";
+  const isConfirmed = st === "confirmed";
+  const isPending = st === "requested";
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -121,7 +125,7 @@ export default function BookingDetailPage({
         <div className="mb-6 flex items-center gap-2 text-xs font-semibold text-zinc-500">
           <Link href="/trips" className="hover:text-black">My Bookings</Link>
           <span>/</span>
-          <span className="text-zinc-900 font-bold">Booking #{bookingId}</span>
+          <span className="text-zinc-900 font-bold">Booking #{displayId}</span>
         </div>
 
         {loading ? (
@@ -152,9 +156,9 @@ export default function BookingDetailPage({
                         ? "bg-zinc-200 text-zinc-900 border border-zinc-300"
                         : "bg-red-100 text-red-700"
                     }`}>
-                      {booking.status}
+                      {getBookingStatusLabel(st, "customer")}
                     </span>
-                    <span className="text-xs text-zinc-500 font-mono">Ref ID: {booking.id}</span>
+                    <span className="text-xs text-zinc-500 font-mono">Ref ID: {displayId}</span>
                   </div>
                   <h1 className="text-2xl font-black text-zinc-950">
                     {booking.propertyTitle || `Property #${booking.propertyId}`}
@@ -163,7 +167,7 @@ export default function BookingDetailPage({
 
                 <div className="text-right">
                   <span className="text-xs text-zinc-500 block font-semibold">Total Amount</span>
-                  <span className="text-2xl font-black text-black">₹{booking.totalPrice || 0}</span>
+                  <span className="text-2xl font-black text-black">₹{amount.toLocaleString()}</span>
                 </div>
               </div>
 

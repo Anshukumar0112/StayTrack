@@ -44,12 +44,17 @@ public class HostApplicationWorkflowTest {
         request.setApplicantName("Anshu Kumar");
         request.setEmail("anshu@staytrack.com");
 
-        // Submit Host Application
-        Map<String, Object> result = hostApplicationService.submitApplication(user, request);
+        try {
+            // Submit Host Application
+            Map<String, Object> result = hostApplicationService.submitApplication(user, request);
 
-        // Assertions
-        assertNotNull(result, "Result should not be null");
-        assertEquals("pending", result.get("verificationStatus"), "Verification status should be pending");
-        assertEquals(testUid, result.get("applicationId"), "Application ID should match user UID");
+            // Assertions
+            assertNotNull(result, "Result should not be null");
+            assertEquals("pending", result.get("verificationStatus"), "Verification status should be pending");
+            assertEquals(testUid, result.get("applicationId"), "Application ID should match user UID");
+        } finally {
+            try { db.collection("hostApplications").document(testUid).delete().get(); } catch (Exception ignored) {}
+            try { db.collection("users").document(testUid).delete().get(); } catch (Exception ignored) {}
+        }
     }
 }

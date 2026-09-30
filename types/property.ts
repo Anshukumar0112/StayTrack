@@ -6,6 +6,7 @@ export interface Property {
   hostId: string;
   propertyType: 'BNB' | 'HOSTEL' | 'PG' | 'HOTEL' | 'FLAT' | 'Hostel' | 'Hotel' | 'Flat' | string;
   bookingType: 'daily' | 'monthly' | 'hourly' | string;
+  stayTypes?: string[];
   pricePerNight?: number;
   pricePerMonth?: number;
   pricePerHour?: number;
@@ -28,6 +29,11 @@ export interface Property {
   adminNote?: string;
   rejectionReason?: string;
   createdAt?: string;
+}
+
+export function getPropertyId(p?: Partial<Property> & Record<string, any>): string {
+  if (!p) return "";
+  return p.id || p.propertyId || "";
 }
 
 export interface SearchRequest {

@@ -7,7 +7,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import { getHostBookings, acceptBooking, rejectBooking } from "@/lib/api";
 import { Property } from "@/types/property";
-import { Booking } from "@/types/booking";
+import { Booking, getBookingId, getBookingStatus, getBookingAmount, getBookingStatusLabel } from "@/types/booking";
 
 export default function HostBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -58,9 +58,10 @@ export default function HostBookingsPage() {
   };
 
   const filtered = bookings.filter((b) => {
-    if (filter === "requested") return b.status === "REQUESTED";
-    if (filter === "confirmed") return b.status === "CONFIRMED" || b.status === "ACCEPTED" || b.status === "PAYMENT_PENDING";
-    if (filter === "rejected") return b.status === "REJECTED" || b.status === "CANCELLED";
+    const st = getBookingStatus(b);
+    if (filter === "requested") return st === "requested";
+    if (filter === "confirmed") return st === "confirmed" || st === "accepted" || st === "payment_pending";
+    if (filter === "rejected") return st === "rejected" || st === "cancelled";
     return true;
   });
 
@@ -100,55 +101,66 @@ export default function HostBookingsPage() {
             <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading booking requests...</div>
           ) : filtered.length > 0 ? (
             <div className="space-y-4">
-              {filtered.map((b) => (
-                <div key={b.id} className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                        b.status === "CONFIRMED"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : b.status === "REQUESTED"
-                          ? "bg-amber-100 text-amber-800 animate-pulse"
-                          : "bg-zinc-200 text-zinc-800"
-                      }`}>
-                        {b.status}
-                      </span>
-                      <span className="text-xs text-zinc-500 font-mono">ID: {b.id}</span>
-                    </div>
+              {filtered.map((b) => {
+                const id = getBookingId(b);
+                const st = getBookingStatus(b);
+                const amount = getBookingAmount(b);
+                const isRequested = st === "requested";
+                const isConfirmed = st === "confirmed";
+                const isAccepted = st === "accepted" || st === "payment_pending";
 
-                    <h3 className="text-sm font-bold text-zinc-950">{b.propertyTitle || `Property #${b.propertyId}`}</h3>
-                    <p className="text-xs text-zinc-500 mt-1 font-semibold">
-                      👤 Guest: {b.userName || b.userId} • 🗓️ {b.startDate || "Date tbd"} → {b.endDate || "Date tbd"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-200">
-                    <div className="text-left sm:text-right">
-                      <span className="text-[10px] text-zinc-400 font-bold uppercase block">Amount</span>
-                      <span className="text-base font-black text-black">₹{b.totalPrice || 0}</span>
-                    </div>
-
-                    {b.status === "REQUESTED" && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleAccept(b.id)}
-                          disabled={actionLoadingId === b.id}
-                          className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 cursor-pointer disabled:opacity-50"
-                        >
-                          {actionLoadingId === b.id ? "Accepting..." : "✓ Accept"}
-                        </button>
-                        <button
-                          onClick={() => handleReject(b.id)}
-                          disabled={actionLoadingId === b.id}
-                          className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 cursor-pointer disabled:opacity-50"
-                        >
-                          ✕ Reject
-                        </button>
+                return (
+                  <div key={id || `host-booking-${b.propertyId}`} className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                          isConfirmed
+                            ? "bg-emerald-100 text-emerald-800"
+                            : isAccepted
+                            ? "bg-amber-100 text-amber-800"
+                            : isRequested
+                            ? "bg-amber-100 text-amber-800 animate-pulse"
+                            : "bg-zinc-200 text-zinc-800"
+                        }`}>
+                          {getBookingStatusLabel(st, "host")}
+                        </span>
+                        <span className="text-xs text-zinc-500 font-mono">ID: {id}</span>
                       </div>
-                    )}
+
+                      <h3 className="text-sm font-bold text-zinc-950">{b.propertyTitle || `Property #${b.propertyId}`}</h3>
+                      <p className="text-xs text-zinc-500 mt-1 font-semibold">
+                        👤 Guest: {b.userName || b.userId || b.customerId || "Guest"} • 🗓️ {b.startDate || "Date tbd"} → {b.endDate || "Date tbd"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-200">
+                      <div className="text-left sm:text-right">
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase block">Amount</span>
+                        <span className="text-base font-black text-black">₹{amount.toLocaleString()}</span>
+                      </div>
+
+                      {isRequested && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAccept(id)}
+                            disabled={actionLoadingId === id}
+                            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 cursor-pointer disabled:opacity-50"
+                          >
+                            {actionLoadingId === id ? "Accepting..." : "✓ Accept"}
+                          </button>
+                          <button
+                            onClick={() => handleReject(id)}
+                            disabled={actionLoadingId === id}
+                            className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 cursor-pointer disabled:opacity-50"
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="py-16 text-center text-xs font-semibold text-zinc-400">
