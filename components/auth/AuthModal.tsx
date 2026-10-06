@@ -100,32 +100,32 @@ export default function AuthModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-surface p-6 shadow-md sm:p-8 border border-border">
+        <div className="flex items-center justify-between border-b border-border pb-4">
           <div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-800">
+            <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-dark">
               Authentication Required
             </span>
-            <h2 className="mt-2 text-xl font-bold text-gray-900">
+            <h2 className="mt-2 text-xl font-bold text-foreground">
               Log in to continue
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-black"
+            className="rounded-full p-2 text-muted transition hover:bg-background hover:text-foreground cursor-pointer"
           >
             ✕
           </button>
         </div>
 
-        <p className="mt-4 text-xs font-medium text-gray-600">
-          You are proceeding to: <span className="font-bold text-black">{targetTitle}</span>
+        <p className="mt-4 text-xs font-medium text-text">
+          You are proceeding to: <span className="font-bold text-foreground">{targetTitle}</span>
         </p>
 
         {!confirmationResult ? (
           <form onSubmit={handleSendOtp} className="mt-5 space-y-4">
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase text-gray-700">
+              <label className="mb-2 block text-xs font-bold uppercase text-text">
                 Mobile Number
               </label>
               <input
@@ -134,7 +134,7 @@ export default function AuthModal({
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
                 disabled={loading}
-                className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-base font-medium outline-none focus:border-black focus:bg-white"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base font-medium outline-none focus:border-primary focus:bg-surface text-foreground"
               />
             </div>
 
@@ -143,21 +143,21 @@ export default function AuthModal({
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-black py-4 text-sm font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
+              className="w-full rounded-xl bg-primary py-4 text-sm font-bold text-white transition hover:bg-primary-dark shadow-xs cursor-pointer disabled:opacity-50"
             >
               {loading ? "Sending OTP..." : "Send Verification OTP"}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="mt-5 space-y-4">
-            <div className="rounded-xl bg-gray-50 p-4 text-center">
-              <p className="text-xs text-gray-500">
-                Enter code sent to <span className="font-bold text-black">{phone}</span>
+            <div className="rounded-xl bg-background p-4 text-center border border-border">
+              <p className="text-xs text-muted">
+                Enter code sent to <span className="font-bold text-foreground">{phone}</span>
               </p>
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase text-gray-700">
+              <label className="mb-2 block text-xs font-bold uppercase text-text">
                 6-Digit Security Code (OTP)
               </label>
               <input
@@ -167,22 +167,22 @@ export default function AuthModal({
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                 placeholder="1 2 3 4 5 6"
                 disabled={loading}
-                className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-black focus:bg-white"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-primary focus:bg-surface text-foreground"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-emerald-600 py-4 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              className="w-full rounded-xl bg-success py-4 text-sm font-bold text-white transition hover:bg-success/90 shadow-xs cursor-pointer disabled:opacity-50"
             >
               {loading ? "Verifying..." : "Verify & Continue"}
             </button>
           </form>
         )}
 
-        {message && <div className="mt-4 rounded-xl bg-emerald-50 p-3 text-center text-xs font-medium text-emerald-800">{message}</div>}
-        {error && <div className="mt-4 rounded-xl bg-red-50 p-3 text-center text-xs font-medium text-red-800">{error}</div>}
+        {message && <div className="mt-4 rounded-xl bg-primary-light p-3 text-center text-xs font-medium text-primary-dark">{message}</div>}
+        {error && <div className="mt-4 rounded-xl bg-error/10 p-3 text-center text-xs font-medium text-error border border-error/20">{error}</div>}
       </div>
     </div>
   );

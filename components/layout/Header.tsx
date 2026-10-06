@@ -81,7 +81,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="glass-nav sticky top-0 z-50 transition-all duration-300 bg-white/85 backdrop-blur-md border-b border-zinc-200">
+    <header className="glass-nav sticky top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3.5">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2 group">
@@ -102,8 +102,8 @@ export default function Header() {
                 href={item.path}
                 className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all flex items-center gap-1.5 ${
                   isActive
-                    ? "bg-black text-white shadow-sm"
-                    : "text-zinc-700 hover:bg-zinc-100 hover:text-black"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-text hover:bg-primary-light/60 hover:text-primary-dark"
                 }`}
               >
                 {item.icon && <img src={item.icon} alt="" className="w-4 h-4 object-contain" />}
@@ -133,7 +133,7 @@ export default function Header() {
 
               {/* Notification Popover Drawer */}
               {showNotifDrawer && (
-                <div className="absolute right-0 mt-3 w-80 rounded-2xl bg-white shadow-2xl border border-zinc-200 p-4 z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute right-0 mt-3 w-72 sm:w-80 max-w-[90vw] rounded-2xl bg-white shadow-2xl border border-zinc-200 p-4 z-50 animate-in fade-in slide-in-from-top-2">
                   <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
                     <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
                       Notifications
@@ -185,9 +185,9 @@ export default function Header() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/profile"
-                className="flex items-center gap-2 rounded-full border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs font-bold text-zinc-800 hover:border-black transition-all"
+                className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text hover:border-primary transition-all"
               >
-                <div className="h-6 w-6 rounded-full bg-black flex items-center justify-center text-[10px] font-black text-white">
+                <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-black text-white">
                   {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : (firebaseUser.phoneNumber ? firebaseUser.phoneNumber.slice(-2) : "U")}
                 </div>
                 <span className="hidden sm:inline">
@@ -197,7 +197,7 @@ export default function Header() {
 
               <button
                 onClick={handleLogout}
-                className="rounded-xl border border-zinc-300 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 hover:border-zinc-400 transition-all cursor-pointer"
+                className="rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text hover:bg-background transition-all cursor-pointer"
               >
                 Logout
               </button>
@@ -205,7 +205,7 @@ export default function Header() {
           ) : (
             <Link
               href={pathname && pathname !== "/" ? `/auth?mode=login&returnTo=${encodeURIComponent(pathname)}` : "/auth?mode=login"}
-              className="rounded-xl bg-black px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-all shadow-sm"
+              className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-dark transition-all shadow-sm"
             >
               Login / Register
             </Link>

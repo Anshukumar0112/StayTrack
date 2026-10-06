@@ -73,33 +73,36 @@ public class SubscriptionService {
             String currency = String.valueOf(data.getOrDefault("currency", "INR")).toUpperCase();
             Number limitNum = (Number) data.get("listingPropertyLimit");
             long listingPropertyLimit = limitNum != null ? limitNum.longValue() : 10L;
-            Number durationNum = (Number) data.get("subscriptionDuration");
-            long subscriptionDuration = durationNum != null ? durationNum.longValue() : 365L;
+            String billingPeriod = String.valueOf(data.getOrDefault("billingPeriod", "MONTHLY")).toUpperCase();
+            Number intervalNum = (Number) data.get("billingInterval");
+            long billingInterval = intervalNum != null ? intervalNum.longValue() : 1L;
 
-            long amount = 499L;
-            String plan = "standard";
+            long amount = 20L;
+            String plan = "Host Pro";
 
             if ("free".equalsIgnoreCase(subscriptionMode)) {
                 amount = 0L;
                 plan = "free";
             } else if (introductoryEnabled && introductoryPrice != null) {
                 amount = introductoryPrice.longValue();
-                plan = "introductory";
+                plan = "Host Pro Introductory";
             } else if (standardPrice != null && standardPrice.longValue() > 0) {
                 amount = standardPrice.longValue();
-                plan = "standard";
+                plan = "Host Pro";
             }
 
             Map<String, Object> result = new HashMap<>();
             result.put("plan", plan);
             result.put("amount", amount);
+            result.put("price", amount);
             result.put("currency", currency);
+            result.put("billingPeriod", billingPeriod);
+            result.put("billingInterval", billingInterval);
             result.put("subscriptionMode", subscriptionMode);
             result.put("introductoryEnabled", introductoryEnabled);
             result.put("introductoryPrice", introductoryPrice != null ? introductoryPrice.longValue() : 20L);
-            result.put("standardPrice", standardPrice != null ? standardPrice.longValue() : 499L);
+            result.put("standardPrice", standardPrice != null ? standardPrice.longValue() : 20L);
             result.put("listingPropertyLimit", listingPropertyLimit);
-            result.put("subscriptionDuration", subscriptionDuration);
 
             return result;
         } catch (Exception e) {
@@ -355,17 +358,11 @@ public class SubscriptionService {
                 Timestamp.now();
 
         /*
-         * Subscription duration is currently 30 days.
+         * Monthly subscription duration (1 calendar month).
          */
-        long endMillis =
-                System.currentTimeMillis()
-                        + (
-                        30L
-                                * 24L
-                                * 60L
-                                * 60L
-                                * 1000L
-                );
+        java.time.ZonedDateTime nowZdt = java.time.ZonedDateTime.now(java.time.ZoneId.of("UTC"));
+        java.time.ZonedDateTime endZdt = nowZdt.plusMonths(1);
+        long endMillis = endZdt.toInstant().toEpochMilli();
 
         Timestamp endDate =
                 Timestamp.ofTimeSecondsAndNanos(
@@ -395,7 +392,12 @@ public class SubscriptionService {
 
         subscription.put(
                 "plan",
-                plan.get("plan")
+                plan.get("plan") != null ? plan.get("plan") : "Host Pro"
+        );
+
+        subscription.put(
+                "price",
+                amount
         );
 
         subscription.put(
@@ -406,6 +408,16 @@ public class SubscriptionService {
         subscription.put(
                 "currency",
                 currency.toUpperCase()
+        );
+
+        subscription.put(
+                "billingPeriod",
+                plan.getOrDefault("billingPeriod", "MONTHLY")
+        );
+
+        subscription.put(
+                "billingInterval",
+                plan.getOrDefault("billingInterval", 1L)
         );
 
         subscription.put(
@@ -420,6 +432,11 @@ public class SubscriptionService {
 
         subscription.put(
                 "endDate",
+                endDate
+        );
+
+        subscription.put(
+                "nextBillingDate",
                 endDate
         );
 

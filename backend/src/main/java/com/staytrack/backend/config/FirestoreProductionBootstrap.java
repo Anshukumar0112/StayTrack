@@ -64,8 +64,11 @@ public class FirestoreProductionBootstrap implements ApplicationRunner {
         Map<String, Object> defaults = new HashMap<>();
 
         defaults.put("introductoryPrice", 20L);
-        defaults.put("standardPrice", 499L);
-        defaults.put("introductoryEnabled", true);
+        defaults.put("standardPrice", 20L);
+        defaults.put("introductoryEnabled", false);
+        defaults.put("billingPeriod", "MONTHLY");
+        defaults.put("billingInterval", 1L);
+        defaults.put("listingPropertyLimit", 10L);
         defaults.put("currency", "INR");
 
         ensureDocument(

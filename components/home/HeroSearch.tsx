@@ -6,6 +6,7 @@ import { getCities, searchWithAi } from "@/lib/api";
 import { LocationArea } from "@/types/user";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
 import { ACCOMMODATION_CATEGORIES } from "@/lib/categories";
+import { ArrowRightIcon, MapPinIcon, SearchIcon, SparklesIcon } from "@/components/ui/Icons";
 
 export default function HeroSearch() {
   const router = useRouter();
@@ -50,10 +51,11 @@ export default function HeroSearch() {
   };
 
   return (
-    <div className="glass-card max-w-4xl mx-auto rounded-3xl p-4 sm:p-6 shadow-xl border border-zinc-200">
-      {/* Mode Selector */}
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-        <div className="flex gap-2 p-1.5 bg-zinc-100 rounded-2xl border border-zinc-200 w-fit">
+    <div className="bg-surface/95 backdrop-blur-md max-w-5xl mx-auto rounded-2xl p-4 sm:p-5 shadow-xl border border-white/20 transition-all duration-200">
+      {/* Mode Selector Header */}
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2.5">
+        {/* Segmented Control for Stay Types */}
+        <div className="flex gap-1 p-1 bg-background rounded-xl border border-border/70 w-fit">
           {[
             { label: "Hourly", value: "hourly" },
             { label: "Daily", value: "daily" },
@@ -63,10 +65,10 @@ export default function HeroSearch() {
               key={type.value}
               type="button"
               onClick={() => setStayType(type.value)}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                 stayType === type.value
-                  ? "bg-black text-white shadow-md"
-                  : "text-zinc-600 hover:text-black"
+                  ? "bg-primary text-white shadow-xs"
+                  : "text-muted hover:text-foreground"
               }`}
             >
               {type.label} Stay
@@ -74,28 +76,30 @@ export default function HeroSearch() {
           ))}
         </div>
 
-        <div className="flex gap-2 p-1 bg-zinc-200/60 rounded-xl">
+        {/* Standard Search vs AI Search Mode Selector */}
+        <div className="flex gap-1 p-1 bg-background rounded-xl border border-border/70">
           <button
             type="button"
             onClick={() => setSearchMode("standard")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
               searchMode === "standard"
-                ? "bg-white text-black shadow-sm"
-                : "text-zinc-600"
+                ? "bg-surface text-foreground shadow-xs border border-border/80"
+                : "text-muted hover:text-foreground"
             }`}
           >
-            🔍 Standard Search
+            <SearchIcon className="w-3.5 h-3.5" />
+            <span>Standard</span>
           </button>
           <button
             type="button"
             onClick={() => setSearchMode("ai")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
               searchMode === "ai"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "text-zinc-700 hover:text-black"
+                ? "bg-primary text-white shadow-xs"
+                : "text-muted hover:text-foreground"
             }`}
           >
-            <img src="/icons/sparkles.png" alt="" className="w-3.5 h-3.5 object-contain" />
+            <SparklesIcon className="w-3.5 h-3.5" />
             <span>AI Search</span>
           </button>
         </div>
@@ -103,25 +107,22 @@ export default function HeroSearch() {
 
       <form onSubmit={handleSearch}>
         {searchMode === "standard" ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="md:col-span-2 relative">
-              <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1 px-1">
-                City / Location (Delhi NCR)
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Location Input */}
+            <div className="relative">
+              <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1 px-1">
+                Location
               </label>
               <div className="relative">
                 <input
                   type="text"
                   list="city-suggestions"
-                  placeholder="Search Delhi NCR (e.g. Delhi, Gurugram, Noida)..."
+                  placeholder="Delhi, Gurugram, Noida..."
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-sm font-semibold placeholder-zinc-400"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-bold placeholder-muted/60 bg-background border border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none transition-all duration-200"
                 />
-                <img
-                  src="/icons/location-pin.png"
-                  alt=""
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 object-contain pointer-events-none"
-                />
+                <MapPinIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none opacity-70" />
               </div>
               <datalist id="city-suggestions">
                 {SUPPORTED_LOCATIONS.map((loc) => (
@@ -130,16 +131,33 @@ export default function HeroSearch() {
               </datalist>
             </div>
 
+            {/* Stay Type Display */}
             <div>
-              <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1 px-1">
+              <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1 px-1">
+                Stay Type
+              </label>
+              <select
+                value={stayType}
+                onChange={(e) => setStayType(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-foreground bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none transition-all duration-200"
+              >
+                <option value="hourly">Hourly Transit Stay</option>
+                <option value="daily">Daily Stay</option>
+                <option value="monthly">Monthly Stay</option>
+              </select>
+            </div>
+
+            {/* Property Type Dropdown */}
+            <div>
+              <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1 px-1">
                 Property Type
               </label>
               <select
                 value={propertyType}
                 onChange={(e) => setPropertyType(e.target.value)}
-                className="glass-input w-full px-4 py-3 rounded-xl text-sm font-semibold text-zinc-900"
+                className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-foreground bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none transition-all duration-200"
               >
-                <option value="all">All Categories</option>
+                <option value="all">All Property Types</option>
                 {ACCOMMODATION_CATEGORIES.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.label}
@@ -148,20 +166,21 @@ export default function HeroSearch() {
               </select>
             </div>
 
+            {/* Submit Button */}
             <div className="flex items-end">
               <button
                 type="submit"
-                className="glass-button w-full py-3 px-6 rounded-xl text-xs font-bold flex items-center justify-center gap-2 group cursor-pointer"
+                className="w-full py-2.5 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 group cursor-pointer bg-primary hover:bg-primary-dark text-white transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.99]"
               >
-                <span>SEARCH</span>
-                <span className="group-hover:translate-x-1 transition-transform">→</span>
+                <span>Search Stays</span>
+                <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200" />
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
             <div>
-              <label className="block text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-1 px-1">
+              <label className="block text-[10px] font-bold text-primary-dark uppercase tracking-wider mb-1 px-1">
                 AI Stay Assistant
               </label>
               <textarea
@@ -169,7 +188,7 @@ export default function HeroSearch() {
                 placeholder="Describe your ideal stay in Delhi NCR (e.g., 'Fully furnished 2BHK flat in Gurugram under ₹30,000 for monthly stay')"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm font-medium border border-emerald-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none bg-emerald-50/30 text-zinc-900"
+                className="w-full px-4 py-3 rounded-xl text-xs font-medium border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none bg-background text-foreground placeholder-muted/70 transition-all duration-200"
               />
             </div>
 
@@ -177,10 +196,10 @@ export default function HeroSearch() {
               <button
                 type="submit"
                 disabled={aiLoading}
-                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 px-6 shadow-md transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                className="rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs py-2.5 px-5 shadow-md transition-all duration-200 cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
-                <img src="/icons/sparkles.png" alt="" className="w-4 h-4 object-contain" />
-                <span>{aiLoading ? "Searching AI..." : "Find Stays with AI"}</span>
+                <SparklesIcon className="w-4 h-4" />
+                <span>{aiLoading ? "Searching..." : "Find Stays with AI"}</span>
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
 import { getPublicProperties } from "@/lib/api";
 import { Property } from "@/types/property";
+import { ArrowRightIcon, MapPinIcon } from "@/components/ui/Icons";
 
 export default function ExploreDelhiNCR() {
   const [propertyCounts, setPropertyCounts] = useState<Record<string, number>>({});
@@ -29,44 +30,67 @@ export default function ExploreDelhiNCR() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 sm:px-6 py-6 w-full">
-      <div className="flex justify-between items-center mb-3">
+    <section className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full">
+      <div className="flex justify-between items-baseline mb-5">
         <div>
-          <h2 className="text-xs sm:text-sm font-black tracking-wider text-zinc-900 uppercase">
+          <h2 className="text-sm sm:text-base font-black tracking-wide text-foreground uppercase">
             Explore Delhi NCR
           </h2>
-          <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
-            Where do you want to stay?
+          <p className="text-xs text-muted font-medium mt-0.5">
+            Discover verified accommodations across major landmark hubs
           </p>
         </div>
-        <Link href="/properties" className="text-[11px] font-bold text-black hover:underline">
-          Browse All →
+        <Link
+          href="/properties"
+          className="text-xs font-bold text-primary hover:text-primary-dark transition-colors duration-200 flex items-center gap-1.5 group"
+        >
+          <span>Browse All</span>
+          <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200" />
         </Link>
       </div>
 
-      {/* Compact Location Chips - Horizontally scrollable on mobile, flex-wrap on desktop */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1.5 pt-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+      {/* Visual Landmark Destination Cards Grid / Carousel */}
+      <div className="grid grid-flow-col auto-cols-[160px] sm:auto-cols-[190px] md:grid-cols-6 gap-3.5 overflow-x-auto no-scrollbar pb-2 pt-1 -mx-4 px-4 md:mx-0 md:px-0">
         {SUPPORTED_LOCATIONS.map((loc) => {
           const count = propertyCounts[loc.id] || 0;
           return (
             <Link
               key={loc.id}
               href={`/properties?city=${encodeURIComponent(loc.name)}`}
-              className="group flex-shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl border border-zinc-200 bg-white hover:border-black hover:bg-zinc-50 transition-all shadow-xs"
+              className="group relative h-[130px] w-full rounded-2xl overflow-hidden border border-border/60 bg-surface shadow-xs hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 hover:border-primary/40 block"
             >
+              {/* Background Landmark Image with zoom effect */}
               <img
-                src={loc.image || "/icons/location-pin.png"}
-                alt=""
-                className="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain group-hover:scale-110 transition-transform"
+                src={loc.image}
+                alt={loc.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
               />
-              <span className="text-xs font-bold text-zinc-900 group-hover:text-black whitespace-nowrap">
-                {loc.name}
-              </span>
-              {count > 0 ? (
-                <span className="ml-0.5 rounded-full bg-emerald-100 text-emerald-800 px-1.5 py-0.2 text-[10px] font-extrabold">
-                  {count}
-                </span>
-              ) : null}
+
+              {/* Dark Gradient Overlay for optimal legibility */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 group-hover:from-black/90 transition-colors duration-300" />
+
+              {/* Top Badge: Real property count if > 0 */}
+              {count > 0 && (
+                <div className="absolute top-2.5 right-2.5 z-10">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground shadow-xs">
+                    {count} {count === 1 ? "stay" : "stays"}
+                  </span>
+                </div>
+              )}
+
+              {/* Bottom Content: City Name & Landmark */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 z-10 text-white">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <MapPinIcon className="w-3 h-3 text-primary-light shrink-0" />
+                  <h3 className="text-sm font-bold tracking-tight text-white line-clamp-1">
+                    {loc.name}
+                  </h3>
+                </div>
+                <p className="text-[11px] font-medium text-neutral-300 line-clamp-1">
+                  {loc.landmark}
+                </p>
+              </div>
             </Link>
           );
         })}
@@ -74,3 +98,4 @@ export default function ExploreDelhiNCR() {
     </section>
   );
 }
+

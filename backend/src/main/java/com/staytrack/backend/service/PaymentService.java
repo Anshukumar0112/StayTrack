@@ -303,6 +303,11 @@ public class PaymentService {
             planName
     );
 
+    notes.put(
+            "billingPeriod",
+            plan.getOrDefault("billingPeriod", "MONTHLY")
+    );
+
     Map<String, Object> razorpayOrder =
             paymentProvider.createOrder(
                     amount,

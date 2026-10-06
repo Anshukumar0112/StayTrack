@@ -127,7 +127,6 @@ function AdminLoginContent() {
             ADMIN SECURITY GATEWAY
           </span>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-950 text-white text-2xl font-black shadow-md">
-            👑
           </div>
           <h1 className="text-2xl font-black text-zinc-950 mt-3">Admin Portal Login</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">

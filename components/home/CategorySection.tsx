@@ -5,6 +5,7 @@ import PropertyCard from "@/components/properties/PropertyCard";
 import GlassCard from "@/components/ui/GlassCard";
 import { Property } from "@/types/property";
 import { CategoryConfig } from "@/lib/categories";
+import { ArrowRightIcon, Building2Icon } from "@/components/ui/Icons";
 
 interface CategorySectionProps {
   category: CategoryConfig;
@@ -18,73 +19,73 @@ export default function CategorySection({ category, properties, loading }: Categ
   const pluralId = sectionId === "bnb" ? "bnbs" : sectionId === "hostel" ? "hostels" : sectionId === "pg" ? "pgs" : sectionId === "hotel" ? "hotels" : "flats";
 
   return (
-    <section id={pluralId} className="mx-auto max-w-7xl px-6 py-10 w-full border-b border-zinc-100 last:border-0 scroll-mt-28 sm:scroll-mt-32">
-      <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
+    <section id={pluralId} className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full border-b border-border/60 last:border-0 scroll-mt-28 sm:scroll-mt-32">
+      <div className="flex justify-between items-baseline mb-5 flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2">
             {category.icon?.startsWith("/") ? (
-              <img src={category.icon} alt="" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
+              <img src={category.icon} alt="" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
             ) : (
-              <span className="text-2xl">{category.icon || "🏡"}</span>
+              <Building2Icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             )}
-            <h2 className="text-2xl sm:text-3xl font-black text-zinc-950">{category.label}</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-[#111716] tracking-tight">{category.label}</h2>
           </div>
-          <p className="text-xs text-zinc-500 font-semibold mt-1 max-w-xl">
+          <p className="text-xs text-muted font-medium mt-0.5">
             {category.description}
           </p>
         </div>
         <Link
           href={exploreUrl}
-          className="text-xs font-bold text-black hover:underline flex items-center gap-1 group"
+          className="text-xs font-bold text-primary hover:text-[#111716] transition-colors duration-200 flex items-center gap-1 group"
         >
-          <span>View All {category.label}</span>
-          <span className="group-hover:translate-x-1 transition-transform">→</span>
+          <span>View all</span>
+          <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200" />
         </Link>
       </div>
 
       {loading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex gap-5 overflow-x-auto no-scrollbar py-2 -mx-4 px-4 sm:mx-0 sm:px-0">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="h-72 rounded-3xl bg-zinc-100 animate-pulse border border-zinc-200" />
+            <div key={n} className="w-[280px] sm:w-[310px] h-[340px] flex-shrink-0 rounded-2xl bg-surface animate-pulse border border-border/60" />
           ))}
         </div>
       ) : properties.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {properties.slice(0, 4).map((stay, idx) => (
-            <PropertyCard
-              key={stay.id || (stay as any).propertyId || `${category.id}-stay-${idx}`}
-              property={stay}
-            />
+        /* Horizontal Content Rail */
+        <div className="flex gap-5 overflow-x-auto no-scrollbar py-2 -mx-4 px-4 sm:mx-0 sm:px-0 scroll-smooth">
+          {properties.map((stay, idx) => (
+            <div key={stay.id || (stay as any).propertyId || `${category.id}-stay-${idx}`} className="w-[280px] sm:w-[310px] flex-shrink-0">
+              <PropertyCard property={stay} />
+            </div>
           ))}
         </div>
       ) : (
-        <GlassCard className="py-10 px-6 text-center border border-zinc-200 bg-zinc-50/40 flex flex-col items-center justify-center">
+        <div className="py-8 px-6 text-center border border-border/60 bg-surface rounded-2xl flex flex-col items-center justify-center">
           {category.icon?.startsWith("/") ? (
-            <img src={category.icon} alt="" className="w-14 h-14 sm:w-16 sm:h-16 object-contain" />
+            <img src={category.icon} alt="" className="w-10 h-10 object-contain opacity-60" />
           ) : (
-            <span className="text-4xl">{category.icon || "🏠"}</span>
+            <Building2Icon className="w-8 h-8 text-muted opacity-60" />
           )}
-          <h3 className="text-base font-bold text-zinc-950 mt-3">
+          <h3 className="text-sm font-bold text-[#111716] mt-2">
             No {category.label} listed yet in Delhi NCR
           </h3>
-          <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto leading-relaxed font-medium">
-            We are currently onboarding verified {category.label.toLowerCase()} across Delhi NCR. Are you a host or owner?
+          <p className="text-xs text-muted mt-1 max-w-md mx-auto font-medium">
+            We are onboarding verified {category.label.toLowerCase()} across Delhi NCR.
           </p>
-          <div className="mt-5 flex justify-center gap-3 flex-wrap">
+          <div className="mt-4 flex justify-center gap-3 flex-wrap">
             <Link
               href="/host/application"
-              className="rounded-xl bg-black text-white hover:bg-zinc-800 px-5 py-2.5 text-xs font-bold transition-all shadow-sm"
+              className="rounded-xl bg-primary text-white hover:bg-[#111716] px-4 py-2 text-xs font-bold transition-all duration-200 shadow-xs"
             >
               List Your Property
             </Link>
             <Link
               href={exploreUrl}
-              className="rounded-xl border border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100 px-5 py-2.5 text-xs font-bold transition-all"
+              className="rounded-xl border border-border/80 bg-surface text-[#111716] hover:bg-background px-4 py-2 text-xs font-bold transition-all duration-200"
             >
               Browse All Stays
             </Link>
           </div>
-        </GlassCard>
+        </div>
       )}
     </section>
   );

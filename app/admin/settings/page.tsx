@@ -8,11 +8,12 @@ import { useAdminGuard } from "@/hooks/useAdminGuard";
 export default function AdminSettingsPage() {
   const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [subMode, setSubMode] = useState<"free" | "paid">("paid");
-  const [standardPrice, setStandardPrice] = useState("499");
+  const [standardPrice, setStandardPrice] = useState("20");
   const [introductoryPrice, setIntroductoryPrice] = useState("20");
-  const [introductoryEnabled, setIntroductoryEnabled] = useState(true);
+  const [introductoryEnabled, setIntroductoryEnabled] = useState(false);
   const [subLimit, setSubLimit] = useState("10");
-  const [subDuration, setSubDuration] = useState("365");
+  const [billingPeriod, setBillingPeriod] = useState("MONTHLY");
+  const [billingInterval, setBillingInterval] = useState("1");
   const [currency, setCurrency] = useState("INR");
 
   const [aiModel, setAiModel] = useState("gemini-pro");
@@ -29,11 +30,12 @@ export default function AdminSettingsPage() {
         if (subRes.status === "fulfilled" && subRes.value) {
           const val = subRes.value;
           setSubMode(val.subscriptionMode === "free" ? "free" : "paid");
-          setStandardPrice(String(val.standardPrice ?? val.price ?? 499));
+          setStandardPrice(String(val.standardPrice ?? val.price ?? 20));
           setIntroductoryPrice(String(val.introductoryPrice ?? 20));
-          setIntroductoryEnabled(val.introductoryEnabled !== false);
+          setIntroductoryEnabled(val.introductoryEnabled === true);
           setSubLimit(String(val.listingPropertyLimit ?? val.propertyLimit ?? 10));
-          setSubDuration(String(val.subscriptionDuration ?? 365));
+          setBillingPeriod(val.billingPeriod || "MONTHLY");
+          setBillingInterval(String(val.billingInterval ?? 1));
           setCurrency(val.currency || "INR");
         }
         if (aiRes.status === "fulfilled" && aiRes.value) {
@@ -58,11 +60,12 @@ export default function AdminSettingsPage() {
     try {
       await updateSubscriptionSettings({
         subscriptionMode: subMode,
-        standardPrice: parseInt(standardPrice) || 499,
+        standardPrice: parseInt(standardPrice) || 20,
         introductoryPrice: parseInt(introductoryPrice) || 20,
         introductoryEnabled: introductoryEnabled,
         listingPropertyLimit: parseInt(subLimit) || 10,
-        subscriptionDuration: parseInt(subDuration) || 365,
+        billingPeriod: billingPeriod.toUpperCase(),
+        billingInterval: parseInt(billingInterval) || 1,
         currency: currency.toUpperCase(),
       });
       alert("Subscription settings saved successfully!");
@@ -185,15 +188,15 @@ export default function AdminSettingsPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-zinc-700 uppercase mb-1">
-                    Subscription Duration (Days)
+                    Billing Period & Frequency
                   </label>
                   <input
-                    type="number"
-                    value={subDuration}
-                    onChange={(e) => setSubDuration(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold"
+                    type="text"
+                    value={`${billingPeriod} (Every ${billingInterval} month)`}
+                    readOnly
+                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold bg-zinc-100 text-zinc-700 cursor-not-allowed"
                   />
-                  <span className="text-[10px] text-zinc-500">Default duration for active plans (e.g. 365).</span>
+                  <span className="text-[10px] text-zinc-500">Host Pro subscription is charged ₹20 monthly.</span>
                 </div>
               </div>
 

@@ -3,6 +3,7 @@
 import { useState, ChangeEvent } from "react";
 import { ref, uploadBytes } from "firebase/storage";
 import { storage } from "@/lib/firebase";
+import { CheckIcon, ShieldCheckIcon, UserRoundIcon } from "@/components/ui/Icons";
 
 export interface DocumentUploadResult {
   documentType: "pan" | "aadhaar";
@@ -122,7 +123,7 @@ export default function GovernmentDocumentUpload({
               : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
           }`}
         >
-          <span>📄</span>
+          <ShieldCheckIcon className="w-4 h-4" />
           <span>PAN Card</span>
         </button>
 
@@ -136,7 +137,7 @@ export default function GovernmentDocumentUpload({
               : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
           }`}
         >
-          <span>🆔</span>
+          <UserRoundIcon className="w-4 h-4" />
           <span>Aadhaar Card</span>
         </button>
       </div>
@@ -169,8 +170,8 @@ export default function GovernmentDocumentUpload({
           </div>
         ) : uploadSuccess ? (
           <div className="text-center space-y-1">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white text-lg font-black shadow-md">
-              ✓
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md">
+              <CheckIcon className="w-5 h-5 text-white" />
             </div>
             <p className="text-xs font-bold text-emerald-950">
               {docType.toUpperCase()} Document Uploaded Successfully
@@ -184,8 +185,8 @@ export default function GovernmentDocumentUpload({
           </div>
         ) : (
           <div className="text-center space-y-2">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-200 text-zinc-700 text-lg font-black">
-              ⬆
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-200 text-zinc-700">
+              <ShieldCheckIcon className="w-5 h-5" />
             </div>
             <div>
               <p className="text-xs font-bold text-zinc-900">
@@ -208,9 +209,11 @@ export default function GovernmentDocumentUpload({
         </div>
       )}
 
-      <p className="text-[11px] text-zinc-400 font-medium leading-normal">
-        🔒 Your government document is encrypted and accessible only by authorized StayTrack verification staff.
+      <p className="text-[11px] text-zinc-400 font-medium leading-normal flex items-center gap-1">
+        <ShieldCheckIcon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+        <span>Your government document is encrypted and accessible only by authorized StayTrack verification staff.</span>
       </p>
     </div>
   );
 }
+

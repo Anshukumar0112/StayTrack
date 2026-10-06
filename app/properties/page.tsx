@@ -29,6 +29,7 @@ function PropertySearchContent() {
   const [maxPrice, setMaxPrice] = useState(60000);
   const [minBedrooms, setMinBedrooms] = useState<number>(0);
   const [furnished, setFurnished] = useState<boolean | undefined>(undefined);
+  const [showMobileFilters, setShowMobileFilters] = useState<boolean>(false);
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,13 +108,13 @@ function PropertySearchContent() {
   const isUnsupported = city && !isSupportedLocation(city);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 pt-8 pb-24 md:py-10 w-full flex-1">
         <div className="mb-8 flex justify-between items-start flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-black text-zinc-950">
+            <h1 className="text-3xl font-black text-foreground">
               {aiPromptParam
                 ? "✨ AI Recommended Stays"
                 : propertyType !== "all"
@@ -122,7 +123,7 @@ function PropertySearchContent() {
                 ? `Stays in ${city}`
                 : "Discover Delhi NCR Stays"}
             </h1>
-            <p className="text-xs text-zinc-500 font-semibold mt-1">
+            <p className="text-xs text-muted font-semibold mt-1">
               {aiPromptParam
                 ? `Matched properties for: "${aiPromptParam}"`
                 : propertyType !== "all"
@@ -132,9 +133,23 @@ function PropertySearchContent() {
           </div>
         </div>
 
+        <div className="mb-4 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            className="w-full py-3 px-4 bg-primary text-white font-bold text-xs rounded-2xl flex items-center justify-between shadow-sm cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <span>⚙️</span>
+              <span>Filter & Refine Stays</span>
+            </span>
+            <span className="text-[11px] font-black">{showMobileFilters ? "▲ Hide Filters" : "▼ Show Filters"}</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Side Filter Panel */}
-          <div className="lg:col-span-1">
+          <div className={`lg:col-span-1 ${showMobileFilters ? "block" : "hidden lg:block"}`}>
             <PropertyFilters
               city={city}
               setCity={setCity}
@@ -156,7 +171,7 @@ function PropertySearchContent() {
 
           {/* Results Grid */}
           <div className="lg:col-span-3">
-            <div className="mb-4 flex justify-between items-center text-xs text-zinc-500 font-semibold">
+            <div className="mb-4 flex justify-between items-center text-xs text-muted font-semibold">
               <span>Showing {properties.length} verified stays</span>
               <span className="clay-badge px-3 py-1 font-extrabold text-[10px] uppercase">
                 Delhi NCR • Verified Stays
@@ -166,19 +181,19 @@ function PropertySearchContent() {
             {loading ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="h-72 rounded-3xl bg-zinc-100 animate-pulse border border-zinc-200" />
+                  <div key={i} className="h-72 rounded-3xl bg-surface animate-pulse border border-border" />
                 ))}
               </div>
             ) : isUnsupported ? (
-              <GlassCard className="py-16 text-center border border-zinc-200 bg-amber-50/20">
+              <GlassCard className="py-16 text-center border border-border bg-warning/10">
                 <span className="text-5xl">📍</span>
-                <h3 className="text-lg font-bold text-zinc-950 mt-4">StayTrack Currently Operates in Delhi NCR Only</h3>
-                <p className="text-xs text-zinc-600 mt-2 max-w-md mx-auto leading-relaxed">
-                  We do not currently serve <strong className="text-black font-bold">{city}</strong>. StayTrack is available in Delhi, Gurugram, Noida, Greater Noida, Ghaziabad, and Faridabad. We're expanding soon!
+                <h3 className="text-lg font-bold text-foreground mt-4">StayTrack Currently Operates in Delhi NCR Only</h3>
+                <p className="text-xs text-muted mt-2 max-w-md mx-auto leading-relaxed">
+                  We do not currently serve <strong className="text-foreground font-bold">{city}</strong>. StayTrack is available in Delhi, Gurugram, Noida, Greater Noida, Ghaziabad, and Faridabad. We're expanding soon!
                 </p>
                 <button
                   onClick={handleResetFilters}
-                  className="mt-5 rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold shadow-sm"
+                  className="mt-5 rounded-xl bg-primary text-white hover:bg-primary-dark px-5 py-2.5 text-xs font-bold shadow-sm"
                 >
                   Explore Delhi NCR Stays
                 </button>
@@ -190,15 +205,15 @@ function PropertySearchContent() {
                 ))}
               </div>
             ) : (
-              <GlassCard className="py-16 text-center border border-zinc-200">
+              <GlassCard className="py-16 text-center border border-border bg-surface">
                 <span className="text-5xl">🏡</span>
-                <h3 className="text-lg font-bold text-zinc-950 mt-4">Verified stays are coming soon</h3>
-                <p className="text-xs text-zinc-500 mt-2 max-w-md mx-auto">
+                <h3 className="text-lg font-bold text-foreground mt-4">Verified stays are coming soon</h3>
+                <p className="text-xs text-muted mt-2 max-w-md mx-auto">
                   StayTrack is currently onboarding verified properties across Delhi NCR.
                 </p>
                 <button
                   onClick={handleResetFilters}
-                  className="mt-5 rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold"
+                  className="mt-5 rounded-xl bg-primary text-white hover:bg-primary-dark px-5 py-2.5 text-xs font-bold"
                 >
                   Reset All Filters
                 </button>
@@ -216,7 +231,7 @@ function PropertySearchContent() {
 
 export default function PropertySearchPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-zinc-500">Loading Stays...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-muted">Loading Stays...</div>}>
       <PropertySearchContent />
     </Suspense>
   );

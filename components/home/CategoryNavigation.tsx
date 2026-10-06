@@ -74,27 +74,26 @@ export default function CategoryNavigation() {
   }, []);
 
   return (
-    <div ref={containerRef} className="sticky top-[57px] sm:top-[61px] z-40 w-full transition-all duration-300">
+    <div ref={containerRef} className="sticky top-[57px] sm:top-[61px] z-40 w-full">
       <div
-        className={`w-full transition-all duration-300 border-y ${
+        className={`w-full transition-all duration-200 border-y ${
           isSticky
-            ? "bg-white/90 backdrop-blur-md border-zinc-200 shadow-md py-2"
-            : "bg-white/60 backdrop-blur-sm border-zinc-100 py-3"
+            ? "bg-surface/95 backdrop-blur-md border-border/80 shadow-xs py-2"
+            : "bg-surface/90 backdrop-blur-md border-border/60 py-2.5"
         }`}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between gap-4">
-          {/* Header Title - shrinks on sticky */}
-          <div className={`transition-all duration-300 flex items-center gap-2 ${isSticky ? "hidden sm:flex" : "flex"}`}>
-            <h2 className="text-sm font-black tracking-wider text-zinc-950 uppercase whitespace-nowrap">
-              Explore Stays
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-black tracking-widest text-[#111716] uppercase whitespace-nowrap">
+              Categories
             </h2>
-            <span className="text-zinc-300 text-xs hidden sm:inline">•</span>
+            <span className="text-muted/60 text-xs">•</span>
           </div>
 
-          {/* Sticky Category Tabs */}
+          {/* Category Tabs */}
           <nav
             aria-label="Stay Categories"
-            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 w-full sm:w-auto justify-start sm:justify-end"
+            className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 w-full sm:w-auto justify-start sm:justify-end"
           >
             {ACCOMMODATION_CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat.id;
@@ -102,16 +101,16 @@ export default function CategoryNavigation() {
                 <button
                   key={cat.id}
                   onClick={() => scrollToCategory(cat.id)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? "bg-black text-white shadow-sm scale-[1.02]"
-                      : "bg-zinc-100/80 text-zinc-700 hover:bg-zinc-200/80 hover:text-black"
+                      ? "bg-primary text-white shadow-xs"
+                      : "bg-surface text-muted hover:text-[#111716] hover:bg-background border border-border/70"
                   }`}
                 >
                   {cat.icon?.startsWith("/") ? (
-                    <img src={cat.icon} alt="" className="w-4 h-4 object-contain" />
+                    <img src={cat.icon} alt="" className="w-3.5 h-3.5 object-contain" />
                   ) : (
-                    <span className="text-sm">{cat.icon}</span>
+                    <span className="text-xs">{cat.icon}</span>
                   )}
                   <span>{cat.label}</span>
                 </button>

@@ -169,7 +169,7 @@ export default function AdminUsersPage() {
                       )}
                     </div>
                     <h3 className="text-sm font-bold text-zinc-950">{u.name || u.phone || "Registered User"}</h3>
-                    <p className="text-xs text-zinc-500 mt-0.5 font-mono">UID: {u.uid} • Email: {u.email || "N/A"}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5 font-mono break-all">UID: {u.uid} • Email: {u.email || "N/A"}</p>
                   </div>
 
                   <div className="flex items-center gap-3 flex-wrap">

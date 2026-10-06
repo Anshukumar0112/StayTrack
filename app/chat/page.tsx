@@ -79,31 +79,33 @@ export default function ChatPage() {
   const activeConvo = conversations.find((c) => getConversationId(c) === activeConvoId);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full flex-1 flex flex-col">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 pt-6 pb-24 md:py-8 w-full flex-1 flex flex-col">
         <div className="mb-4">
-          <h1 className="text-3xl font-black text-zinc-950">Direct Messages</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">Chat directly with property hosts & guests</p>
+          <h1 className="text-3xl font-black text-foreground">Direct Messages</h1>
+          <p className="text-xs text-muted font-semibold mt-1">Chat directly with property hosts & guests</p>
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading conversations...</div>
+          <div className="py-20 text-center text-xs font-bold text-muted">Loading conversations...</div>
         ) : conversations.length === 0 ? (
-          <GlassCard className="py-16 text-center border border-zinc-200">
-            <span className="text-4xl">💬</span>
-            <h3 className="text-base font-bold text-zinc-950 mt-3">No Active Conversations</h3>
-            <p className="text-xs text-zinc-500 mt-1">Start a chat by viewing a property and clicking "Chat with Host".</p>
-            <Link href="/properties" className="mt-4 inline-block rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold">
+          <GlassCard className="py-16 text-center border border-border bg-surface shadow-xs">
+            <span className="text-4xl block mb-2">💬</span>
+            <h3 className="text-base font-bold text-foreground mt-1">No Active Conversations</h3>
+            <p className="text-xs text-muted mt-1 max-w-sm mx-auto">Start a chat by viewing a property and clicking "Chat with Host".</p>
+            <Link href="/properties" className="mt-4 inline-block rounded-xl bg-primary hover:bg-primary-dark text-white px-5 py-2.5 text-xs font-bold shadow-xs">
               Browse Properties
             </Link>
           </GlassCard>
         ) : (
-          <GlassCard className="flex-1 min-h-[500px] border border-zinc-200 p-0 overflow-hidden flex flex-col md:flex-row shadow-lg">
+          <GlassCard className="flex-1 min-h-[500px] border border-border p-0 overflow-hidden flex flex-col md:flex-row shadow-md bg-surface">
             {/* Conversations Sidebar */}
-            <div className="w-full md:w-80 border-r border-zinc-200 bg-zinc-50 p-4 space-y-2">
-              <h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider px-2 mb-3">Conversations</h3>
+            <div className={`w-full md:w-80 border-r border-border bg-background p-4 space-y-2 ${
+              activeConvoId ? "hidden md:block" : "block"
+            }`}>
+              <h3 className="text-xs font-bold text-muted uppercase tracking-wider px-2 mb-3">Conversations</h3>
               {conversations.map((c) => {
                 const convoId = getConversationId(c);
                 const isActive = activeConvoId === convoId;
@@ -114,17 +116,17 @@ export default function ChatPage() {
                     onClick={() => setActiveConvoId(convoId)}
                     className={`p-3 rounded-xl cursor-pointer transition-all ${
                       isActive
-                        ? "bg-black text-white"
-                        : "hover:bg-zinc-200/60 text-zinc-900"
+                        ? "bg-primary-light text-primary-dark border-l-4 border-primary font-bold shadow-xs"
+                        : "hover:bg-primary-soft text-foreground"
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <h4 className="text-xs font-bold line-clamp-1">{c.propertyTitle || `Stay Chat #${convoId}`}</h4>
-                      <span className={`text-[10px] ${isActive ? "text-zinc-300" : "text-zinc-500"}`}>
+                      <span className={`text-[10px] ${isActive ? "text-primary-dark/70" : "text-muted"}`}>
                         {formatTimestamp(c.lastMessageTimestamp || c.lastMessageAt)}
                       </span>
                     </div>
-                    <p className={`text-[11px] truncate mt-1 ${isActive ? "text-zinc-400" : "text-zinc-500"}`}>
+                    <p className={`text-[11px] truncate mt-1 ${isActive ? "text-primary-dark/80" : "text-muted"}`}>
                       {c.lastMessage || "Click to view thread"}
                     </p>
                   </div>
@@ -133,23 +135,32 @@ export default function ChatPage() {
             </div>
 
             {/* Active Thread Window */}
-            <div className="flex-1 flex flex-col justify-between p-6 bg-white">
-              <div className="pb-4 border-b border-zinc-200 flex items-center justify-between">
+            <div className={`flex-1 flex flex-col justify-between p-4 sm:p-6 bg-surface ${
+              activeConvoId ? "flex" : "hidden md:flex"
+            }`}>
+              <div className="pb-4 border-b border-border flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs">
+                  <button
+                    onClick={() => setActiveConvoId(null)}
+                    className="md:hidden p-1.5 rounded-xl border border-border text-xs font-bold text-foreground hover:bg-background"
+                    title="Back to Conversations"
+                  >
+                    ← Back
+                  </button>
+                  <div className="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0">
                     🏠
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-950">{activeConvo?.propertyTitle || "Host Conversation"}</h3>
-                    <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Direct Host Connect
+                    <h3 className="text-sm font-bold text-foreground line-clamp-1">{activeConvo?.propertyTitle || "Host Conversation"}</h3>
+                    <p className="text-[11px] text-success font-bold flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> Direct Host Connect
                     </p>
                   </div>
                 </div>
 
                 <Link
                   href={`/chat/${activeConvoId}`}
-                  className="text-xs font-bold text-black hover:underline"
+                  className="text-xs font-bold text-primary hover:underline"
                 >
                   Full View →
                 </Link>
@@ -167,12 +178,12 @@ export default function ChatPage() {
                     return (
                       <div key={msgId} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-xs rounded-2xl p-3 text-xs font-medium shadow-sm ${
-                            isMe ? "bg-black text-white" : "bg-zinc-100 text-zinc-800 border border-zinc-200"
+                          className={`max-w-xs rounded-2xl p-3 text-xs font-medium shadow-xs ${
+                            isMe ? "bg-primary text-white" : "bg-background text-foreground border border-border"
                           }`}
                         >
                           {msgContent}
-                          <span className={`block text-[9px] mt-1 text-right ${isMe ? "text-zinc-400" : "text-zinc-400"}`}>
+                          <span className={`block text-[9px] mt-1 text-right ${isMe ? "text-white/80" : "text-muted"}`}>
                             {msgTime}
                           </span>
                         </div>
@@ -180,25 +191,25 @@ export default function ChatPage() {
                     );
                   })
                 ) : (
-                  <p className="text-center text-xs text-zinc-400 py-10 font-medium">
+                  <p className="text-center text-xs text-muted py-10 font-medium">
                     No messages yet in this conversation. Type below to start!
                   </p>
                 )}
               </div>
 
               {/* Input Form */}
-              <form onSubmit={handleSendMessage} className="flex gap-3 pt-3 border-t border-zinc-100">
+              <form onSubmit={handleSendMessage} className="flex gap-3 pt-3 border-t border-border">
                 <input
                   type="text"
                   placeholder="Type your message..."
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
-                  className="glass-input flex-1 px-4 py-3 rounded-xl text-xs font-semibold"
+                  className="flex-1 px-4 py-3 rounded-xl text-xs font-semibold bg-background border border-border text-foreground placeholder-muted/70 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                 />
                 <button
                   type="submit"
                   disabled={sendLoading || !messageText.trim()}
-                  className="glass-button px-5 py-3 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                  className="bg-primary hover:bg-primary-dark text-white px-5 py-3 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 transition-all shadow-xs"
                 >
                   {sendLoading ? "Sending..." : "Send"}
                 </button>

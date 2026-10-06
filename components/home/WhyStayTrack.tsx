@@ -3,48 +3,68 @@
 import ClayCard from "@/components/ui/ClayCard";
 
 export default function WhyStayTrack() {
-  const features = [
+  const editorialItems = [
     {
-      image: "/icons/handshake.png",
-      title: "Direct Owner Contact",
-      desc: "Chat directly with hosts before booking. Clear details and transparent communication.",
+      num: "01",
+      title: "Verified stays",
+      desc: "Know what you're booking before you arrive.",
+      icon: "/icons/shield-check.png",
     },
     {
-      image: "/icons/clock.png",
-      title: "Flexible Stay Models",
-      desc: "Choose between hourly transit slots, daily hotel stays, or monthly PG/Flat rentals.",
+      num: "02",
+      title: "Direct owner contact",
+      desc: "Talk directly with the person managing your stay.",
+      icon: "/icons/handshake.png",
     },
     {
-      image: "/icons/credit-card.png",
-      title: "Secure Payment Gateway",
-      desc: "Razorpay integration ensures safe transactions directly routed to verified hosts.",
+      num: "03",
+      title: "Flexible living",
+      desc: "Hourly, daily and monthly options.",
+      icon: "/icons/clock.png",
     },
     {
-      image: "/icons/shield-check.png",
-      title: "Verified Property Listings",
-      desc: "Admin verification ensures listed photos, address, and amenities match reality.",
+      num: "04",
+      title: "Secure booking",
+      desc: "Safe payments and transparent booking status.",
+      icon: "/icons/credit-card.png",
     },
   ];
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-12 w-full">
-      <div className="text-center max-w-2xl mx-auto mb-10">
-        <h2 className="text-2xl sm:text-3xl font-black text-zinc-950">Why Choose StayTrack?</h2>
-        <p className="text-xs sm:text-sm text-zinc-600 font-medium mt-2">
-          Designed for Indian travelers, students, and working professionals seeking transparent accommodation.
-        </p>
-      </div>
+    <section className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-20 w-full border-t border-border/60">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* Left Editorial Header */}
+        <div className="lg:col-span-4 lg:sticky lg:top-28 space-y-3">
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-primary block">
+            WHY STAYTRACK
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black text-[#111716] leading-tight">
+            Stay somewhere that actually works for you.
+          </h2>
+          <p className="text-xs sm:text-sm text-muted font-medium leading-relaxed pt-1">
+            Built for transparent accommodations across Delhi NCR with direct host connection and zero middleman markup.
+          </p>
+        </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {features.map((f, i) => (
-          <ClayCard key={i} className="p-6 text-center border border-zinc-200 hover:scale-[1.02] transition-transform flex flex-col items-center justify-start">
-            <div className="h-12 w-12 flex items-center justify-center mb-3">
-              <img src={f.image} alt="" className="h-11 w-11 object-contain" />
+        {/* Right Editorial Numbered Grid */}
+        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-10">
+          {editorialItems.map((item) => (
+            <div key={item.num} className="group border-t border-border/70 pt-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-black font-mono text-primary group-hover:text-[#111716] transition-colors duration-200">
+                  {item.num}
+                </span>
+                <img src={item.icon} alt="" className="w-5 h-5 object-contain opacity-70 group-hover:opacity-100 transition-opacity duration-200" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-[#111716]">
+                {item.title}
+              </h3>
+              <p className="text-xs text-muted leading-relaxed font-medium">
+                {item.desc}
+              </p>
             </div>
-            <h3 className="text-base font-bold text-zinc-950">{f.title}</h3>
-            <p className="text-xs text-zinc-600 mt-2 leading-relaxed font-medium">{f.desc}</p>
-          </ClayCard>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

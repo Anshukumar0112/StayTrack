@@ -372,14 +372,14 @@ export default function AdminHostsPage() {
                     )}
                   </div>
 
-                  <h3 className="text-sm font-bold text-zinc-950 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-zinc-950 flex items-center gap-2 flex-wrap">
                     {item.name}
                     {!item.isApplicationRecord && (
-                      <span className="text-[10px] text-zinc-400 font-mono">({item.userId})</span>
+                      <span className="text-[10px] text-zinc-400 font-mono break-all">({item.userId})</span>
                     )}
                   </h3>
 
-                  <p className="text-xs text-zinc-500 mt-0.5">
+                  <p className="text-xs text-zinc-500 mt-0.5 break-all">
                     📧 {item.email} • 📞 {item.phone}
                   </p>
 
@@ -461,7 +461,7 @@ export default function AdminHostsPage() {
                               hostId: item.userId,
                               hostName: item.name,
                               plan: "Host Pro",
-                              durationDays: 365,
+                              durationDays: 30,
                               reason: "Testing / complimentary access",
                             })
                           }
@@ -678,7 +678,7 @@ export default function AdminHostsPage() {
                 <input
                   type="number"
                   value={grantModal.durationDays}
-                  onChange={(e) => setGrantModal({ ...grantModal, durationDays: parseInt(e.target.value) || 365 })}
+                  onChange={(e) => setGrantModal({ ...grantModal, durationDays: parseInt(e.target.value) || 30 })}
                   className="glass-input w-full px-3 py-2 rounded-xl text-xs font-bold"
                   required
                 />

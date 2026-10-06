@@ -3,6 +3,7 @@ export interface SupportedLocation {
   name: string;
   state: string;
   region: string;
+  landmark: string;
   image: string;
   description?: string;
 }
@@ -15,7 +16,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Delhi",
     state: "Delhi",
     region: NCR_SERVICE_REGION,
-    image: "/icons/location-pin.png",
+    landmark: "India Gate",
+    image: "https://images.unsplash.com/photo-1587474260584-136574528ed5?q=80&w=800&auto=format&fit=crop",
     description: "Capital region stays & central hubs",
   },
   {
@@ -23,7 +25,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Gurugram",
     state: "Haryana",
     region: NCR_SERVICE_REGION,
-    image: "/icons/location-pin.png",
+    landmark: "Cyber City",
+    image: "https://images.unsplash.com/photo-1595658658421-a9ac457190ae?q=80&w=800&auto=format&fit=crop",
     description: "Cyber City, Golf Course & tech corridors",
   },
   {
@@ -31,7 +34,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Noida",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    image: "/icons/location-pin.png",
+    landmark: "Noida Skyline",
+    image: "https://images.unsplash.com/photo-1546412414-8035e1786b9b?q=80&w=800&auto=format&fit=crop",
     description: "Sector hubs, IT parks & expressways",
   },
   {
@@ -39,7 +43,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Greater Noida",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    image: "/icons/location-pin.png",
+    landmark: "Buddh Circuit",
+    image: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=800&auto=format&fit=crop",
     description: "Knowledge parks & educational hubs",
   },
   {
@@ -47,7 +52,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Ghaziabad",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    image: "/icons/location-pin.png",
+    landmark: "Swarna Jayanti Park",
+    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop",
     description: "Indirapuram, Vaishali & residential zones",
   },
   {
@@ -55,7 +61,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Faridabad",
     state: "Haryana",
     region: NCR_SERVICE_REGION,
-    image: "/icons/location-pin.png",
+    landmark: "Surajkund Lake",
+    image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800&auto=format&fit=crop",
     description: "Industrial hubs & connectivity corridors",
   },
 ];

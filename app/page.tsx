@@ -12,23 +12,39 @@ import CompactHostCta from "@/components/home/CompactHostCta";
 
 export default function RootHomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
       <main className="flex-1">
-        {/* 1. Hero / Search Section */}
-        <section className="relative px-4 sm:px-6 pt-12 pb-10 text-center max-w-7xl mx-auto w-full">
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-zinc-950 max-w-4xl mx-auto leading-tight">
-            Find Your <span className="underline decoration-emerald-500 decoration-wavy">Perfect Stay</span> in Delhi NCR
-          </h1>
+        {/* 1. Cinematic Hero / Search Section */}
+        <section className="relative w-full overflow-hidden bg-brand-deep text-white">
+          {/* Background Image with Dark Gradient Overlay */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2000&q=80"
+              alt="StayTrack Property Marketplace"
+              className="w-full h-full object-cover opacity-45 scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#111716] via-[#111716]/60 to-black/40" />
+          </div>
 
-          <p className="mt-3 text-sm sm:text-base text-zinc-600 max-w-2xl mx-auto font-medium leading-relaxed">
-            Hostels, rooms, PGs and flexible stays across Delhi NCR. Connect directly with verified owners.
-          </p>
+          <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 pt-16 sm:pt-24 pb-12 sm:pb-16 text-center">
+            <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[11px] font-extrabold tracking-widest text-primary-light uppercase mb-4 border border-white/15">
+              DELHI NCR PROPERTY MARKETPLACE
+            </span>
 
-          {/* Search Module */}
-          <div className="mt-8">
-            <HeroSearch />
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-[1.1]">
+              Find Your Next Stay in Delhi NCR
+            </h1>
+
+            <p className="mt-4 text-sm sm:text-base text-zinc-300 max-w-2xl mx-auto font-medium leading-relaxed">
+              Verified stays, flexible booking options, and direct communication with property owners.
+            </p>
+
+            {/* Unified Search Bar Over Lower Portion of Hero */}
+            <div className="mt-10 max-w-5xl mx-auto">
+              <HeroSearch />
+            </div>
           </div>
         </section>
 

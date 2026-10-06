@@ -84,7 +84,7 @@ export default function PropertyDetailPage({
   const displayPrice = property?.pricePerNight || property?.pricePerMonth || property?.pricePerHour || property?.price || 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full flex-1">

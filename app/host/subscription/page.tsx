@@ -230,13 +230,13 @@ export default function HostSubscriptionPage() {
               {!isFreeMode && (
                 <div className="py-4">
                   <span className="text-4xl font-black text-black">
-                    ₹{planInfo?.amount ?? 499}
+                    ₹{planInfo?.amount ?? 20}
                   </span>
                   <span className="text-xs font-semibold text-zinc-500">
                     {" "}
-                    / {planInfo?.subscriptionDuration ?? 365} days
+                    / month
                   </span>
-                  {planInfo?.plan === "introductory" && (
+                  {planInfo?.plan?.includes("Introductory") && (
                     <span className="ml-2 px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-md">
                       Introductory Offer!
                     </span>

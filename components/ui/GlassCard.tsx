@@ -15,7 +15,7 @@ export default function GlassCard({
   return (
     <div
       className={`glass-card rounded-2xl p-6 transition-all duration-300 ${
-        hoverEffect ? "hover:-translate-y-1 hover:border-indigo-500/40 hover:shadow-indigo-500/10" : ""
+        hoverEffect ? "hover:-translate-y-1 hover:border-primary/40 hover:shadow-md" : ""
       } ${className}`}
       {...props}
     >

@@ -122,17 +122,17 @@ export default function MyTripsPage() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 w-full flex-1">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 pt-8 pb-24 md:py-10 w-full flex-1">
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-black text-zinc-950">My Bookings</h1>
-            <p className="text-xs text-zinc-500 font-semibold mt-1">Manage upcoming reservations, payment status, and host details</p>
+            <h1 className="text-3xl font-black text-foreground">My Bookings</h1>
+            <p className="text-xs text-muted font-semibold mt-1">Manage upcoming reservations, payment status, and host details</p>
           </div>
 
-          <div className="flex gap-1.5 p-1 bg-zinc-100 border border-zinc-200 rounded-xl">
+          <div className="flex gap-1.5 p-1 bg-surface border border-border rounded-xl shadow-xs">
             {[
               { label: "All Bookings", value: "all" },
               { label: "Upcoming / Requested", value: "upcoming" },
@@ -143,7 +143,7 @@ export default function MyTripsPage() {
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value as any)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  activeTab === tab.value ? "bg-black text-white shadow-sm" : "text-zinc-600 hover:text-black"
+                  activeTab === tab.value ? "bg-primary text-white shadow-xs" : "text-muted hover:text-foreground"
                 }`}
               >
                 {tab.label}
@@ -153,7 +153,7 @@ export default function MyTripsPage() {
         </div>
 
         {authLoading || loading ? (
-          <div className="py-20 text-center text-xs font-bold text-zinc-500">
+          <div className="py-20 text-center text-xs font-bold text-muted">
             Loading your bookings...
           </div>
         ) : filteredBookings.length > 0 ? (
@@ -168,40 +168,40 @@ export default function MyTripsPage() {
               const isPending = st === "requested";
 
               return (
-                <GlassCard key={id || `trip-idx-${idx}`} hoverEffect className="border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5">
+                <GlassCard key={id || `trip-idx-${idx}`} hoverEffect className="border border-border bg-surface flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all">
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className={`clay-badge px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
                         isConfirmed
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-success text-white"
                           : isAccepted
-                          ? "bg-amber-500 text-white animate-pulse"
+                          ? "bg-warning text-white animate-pulse"
                           : isPending
-                          ? "bg-zinc-200 text-zinc-900 border border-zinc-300"
-                          : "bg-red-100 text-red-700"
+                          ? "bg-primary-soft text-foreground border border-border"
+                          : "bg-error/15 text-error"
                       }`}>
                         {getBookingStatusLabel(st, "customer")}
                       </span>
-                      <span className="text-xs text-zinc-500 font-mono">ID: {id}</span>
+                      <span className="text-xs text-muted font-mono">ID: {id}</span>
                     </div>
 
-                    <h3 className="text-base font-bold text-zinc-950">{b.propertyTitle || `Property #${b.propertyId}`}</h3>
-                    <p className="text-xs text-zinc-500 font-semibold mt-1">
+                    <h3 className="text-base font-bold text-foreground">{b.propertyTitle || `Property #${b.propertyId}`}</h3>
+                    <p className="text-xs text-muted font-semibold mt-1">
                       🗓️ {b.startDate || "Date tbd"} → {b.endDate || "Date tbd"}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-200">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-border">
                     <div className="text-left sm:text-right">
-                      <span className="text-xs text-zinc-500 block font-semibold">Total Amount</span>
-                      <span className="text-lg font-black text-black">₹{amount.toLocaleString()}</span>
+                      <span className="text-xs text-muted block font-semibold">Total Amount</span>
+                      <span className="text-lg font-black text-foreground">₹{amount.toLocaleString()}</span>
                     </div>
 
                     {isAccepted && (
                       <button
                         onClick={() => handlePayNow(id)}
                         disabled={actionLoadingId === id}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-md cursor-pointer disabled:opacity-50"
+                        className="rounded-xl bg-success hover:opacity-90 px-4 py-2 text-xs font-bold text-white transition-all shadow-xs cursor-pointer disabled:opacity-50"
                       >
                         {actionLoadingId === id ? "Processing..." : "💳 Pay Now (Razorpay)"}
                       </button>
@@ -211,7 +211,7 @@ export default function MyTripsPage() {
                       <button
                         onClick={() => handleCancelBooking(id)}
                         disabled={actionLoadingId === id}
-                        className="rounded-xl border border-zinc-300 hover:bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition-all cursor-pointer disabled:opacity-50"
+                        className="rounded-xl border border-border hover:bg-error/10 px-3 py-2 text-xs font-bold text-error transition-all cursor-pointer disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -219,7 +219,7 @@ export default function MyTripsPage() {
 
                     <Link
                       href={`/trips/${id}`}
-                      className="rounded-xl bg-black hover:bg-zinc-800 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
+                      className="rounded-xl bg-primary hover:bg-primary-dark px-4 py-2 text-xs font-bold text-white transition-all shadow-xs"
                     >
                       Booking Details
                     </Link>
@@ -229,11 +229,11 @@ export default function MyTripsPage() {
             })}
           </div>
         ) : (
-          <GlassCard className="py-16 text-center border border-zinc-200">
-            <span className="text-4xl">🧳</span>
-            <h3 className="text-base font-bold text-zinc-950 mt-3">No bookings yet</h3>
-            <p className="text-xs text-zinc-500 mt-1">You don't have any bookings matching filter "{activeTab}".</p>
-            <Link href="/properties" className="mt-4 inline-block rounded-xl bg-black text-white px-5 py-2.5 text-xs font-bold">
+          <GlassCard className="py-16 text-center border border-border bg-surface shadow-xs rounded-3xl">
+            <span className="text-4xl block mb-2">🧳</span>
+            <h3 className="text-base font-bold text-foreground mt-1">No bookings yet</h3>
+            <p className="text-xs text-muted mt-1 max-w-sm mx-auto">You don't have any bookings matching filter "{activeTab}".</p>
+            <Link href="/properties" className="mt-4 inline-block rounded-xl bg-primary hover:bg-primary-dark text-white px-5 py-2.5 text-xs font-bold shadow-xs">
               Find & Book A Stay
             </Link>
           </GlassCard>

@@ -148,16 +148,16 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
   };
 
   const sidebarContent = (
-    <aside className="w-64 flex-shrink-0 bg-white border-r border-zinc-200 h-full flex flex-col overflow-y-auto overflow-x-hidden select-none">
+    <aside className="w-64 flex-shrink-0 bg-surface border-r border-border h-full flex flex-col overflow-y-auto overflow-x-hidden select-none">
       {/* Mobile Drawer Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-200 bg-zinc-950 text-white">
+      <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-foreground text-white">
         <div className="flex items-center gap-2 font-bold text-sm">
           <span>👑</span>
           <span>StayTrack Admin Navigation</span>
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+          className="p-1 rounded-lg text-muted hover:text-white hover:bg-primary-dark transition cursor-pointer"
           aria-label="Close Sidebar"
         >
           <CloseIcon />
@@ -167,7 +167,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
       <div className="p-4 space-y-6 flex-1">
         {navSections.map((section) => (
           <div key={section.title}>
-            <div className="px-3 mb-2 text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <div className="px-3 mb-2 text-[10px] font-black uppercase tracking-wider text-muted">
               {section.title}
             </div>
             <div className="space-y-1">
@@ -181,11 +181,11 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
                     onClick={onClose}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                       active
-                        ? "bg-zinc-900 text-white shadow-sm font-black"
-                        : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
+                        ? "bg-primary text-white shadow-xs font-black"
+                        : "text-text hover:text-foreground hover:bg-primary-light/50"
                     }`}
                   >
-                    <IconComponent className={`w-4 h-4 shrink-0 ${active ? "text-emerald-400" : "text-zinc-500"}`} />
+                    <IconComponent className={`w-4 h-4 shrink-0 ${active ? "text-white" : "text-muted"}`} />
                     <span className="truncate">{item.name}</span>
                   </Link>
                 );
