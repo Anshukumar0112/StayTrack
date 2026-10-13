@@ -244,11 +244,11 @@ export default function PropertyDetailPage({
 
             {/* Booking Sidebar */}
             <div className="lg:col-span-1">
-              <GlassCard className="sticky top-24 border border-zinc-300 shadow-xl space-y-5">
-                <div className="flex justify-between items-baseline pb-4 border-b border-zinc-200">
+              <GlassCard className="lg:sticky lg:top-24 border border-border shadow-xl space-y-5 bg-surface">
+                <div className="flex justify-between items-baseline pb-4 border-b border-border">
                   <div>
-                    <span className="text-3xl font-black text-black">{formatCurrency(displayPrice)}</span>
-                    <span className="text-xs text-zinc-500 font-semibold"> / {property.bookingType || "night"}</span>
+                    <span className="text-3xl font-black text-foreground">{formatCurrency(displayPrice)}</span>
+                    <span className="text-xs text-muted font-semibold"> / {property.bookingType || "night"}</span>
                   </div>
                   <span className="clay-badge px-2.5 py-1 text-[10px] font-extrabold uppercase">
                     ₹0 Brokerage
@@ -259,7 +259,7 @@ export default function PropertyDetailPage({
                   <button
                     type="button"
                     onClick={handleBookNow}
-                    className="w-full py-4 rounded-xl bg-black hover:bg-zinc-800 text-white text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-4 rounded-xl bg-primary hover:bg-[#111716] text-white text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <span>BOOK NOW</span>
                     <span>→</span>
@@ -268,16 +268,43 @@ export default function PropertyDetailPage({
                   <button
                     type="button"
                     onClick={handleContactHost}
-                    className="w-full py-3.5 rounded-xl border border-zinc-300 bg-white hover:bg-zinc-100 text-xs font-bold text-zinc-900 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-3.5 rounded-xl border border-border bg-background hover:bg-surface text-xs font-bold text-foreground transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     💬 Chat with Host
                   </button>
                 </div>
 
-                <p className="text-[11px] text-center text-zinc-500 font-medium leading-relaxed">
+                <p className="text-[11px] text-center text-muted font-medium leading-relaxed">
                   Direct host approval. Spring Boot backend calculates authoritative price during booking creation.
                 </p>
               </GlassCard>
+            </div>
+          </div>
+        )}
+
+        {/* Fixed Mobile Floating Booking Bar */}
+        {property && (
+          <div className="lg:hidden fixed bottom-[calc(3.8rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border p-3 shadow-2xl flex items-center justify-between gap-3">
+            <div>
+              <span className="text-xl font-black text-foreground block leading-tight">{formatCurrency(displayPrice)}</span>
+              <span className="text-[10px] text-muted font-bold">/{property.bookingType || "night"}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleContactHost}
+                className="px-3 py-2.5 rounded-xl border border-border bg-background text-foreground font-bold text-xs cursor-pointer"
+              >
+                💬 Chat
+              </button>
+              <button
+                type="button"
+                onClick={handleBookNow}
+                className="px-5 py-2.5 rounded-xl bg-primary text-white font-black text-xs shadow-md cursor-pointer"
+              >
+                BOOK NOW →
+              </button>
             </div>
           </div>
         )}

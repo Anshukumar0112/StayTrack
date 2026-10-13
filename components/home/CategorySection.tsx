@@ -22,11 +22,11 @@ export default function CategorySection({ category, properties, loading }: Categ
     <section id={pluralId} className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full border-b border-border/60 last:border-0 scroll-mt-28 sm:scroll-mt-32">
       <div className="flex justify-between items-baseline mb-5 flex-wrap gap-2">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {category.icon?.startsWith("/") ? (
-              <img src={category.icon} alt="" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
+              <img src={category.icon} alt="" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
             ) : (
-              <Building2Icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              <Building2Icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary shrink-0" />
             )}
             <h2 className="text-xl sm:text-2xl font-black text-[#111716] tracking-tight">{category.label}</h2>
           </div>

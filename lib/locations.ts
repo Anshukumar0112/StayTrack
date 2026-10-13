@@ -26,7 +26,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     state: "Haryana",
     region: NCR_SERVICE_REGION,
     landmark: "Cyber City",
-    image: "https://images.unsplash.com/photo-1595658658421-a9ac457190ae?q=80&w=800&auto=format&fit=crop",
+    image: "/images/landmarks/gurugram.jpg",
     description: "Cyber City, Golf Course & tech corridors",
   },
   {
@@ -35,7 +35,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
     landmark: "Noida Skyline",
-    image: "https://images.unsplash.com/photo-1546412414-8035e1786b9b?q=80&w=800&auto=format&fit=crop",
+    image: "/images/landmarks/noida.jpg",
     description: "Sector hubs, IT parks & expressways",
   },
   {
@@ -43,8 +43,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Greater Noida",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    landmark: "Buddh Circuit",
-    image: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=800&auto=format&fit=crop",
+    landmark: "Knowledge Park",
+    image: "/images/landmarks/greater-noida.jpg",
     description: "Knowledge parks & educational hubs",
   },
   {
@@ -52,8 +52,8 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     name: "Ghaziabad",
     state: "Uttar Pradesh",
     region: NCR_SERVICE_REGION,
-    landmark: "Swarna Jayanti Park",
-    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop",
+    landmark: "The Opulent Mall",
+    image: "/images/landmarks/ghaziabad.jpg",
     description: "Indirapuram, Vaishali & residential zones",
   },
   {
@@ -62,7 +62,7 @@ export const SUPPORTED_LOCATIONS: SupportedLocation[] = [
     state: "Haryana",
     region: NCR_SERVICE_REGION,
     landmark: "Surajkund Lake",
-    image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800&auto=format&fit=crop",
+    image: "/images/landmarks/faridabad.jpg",
     description: "Industrial hubs & connectivity corridors",
   },
 ];

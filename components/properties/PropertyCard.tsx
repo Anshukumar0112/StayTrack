@@ -20,6 +20,9 @@ interface PropertyCardProps {
   bedrooms?: number;
   bathrooms?: number;
   furnished?: boolean;
+  isHovered?: boolean;
+  onHover?: (id: string | null) => void;
+  onSelect?: (id: string) => void;
 }
 
 export default function PropertyCard(props: PropertyCardProps) {
@@ -47,7 +50,14 @@ export default function PropertyCard(props: PropertyCardProps) {
   const targetPath = `/properties/${id}`;
 
   return (
-    <div className="group flex flex-col justify-between overflow-hidden border border-border/80 rounded-2xl bg-surface transition-all duration-200 hover:-translate-y-1 hover:shadow-md h-full">
+    <div
+      id={`property-card-${id}`}
+      onMouseEnter={() => props.onHover && id && props.onHover(id)}
+      onMouseLeave={() => props.onHover && props.onHover(null)}
+      className={`group flex flex-col justify-between overflow-hidden border rounded-2xl bg-surface transition-all duration-200 hover:-translate-y-1 hover:shadow-md h-full ${
+        props.isHovered ? "border-primary ring-2 ring-primary/20 shadow-lg scale-[1.01]" : "border-border/80"
+      }`}
+    >
       {/* 55-65% Height Image Container with Hover Scale */}
       <Link href={targetPath} className="relative aspect-[4/3] w-full overflow-hidden bg-background block">
         <div className="h-full w-full overflow-hidden bg-background">

@@ -17,9 +17,9 @@ export default function RootHomePage() {
 
       <main className="flex-1">
         {/* 1. Cinematic Hero / Search Section */}
-        <section className="relative w-full overflow-hidden bg-brand-deep text-white">
+        <section className="relative w-full bg-brand-deep text-white">
           {/* Background Image with Dark Gradient Overlay */}
-          <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 z-0 overflow-hidden">
             <img
               src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2000&q=80"
               alt="StayTrack Property Marketplace"
@@ -29,10 +29,6 @@ export default function RootHomePage() {
           </div>
 
           <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 pt-16 sm:pt-24 pb-12 sm:pb-16 text-center">
-            <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[11px] font-extrabold tracking-widest text-primary-light uppercase mb-4 border border-white/15">
-              DELHI NCR PROPERTY MARKETPLACE
-            </span>
-
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-[1.1]">
               Find Your Next Stay in Delhi NCR
             </h1>

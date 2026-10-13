@@ -101,17 +101,12 @@ export default function CategoryNavigation() {
                 <button
                   key={cat.id}
                   onClick={() => scrollToCategory(cat.id)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  className={`flex-shrink-0 flex items-center px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                     isActive
                       ? "bg-primary text-white shadow-xs"
                       : "bg-surface text-muted hover:text-[#111716] hover:bg-background border border-border/70"
                   }`}
                 >
-                  {cat.icon?.startsWith("/") ? (
-                    <img src={cat.icon} alt="" className="w-3.5 h-3.5 object-contain" />
-                  ) : (
-                    <span className="text-xs">{cat.icon}</span>
-                  )}
                   <span>{cat.label}</span>
                 </button>
               );

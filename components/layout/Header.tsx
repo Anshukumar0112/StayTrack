@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUser } from "@/hooks/useUser";
 import { getUnreadNotificationsCount, getNotifications, markAllNotificationsAsRead } from "@/lib/api";
 import { Notification } from "@/types/booking";
+import { BellIcon, MessageCircleIcon } from "@/components/ui/Icons";
 
 export default function Header() {
   const pathname = usePathname();
@@ -76,7 +77,7 @@ export default function Header() {
     { name: "Explore", path: "/" },
     { name: "Stays", path: "/properties" },
     { name: "My Bookings", path: myBookingsPath },
-    ...(firebaseUser ? [{ name: "Chat", path: "/chat", icon: "/icons/chat-bubble.png" }] : []),
+    ...(firebaseUser ? [{ name: "Chat", path: "/chat", icon: MessageCircleIcon }] : []),
     { name: listPropertyLabel, path: listPropertyPath },
   ];
 
@@ -96,6 +97,7 @@ export default function Header() {
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => {
             const isActive = pathname === item.path || (item.path !== "/" && !item.path.startsWith("/auth") && pathname.startsWith(item.path));
+            const IconComp = item.icon;
             return (
               <Link
                 key={item.path}
@@ -106,7 +108,7 @@ export default function Header() {
                     : "text-text hover:bg-primary-light/60 hover:text-primary-dark"
                 }`}
               >
-                {item.icon && <img src={item.icon} alt="" className="w-4 h-4 object-contain" />}
+                {IconComp && <IconComp className="w-4 h-4 stroke-[1.8]" />}
                 <span>{item.name}</span>
               </Link>
             );
@@ -119,11 +121,11 @@ export default function Header() {
             <div className="relative">
               <button
                 onClick={toggleNotifications}
-                className="p-2 rounded-xl border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 transition-all relative cursor-pointer flex items-center justify-center"
+                className="p-2.5 rounded-xl border border-border bg-surface hover:bg-surface/80 text-foreground transition-all relative cursor-pointer flex items-center justify-center shadow-xs"
                 title="Notifications"
                 aria-label="Notifications"
               >
-                <img src="/icons/bell.png" alt="" className="w-5 h-5 object-contain" />
+                <BellIcon className="w-5 h-5 text-foreground/80 stroke-[1.8]" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -133,50 +135,56 @@ export default function Header() {
 
               {/* Notification Popover Drawer */}
               {showNotifDrawer && (
-                <div className="absolute right-0 mt-3 w-72 sm:w-80 max-w-[90vw] rounded-2xl bg-white shadow-2xl border border-zinc-200 p-4 z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex justify-between items-center pb-3 border-b border-zinc-100">
-                    <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">
-                      Notifications
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={handleMarkAllRead}
-                          className="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/10 backdrop-blur-2xs"
+                    onClick={() => setShowNotifDrawer(false)}
+                  />
+                  <div className="absolute right-0 mt-3 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-surface shadow-2xl border border-border p-4 z-50 animate-in fade-in zoom-in-95">
+                    <div className="flex justify-between items-center pb-3 border-b border-border">
+                      <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                        Notifications
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={handleMarkAllRead}
+                            className="text-[11px] font-bold text-success hover:underline cursor-pointer"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                        <Link
+                          href="/notifications"
+                          onClick={() => setShowNotifDrawer(false)}
+                          className="text-[11px] font-bold text-foreground hover:underline"
                         >
-                          Mark all read
-                        </button>
+                          View All
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 max-h-64 overflow-y-auto space-y-2">
+                      {notifications.length > 0 ? (
+                        notifications.map((notif, idx) => (
+                          <div
+                            key={notif.id || `hdr-notif-${idx}`}
+                            className={`p-2.5 rounded-xl text-xs transition-colors ${
+                              notif.read ? "bg-background text-muted" : "bg-primary-soft text-foreground font-semibold border-l-2 border-primary"
+                            }`}
+                          >
+                            <div className="font-bold">{notif.title}</div>
+                            <div className="text-[11px] mt-0.5">{notif.body}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-6 text-center text-xs text-muted font-medium">
+                          No recent notifications
+                        </div>
                       )}
-                      <Link
-                        href="/notifications"
-                        onClick={() => setShowNotifDrawer(false)}
-                        className="text-[11px] font-bold text-black hover:underline"
-                      >
-                        View All
-                      </Link>
                     </div>
                   </div>
-
-                  <div className="mt-3 max-h-64 overflow-y-auto space-y-2">
-                    {notifications.length > 0 ? (
-                      notifications.map((notif, idx) => (
-                        <div
-                          key={notif.id || `hdr-notif-${idx}`}
-                          className={`p-2.5 rounded-xl text-xs transition-colors ${
-                            notif.read ? "bg-zinc-50 text-zinc-600" : "bg-emerald-50 text-emerald-950 font-semibold border-l-2 border-emerald-500"
-                          }`}
-                        >
-                          <div className="font-bold">{notif.title}</div>
-                          <div className="text-[11px] mt-0.5">{notif.body}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="py-6 text-center text-xs text-zinc-400 font-medium">
-                        No recent notifications
-                      </div>
-                    )}
-                  </div>
-                </div>
+                </>
               )}
             </div>
           )}

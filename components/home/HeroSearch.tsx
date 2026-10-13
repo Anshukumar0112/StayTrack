@@ -1,31 +1,157 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { getCities, searchWithAi } from "@/lib/api";
-import { LocationArea } from "@/types/user";
+import { searchWithAi } from "@/lib/api";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
-import { ACCOMMODATION_CATEGORIES } from "@/lib/categories";
-import { ArrowRightIcon, MapPinIcon, SearchIcon, SparklesIcon } from "@/components/ui/Icons";
+import { ACCOMMODATION_CATEGORIES, getCategoryLabel } from "@/lib/categories";
+import {
+  BankIcon,
+  Building2Icon,
+  CalendarDaysIcon,
+  CloseIcon,
+  CompassIcon,
+  HousePlusIcon,
+  MapPinIcon,
+  SearchIcon,
+  SparklesIcon,
+  UserRoundIcon,
+} from "@/components/ui/Icons";
 
 export default function HeroSearch() {
   const router = useRouter();
-  const [searchMode, setSearchMode] = useState<"standard" | "ai">("standard");
-  const [city, setCity] = useState("");
-  const [cities, setCities] = useState<LocationArea[]>([]);
-  const [propertyType, setPropertyType] = useState("all");
-  const [stayType, setStayType] = useState("daily");
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const whereBtnRef = useRef<HTMLButtonElement>(null);
+  const whenBtnRef = useRef<HTMLButtonElement>(null);
+  const stayTypeBtnRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
+  // Portal mount state
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    getCities()
-      .then((data) => setCities(data || []))
-      .catch((err) => console.warn("Could not fetch cities:", err));
+    setMounted(true);
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Search Mode & Active Panel State
+  const [searchMode, setSearchMode] = useState<"standard" | "ai">("standard");
+  const [activePanel, setActivePanel] = useState<"where" | "when" | "stayType" | null>(null);
+
+  // Computed Viewport Position for Floating Popup
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // Search Filter Criteria
+  const [city, setCity] = useState("");
+  const [whereFilter, setWhereFilter] = useState("");
+  const [propertyType, setPropertyType] = useState("all");
+  const [stayType, setStayType] = useState<"daily" | "hourly" | "monthly">("daily");
+
+  // Date/Time States
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [hourlyDate, setHourlyDate] = useState("");
+  const [hourlyTime, setHourlyTime] = useState("10:00");
+  const [hourlyDuration, setHourlyDuration] = useState("4");
+  const [monthlyMoveIn, setMonthlyMoveIn] = useState("");
+  const [monthlyDuration, setMonthlyDuration] = useState("1");
+
+  // AI & Mobile States
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  // Calculate viewport coordinates relative to active search field/container
+  const updatePopupPosition = () => {
+    if (!searchContainerRef.current) return;
+    const containerRect = searchContainerRef.current.getBoundingClientRect();
+    const top = containerRect.bottom + 8;
+    const viewportWidth = window.innerWidth;
+
+    if (activePanel === "where") {
+      const fieldRect = whereBtnRef.current?.getBoundingClientRect() || containerRect;
+      let left = fieldRect.left;
+      if (left + 420 > viewportWidth - 16) {
+        left = Math.max(16, viewportWidth - 436);
+      }
+      setPopupPos({ top, left: Math.max(16, left), width: 420 });
+    } else if (activePanel === "when") {
+      const fieldRect = whenBtnRef.current?.getBoundingClientRect() || containerRect;
+      let left = fieldRect.left + fieldRect.width / 2 - 240;
+      if (left + 480 > viewportWidth - 16) {
+        left = Math.max(16, viewportWidth - 496);
+      }
+      setPopupPos({ top, left: Math.max(16, left), width: 480 });
+    } else if (activePanel === "stayType") {
+      const fieldRect = stayTypeBtnRef.current?.getBoundingClientRect() || containerRect;
+      let left = fieldRect.right - 380;
+      if (left < 16) left = 16;
+      setPopupPos({ top, left: Math.max(16, left), width: 380 });
+    }
+  };
+
+  useEffect(() => {
+    if (activePanel) {
+      updatePopupPosition();
+      window.addEventListener("resize", updatePopupPosition);
+      window.addEventListener("scroll", updatePopupPosition, true);
+    }
+    return () => {
+      window.removeEventListener("resize", updatePopupPosition);
+      window.removeEventListener("scroll", updatePopupPosition, true);
+    };
+  }, [activePanel]);
+
+  // Click outside & Escape key handling (without full-screen backdrop)
+  useEffect(() => {
+    if (!activePanel) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      const isInsideSearch = searchContainerRef.current?.contains(target);
+      const isInsidePopup = popupRef.current?.contains(target);
+
+      if (!isInsideSearch && !isInsidePopup) {
+        setActivePanel(null);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActivePanel(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activePanel]);
+
+  const handleSelectNearby = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setCity("Delhi");
+          setActivePanel("when");
+        },
+        () => {
+          setCity("Delhi NCR");
+          setActivePanel("when");
+        }
+      );
+    } else {
+      setCity("Delhi NCR");
+      setActivePanel("when");
+    }
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setActivePanel(null);
+    setMobileSearchOpen(false);
+
     if (searchMode === "ai" && aiPrompt.trim()) {
       setAiLoading(true);
       searchWithAi({ prompt: aiPrompt })
@@ -46,54 +172,61 @@ export default function HeroSearch() {
       queryParams.set("category", propertyType);
       queryParams.set("propertyType", propertyType);
     }
+    if (stayType === "daily" && checkIn) queryParams.set("checkIn", checkIn);
+    if (stayType === "daily" && checkOut) queryParams.set("checkOut", checkOut);
+    if (stayType === "hourly" && hourlyDate) queryParams.set("checkIn", hourlyDate);
+    if (stayType === "monthly" && monthlyMoveIn) queryParams.set("checkIn", monthlyMoveIn);
 
     router.push(`/properties?${queryParams.toString()}`);
   };
 
-  return (
-    <div className="bg-surface/95 backdrop-blur-md max-w-5xl mx-auto rounded-2xl p-4 sm:p-5 shadow-xl border border-white/20 transition-all duration-200">
-      {/* Mode Selector Header */}
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-2.5">
-        {/* Segmented Control for Stay Types */}
-        <div className="flex gap-1 p-1 bg-background rounded-xl border border-border/70 w-fit">
-          {[
-            { label: "Hourly", value: "hourly" },
-            { label: "Daily", value: "daily" },
-            { label: "Monthly", value: "monthly" },
-          ].map((type) => (
-            <button
-              key={type.value}
-              type="button"
-              onClick={() => setStayType(type.value)}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
-                stayType === type.value
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              {type.label} Stay
-            </button>
-          ))}
-        </div>
+  // Filtered location suggestions based on user input inside panel
+  const filteredLocations = SUPPORTED_LOCATIONS.filter(
+    (loc) =>
+      !whereFilter.trim() ||
+      loc.name.toLowerCase().includes(whereFilter.toLowerCase()) ||
+      loc.landmark.toLowerCase().includes(whereFilter.toLowerCase())
+  );
 
-        {/* Standard Search vs AI Search Mode Selector */}
-        <div className="flex gap-1 p-1 bg-background rounded-xl border border-border/70">
+  // Helper formatting for main bar display values
+  const getWhenLabel = () => {
+    if (stayType === "hourly") {
+      return hourlyDate ? `${hourlyDate} • ${hourlyDuration} hrs` : "Select time & hours";
+    }
+    if (stayType === "monthly") {
+      return monthlyMoveIn ? `${monthlyMoveIn} • ${monthlyDuration} mo` : "Select move-in date";
+    }
+    if (checkIn && checkOut) return `${checkIn} - ${checkOut}`;
+    if (checkIn) return `From ${checkIn}`;
+    return "Add dates";
+  };
+
+  const getCategoryDisplayLabel = () => {
+    if (propertyType === "all") return "Any property";
+    return getCategoryLabel(propertyType);
+  };
+
+  return (
+    <div ref={searchContainerRef} className="max-w-4xl mx-auto w-full relative z-30 px-2 sm:px-0">
+      {/* Search Mode Toggle (Standard Search vs AI Search) */}
+      <div className="flex justify-center mb-3">
+        <div className="inline-flex gap-1 p-1 bg-surface/90 backdrop-blur-md rounded-full border border-border/80 shadow-sm">
           <button
             type="button"
             onClick={() => setSearchMode("standard")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
               searchMode === "standard"
-                ? "bg-surface text-foreground shadow-xs border border-border/80"
+                ? "bg-primary text-white shadow-xs"
                 : "text-muted hover:text-foreground"
             }`}
           >
             <SearchIcon className="w-3.5 h-3.5" />
-            <span>Standard</span>
+            <span>Standard Search</span>
           </button>
           <button
             type="button"
             onClick={() => setSearchMode("ai")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
               searchMode === "ai"
                 ? "bg-primary text-white shadow-xs"
                 : "text-muted hover:text-foreground"
@@ -105,59 +238,524 @@ export default function HeroSearch() {
         </div>
       </div>
 
-      <form onSubmit={handleSearch}>
-        {searchMode === "standard" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Location Input */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1 px-1">
-                Location
-              </label>
+      {searchMode === "ai" ? (
+        /* AI Search Assistant Panel */
+        <div className="bg-surface/95 backdrop-blur-md rounded-3xl p-5 shadow-2xl border border-border/80 transition-all duration-300">
+          <label className="block text-xs font-bold text-primary uppercase tracking-wider mb-2">
+            Describe your ideal stay in Delhi NCR
+          </label>
+          <textarea
+            rows={3}
+            placeholder="e.g. 'Fully furnished 2BHK flat in Gurugram near Cyber City under ₹35,000 for monthly stay'"
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            className="w-full px-4 py-3 rounded-2xl text-xs font-medium border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-background text-foreground placeholder-muted/70 transition-all duration-200 resize-none"
+          />
+          <div className="flex justify-end mt-3">
+            <button
+              type="button"
+              onClick={() => handleSearchSubmit()}
+              disabled={aiLoading}
+              className="rounded-full bg-primary hover:bg-primary-dark text-white font-bold text-xs py-2.5 px-6 shadow-md transition-all duration-200 cursor-pointer flex items-center gap-2 disabled:opacity-50"
+            >
+              <SparklesIcon className="w-4 h-4" />
+              <span>{aiLoading ? "Searching..." : "Find Stays with AI"}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Standard Connected Expandable Search Bar */
+        <>
+          {/* Mobile Search Button (< md screens) */}
+          <div className="md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              className="w-full bg-surface/95 backdrop-blur-md border border-border/80 rounded-full p-3 shadow-lg flex items-center justify-between text-left transition-all active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <SearchIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-foreground">
+                    {city || "Where are you staying?"}
+                  </div>
+                  <div className="text-[11px] font-medium text-muted">
+                    {getWhenLabel()} • {getCategoryDisplayLabel()}
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+                Search
+              </span>
+            </button>
+          </div>
+
+          {/* Desktop Connected Search Bar Container (md+ screens) */}
+          <div className="hidden md:block relative">
+            <div className="relative border border-border/80 bg-surface/95 backdrop-blur-md rounded-full shadow-2xl p-1.5 flex items-center transition-all duration-300">
+              {/* WHERE Section */}
+              <button
+                ref={whereBtnRef}
+                type="button"
+                onClick={() => setActivePanel(activePanel === "where" ? null : "where")}
+                className={`flex-1 flex items-center gap-3 px-5 py-2.5 rounded-full text-left transition-all duration-200 cursor-pointer relative z-10 ${
+                  activePanel === "where"
+                    ? "bg-white shadow-md border border-border/40 scale-[1.02] text-foreground"
+                    : "hover:bg-background/60 text-foreground/90"
+                }`}
+              >
+                <MapPinIcon className="w-4 h-4 text-primary shrink-0" />
+                <div className="overflow-hidden">
+                  <span className="block text-[10px] font-extrabold uppercase tracking-wider text-muted">
+                    WHERE
+                  </span>
+                  <span className="block text-xs font-bold text-foreground truncate">
+                    {city || "Search destinations"}
+                  </span>
+                </div>
+              </button>
+
+              {/* Separator 1 */}
+              <div className={`h-8 w-px bg-border/60 transition-opacity duration-200 ${activePanel === "where" || activePanel === "when" ? "opacity-0" : "opacity-100"}`} />
+
+              {/* WHEN Section */}
+              <button
+                ref={whenBtnRef}
+                type="button"
+                onClick={() => setActivePanel(activePanel === "when" ? null : "when")}
+                className={`flex-1 flex items-center gap-3 px-5 py-2.5 rounded-full text-left transition-all duration-200 cursor-pointer relative z-10 ${
+                  activePanel === "when"
+                    ? "bg-white shadow-md border border-border/40 scale-[1.02] text-foreground"
+                    : "hover:bg-background/60 text-foreground/90"
+                }`}
+              >
+                <CalendarDaysIcon className="w-4 h-4 text-primary shrink-0" />
+                <div className="overflow-hidden">
+                  <span className="block text-[10px] font-extrabold uppercase tracking-wider text-muted">
+                    WHEN ({stayType.toUpperCase()})
+                  </span>
+                  <span className="block text-xs font-bold text-foreground truncate">
+                    {getWhenLabel()}
+                  </span>
+                </div>
+              </button>
+
+              {/* Separator 2 */}
+              <div className={`h-8 w-px bg-border/60 transition-opacity duration-200 ${activePanel === "when" || activePanel === "stayType" ? "opacity-0" : "opacity-100"}`} />
+
+              {/* STAY TYPE Section */}
+              <button
+                ref={stayTypeBtnRef}
+                type="button"
+                onClick={() => setActivePanel(activePanel === "stayType" ? null : "stayType")}
+                className={`flex-1 flex items-center gap-3 px-5 py-2.5 rounded-full text-left transition-all duration-200 cursor-pointer relative z-10 ${
+                  activePanel === "stayType"
+                    ? "bg-white shadow-md border border-border/40 scale-[1.02] text-foreground"
+                    : "hover:bg-background/60 text-foreground/90"
+                }`}
+              >
+                <Building2Icon className="w-4 h-4 text-primary shrink-0" />
+                <div className="overflow-hidden">
+                  <span className="block text-[10px] font-extrabold uppercase tracking-wider text-muted">
+                    STAY TYPE
+                  </span>
+                  <span className="block text-xs font-bold text-foreground truncate">
+                    {getCategoryDisplayLabel()}
+                  </span>
+                </div>
+              </button>
+
+              {/* Search Submit Button */}
+              <button
+                type="button"
+                onClick={() => handleSearchSubmit()}
+                className="ml-2 bg-primary hover:bg-primary-dark text-white rounded-full px-6 py-3 font-bold text-xs flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer shrink-0 group"
+              >
+                <SearchIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span>Search</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* PORTAL MOUNTED FLOATING ACTIVE SEARCH POPUP */}
+      {mounted && activePanel && popupPos && createPortal(
+        <div
+          ref={popupRef}
+          style={{
+            position: "fixed",
+            top: `${popupPos.top}px`,
+            left: `${popupPos.left}px`,
+            width: `${popupPos.width}px`,
+            zIndex: 1000,
+            backgroundColor: "#ffffff",
+            color: "#111716",
+          }}
+          className="border border-border/90 shadow-2xl rounded-3xl p-5 text-foreground animate-in fade-in duration-150"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* 1. WHERE / LOCATION PANEL */}
+          {activePanel === "where" && (
+            <div>
+              <div className="relative mb-3">
+                <input
+                  type="text"
+                  placeholder="Search city or landmark..."
+                  value={whereFilter}
+                  onChange={(e) => setWhereFilter(e.target.value)}
+                  autoFocus
+                  className="w-full pl-9 pr-8 py-2.5 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                />
+                <SearchIcon className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                {whereFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setWhereFilter("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
+                  >
+                    <CloseIcon className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
+                {/* Nearby Option */}
+                <button
+                  type="button"
+                  onClick={handleSelectNearby}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary-light/40 transition-colors text-left cursor-pointer group border border-transparent hover:border-primary/20"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <CompassIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-foreground">Nearby</div>
+                    <div className="text-[11px] font-medium text-muted">Find stays around you</div>
+                  </div>
+                </button>
+
+                <div className="text-[10px] font-bold text-muted uppercase tracking-wider px-1 pt-1">
+                  Suggested Destinations (Delhi NCR)
+                </div>
+
+                {filteredLocations.map((loc) => (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onClick={() => {
+                      setCity(loc.name);
+                      setActivePanel("when");
+                    }}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left cursor-pointer group border ${
+                      city.toLowerCase() === loc.name.toLowerCase()
+                        ? "bg-primary-light/40 border-primary/40 shadow-xs"
+                        : "border-transparent bg-white hover:bg-background hover:border-border/60"
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-surface-muted border border-border/80 flex items-center justify-center text-muted shrink-0 group-hover:text-primary transition-colors">
+                      <MapPinIcon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-foreground flex items-center justify-between">
+                        <span>{loc.name}</span>
+                        <span className="text-[10px] text-muted font-normal">{loc.state}</span>
+                      </div>
+                      <div className="text-[11px] font-medium text-muted truncate">
+                        {loc.landmark}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. WHEN / DATE & STAY TYPE PANEL */}
+          {activePanel === "when" && (
+            <div>
+              <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
+                <div className="text-xs font-bold text-foreground">Booking Model</div>
+                <div className="flex gap-1 p-1 bg-background rounded-xl border border-border/70">
+                  {(["daily", "hourly", "monthly"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setStayType(mode)}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        stayType === mode
+                          ? "bg-primary text-white shadow-xs"
+                          : "text-muted hover:text-foreground"
+                      }`}
+                    >
+                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {stayType === "daily" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Check-in Date
+                      </label>
+                      <input
+                        type="date"
+                        value={checkIn}
+                        onChange={(e) => setCheckIn(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Check-out Date
+                      </label>
+                      <input
+                        type="date"
+                        value={checkOut}
+                        min={checkIn || undefined}
+                        onChange={(e) => setCheckOut(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stayType === "hourly" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Stay Date
+                      </label>
+                      <input
+                        type="date"
+                        value={hourlyDate}
+                        onChange={(e) => setHourlyDate(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Start Time
+                      </label>
+                      <select
+                        value={hourlyTime}
+                        onChange={(e) => setHourlyTime(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary outline-none"
+                      >
+                        {["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"].map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Duration
+                      </label>
+                      <select
+                        value={hourlyDuration}
+                        onChange={(e) => setHourlyDuration(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary outline-none"
+                      >
+                        <option value="2">2 Hours</option>
+                        <option value="4">4 Hours</option>
+                        <option value="6">6 Hours</option>
+                        <option value="12">12 Hours</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stayType === "monthly" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Move-in Date
+                      </label>
+                      <input
+                        type="date"
+                        value={monthlyMoveIn}
+                        onChange={(e) => setMonthlyMoveIn(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Duration
+                      </label>
+                      <select
+                        value={monthlyDuration}
+                        onChange={(e) => setMonthlyDuration(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-background border border-border text-foreground focus:border-primary outline-none"
+                      >
+                        <option value="1">1 Month</option>
+                        <option value="2">2 Months</option>
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12">12 Months</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-4 pt-3 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={() => setActivePanel("stayType")}
+                  className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary-dark transition-all cursor-pointer"
+                >
+                  Next: Property Type →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 3. STAY TYPE / PROPERTY CATEGORY PANEL */}
+          {activePanel === "stayType" && (
+            <div>
+              <div className="text-xs font-bold text-foreground mb-3">What are you looking for?</div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPropertyType("all");
+                    setActivePanel(null);
+                  }}
+                  className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer ${
+                    propertyType === "all"
+                      ? "border-primary bg-primary-light/40 text-primary-dark shadow-xs"
+                      : "border-border bg-background hover:border-primary/40 text-foreground"
+                  }`}
+                >
+                  <Building2Icon className="w-4 h-4 text-primary" />
+                  <span>Any property</span>
+                </button>
+
+                {ACCOMMODATION_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      setPropertyType(cat.id);
+                      setActivePanel(null);
+                    }}
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all text-left cursor-pointer ${
+                      propertyType === cat.id
+                        ? "border-primary bg-primary-light/40 text-primary-dark shadow-xs"
+                        : "border-border bg-background hover:border-primary/40 text-foreground"
+                    }`}
+                  >
+                    {cat.id === "BNB" && <HousePlusIcon className="w-4 h-4 text-primary" />}
+                    {cat.id === "HOSTEL" && <UserRoundIcon className="w-4 h-4 text-primary" />}
+                    {cat.id === "PG" && <Building2Icon className="w-4 h-4 text-primary" />}
+                    {cat.id === "HOTEL" && <BankIcon className="w-4 h-4 text-primary" />}
+                    {cat.id === "FLAT" && <Building2Icon className="w-4 h-4 text-primary" />}
+                    <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end mt-4 pt-3 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={() => handleSearchSubmit()}
+                  className="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary-dark transition-all cursor-pointer shadow-xs"
+                >
+                  Apply & Search
+                </button>
+              </div>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+
+      {/* Mobile Search Bottom Sheet / Modal */}
+      {mobileSearchOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end md:hidden animate-in fade-in duration-200">
+          <div className="bg-surface rounded-t-3xl p-5 border-t border-border max-h-[85vh] overflow-y-auto space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-border/60">
+              <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
+                Search Stays
+              </h3>
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(false)}
+                className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center text-muted"
+              >
+                <CloseIcon className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Where Mobile */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-foreground">Where</label>
               <div className="relative">
                 <input
                   type="text"
-                  list="city-suggestions"
                   placeholder="Delhi, Gurugram, Noida..."
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-bold placeholder-muted/60 bg-background border border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none transition-all duration-200"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-bold bg-background border border-border text-foreground"
                 />
-                <MapPinIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none opacity-70" />
+                <MapPinIcon className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
-              <datalist id="city-suggestions">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
                 {SUPPORTED_LOCATIONS.map((loc) => (
-                  <option key={loc.id} value={loc.name} />
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onClick={() => setCity(loc.name)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 border ${
+                      city === loc.name ? "bg-primary text-white border-primary" : "bg-background border-border text-muted"
+                    }`}
+                  >
+                    {loc.name}
+                  </button>
                 ))}
-              </datalist>
+              </div>
             </div>
 
-            {/* Stay Type Display */}
-            <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1 px-1">
-                Stay Type
-              </label>
-              <select
-                value={stayType}
-                onChange={(e) => setStayType(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-foreground bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none transition-all duration-200"
-              >
-                <option value="hourly">Hourly Transit Stay</option>
-                <option value="daily">Daily Stay</option>
-                <option value="monthly">Monthly Stay</option>
-              </select>
+            {/* Stay Model Mobile */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-foreground">Booking Model</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(["daily", "hourly", "monthly"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setStayType(mode)}
+                    className={`py-2 text-xs font-bold rounded-xl border ${
+                      stayType === mode ? "bg-primary text-white border-primary" : "bg-background border-border text-muted"
+                    }`}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Property Type Dropdown */}
-            <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1 px-1">
-                Property Type
-              </label>
+            {/* Property Type Mobile */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-foreground">Property Type</label>
               <select
                 value={propertyType}
                 onChange={(e) => setPropertyType(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs font-bold text-foreground bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none transition-all duration-200"
+                className="w-full p-2.5 rounded-xl text-xs font-bold bg-background border border-border text-foreground"
               >
-                <option value="all">All Property Types</option>
+                <option value="all">Any property type</option>
                 {ACCOMMODATION_CATEGORIES.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.label}
@@ -166,45 +764,18 @@ export default function HeroSearch() {
               </select>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full py-2.5 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 group cursor-pointer bg-primary hover:bg-primary-dark text-white transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.99]"
-              >
-                <span>Search Stays</span>
-                <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200" />
-              </button>
-            </div>
+            {/* Mobile Submit CTA */}
+            <button
+              type="button"
+              onClick={() => handleSearchSubmit()}
+              className="w-full py-3 bg-primary text-white font-bold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2"
+            >
+              <SearchIcon className="w-4 h-4" />
+              <span>Search Stays</span>
+            </button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-bold text-primary-dark uppercase tracking-wider mb-1 px-1">
-                AI Stay Assistant
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Describe your ideal stay in Delhi NCR (e.g., 'Fully furnished 2BHK flat in Gurugram under ₹30,000 for monthly stay')"
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-xs font-medium border border-border focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-md outline-none bg-background text-foreground placeholder-muted/70 transition-all duration-200"
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={aiLoading}
-                className="rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs py-2.5 px-5 shadow-md transition-all duration-200 cursor-pointer flex items-center gap-2 disabled:opacity-50"
-              >
-                <SparklesIcon className="w-4 h-4" />
-                <span>{aiLoading ? "Searching..." : "Find Stays with AI"}</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </form>
+        </div>
+      )}
     </div>
   );
 }

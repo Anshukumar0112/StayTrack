@@ -40,8 +40,8 @@ export default function MobileNav() {
   }
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-md border-t border-border py-2 px-3 shadow-lg">
-      <div className="flex justify-around items-center">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-md border-t border-border pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] px-3 shadow-lg select-none">
+      <div className="flex justify-around items-center max-w-md mx-auto">
         {items.map((item) => {
           const isActive = pathname === item.path || (item.path !== "/" && pathname.startsWith(item.path));
           const IconComponent = item.icon;
@@ -49,12 +49,12 @@ export default function MobileNav() {
             <Link
               key={item.path}
               href={item.path}
-              className={`flex flex-col items-center gap-1 text-center transition-all ${
-                isActive ? "text-primary font-bold scale-105" : "text-muted font-medium hover:text-foreground"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] py-1 gap-1 text-center transition-all cursor-pointer ${
+                isActive ? "text-primary font-extrabold scale-105" : "text-muted font-semibold hover:text-foreground"
               }`}
             >
               <IconComponent className="w-5 h-5 stroke-[1.8]" />
-              <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+              <span className="text-[10px] tracking-tight leading-none">{item.label}</span>
             </Link>
           );
         })}
@@ -62,4 +62,3 @@ export default function MobileNav() {
     </div>
   );
 }
-

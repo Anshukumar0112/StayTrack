@@ -22,6 +22,8 @@ export interface Property {
   furnished?: boolean;
   rating?: number;
   images?: string[];
+  latitude?: number;
+  longitude?: number;
   verificationStatus?: 'pending' | 'approved' | 'changes_required' | 'rejected';
   listingStatus?: 'active' | 'hidden' | 'inactive';
   topVerified?: boolean;

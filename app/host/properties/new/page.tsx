@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import PropertyImageUploader from "@/components/property/PropertyImageUploader";
 import { createProperty, getEligibility } from "@/lib/api";
@@ -87,7 +88,7 @@ export default function CreateNewPropertyPage() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      <main className="mx-auto max-w-3xl px-6 py-10 w-full flex-1">
+      <main className="mx-auto max-w-3xl px-4 sm:px-6 pt-6 pb-28 md:py-10 w-full flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-black text-zinc-950">Add New Property</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">
@@ -286,6 +287,7 @@ export default function CreateNewPropertyPage() {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 }
