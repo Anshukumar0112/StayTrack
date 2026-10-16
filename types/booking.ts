@@ -1,15 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface Booking {
   id?: string;
   bookingId?: string;
   propertyId: string;
   propertyTitle?: string;
+  propertyImage?: string;
+  city?: string;
+  area?: string;
+  propertyType?: string;
   userId?: string;
   customerId?: string;
   userName?: string;
+  guestName?: string;
+  contactPhone?: string;
   hostId: string;
   hostName?: string;
+  bookingType?: string;
   startDate?: string;
   endDate?: string;
+  startTime?: string;
+  endTime?: string;
   amount?: number;
   totalAmount?: number;
   totalPrice?: number;
@@ -71,7 +81,7 @@ export function getBookingStatusLabel(status: string, role?: "customer" | "host"
       case "confirmed":
         return "Confirmed";
       case "rejected":
-        return "Rejected by host";
+        return "Declined by host";
       case "cancelled":
         return "Cancelled";
       case "completed":
@@ -79,6 +89,56 @@ export function getBookingStatusLabel(status: string, role?: "customer" | "host"
       default:
         return status || "Unknown";
     }
+  }
+}
+
+export function getBookingStatusBadge(status: string): { bg: string; text: string; border: string; dot: string } {
+  const s = (status || "").toLowerCase();
+  switch (s) {
+    case "confirmed":
+      return {
+        bg: "bg-emerald-50",
+        text: "text-emerald-800",
+        border: "border-emerald-200",
+        dot: "bg-emerald-500",
+      };
+    case "requested":
+      return {
+        bg: "bg-amber-50",
+        text: "text-amber-800",
+        border: "border-amber-200",
+        dot: "bg-amber-500",
+      };
+    case "accepted":
+    case "payment_pending":
+      return {
+        bg: "bg-blue-50",
+        text: "text-blue-800",
+        border: "border-blue-200",
+        dot: "bg-blue-500",
+      };
+    case "completed":
+      return {
+        bg: "bg-neutral-100",
+        text: "text-neutral-700",
+        border: "border-neutral-200",
+        dot: "bg-neutral-400",
+      };
+    case "rejected":
+    case "cancelled":
+      return {
+        bg: "bg-rose-50",
+        text: "text-rose-800",
+        border: "border-rose-200",
+        dot: "bg-rose-500",
+      };
+    default:
+      return {
+        bg: "bg-neutral-100",
+        text: "text-neutral-700",
+        border: "border-neutral-200",
+        dot: "bg-neutral-400",
+      };
   }
 }
 

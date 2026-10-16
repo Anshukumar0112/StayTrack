@@ -992,7 +992,10 @@ public class PaymentService {
     private void requireCustomer(AuthenticatedUser user) {
         if (user == null
                 || user.getUid() == null
-                || !"customer".equalsIgnoreCase(user.getRole())) {
+                || user.getRole() == null
+                || (!"customer".equalsIgnoreCase(user.getRole())
+                    && !"host".equalsIgnoreCase(user.getRole())
+                    && !"admin".equalsIgnoreCase(user.getRole()))) {
             throw new SecurityException("Only customers can make booking payments");
         }
     }

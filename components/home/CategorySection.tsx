@@ -19,7 +19,7 @@ export default function CategorySection({ category, properties, loading }: Categ
   const pluralId = sectionId === "bnb" ? "bnbs" : sectionId === "hostel" ? "hostels" : sectionId === "pg" ? "pgs" : sectionId === "hotel" ? "hotels" : "flats";
 
   return (
-    <section id={pluralId} className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full border-b border-border/60 last:border-0 scroll-mt-28 sm:scroll-mt-32">
+    <section id={pluralId} className="stay-container py-8 w-full border-b border-border/60 last:border-0 scroll-mt-28 sm:scroll-mt-32">
       <div className="flex justify-between items-baseline mb-5 flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2.5">
@@ -44,16 +44,16 @@ export default function CategorySection({ category, properties, loading }: Categ
       </div>
 
       {loading ? (
-        <div className="flex gap-5 overflow-x-auto no-scrollbar py-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-5 overflow-x-auto no-scrollbar py-2">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="w-[280px] sm:w-[310px] h-[340px] flex-shrink-0 rounded-2xl bg-surface animate-pulse border border-border/60" />
+            <div key={n} className="w-[min(280px,82vw)] sm:w-[310px] h-[340px] flex-shrink-0 rounded-2xl bg-surface animate-pulse border border-border/60" />
           ))}
         </div>
       ) : properties.length > 0 ? (
         /* Horizontal Content Rail */
-        <div className="flex gap-5 overflow-x-auto no-scrollbar py-2 -mx-4 px-4 sm:mx-0 sm:px-0 scroll-smooth">
+        <div className="flex gap-5 overflow-x-auto no-scrollbar py-2 scroll-smooth">
           {properties.map((stay, idx) => (
-            <div key={stay.id || (stay as any).propertyId || `${category.id}-stay-${idx}`} className="w-[280px] sm:w-[310px] flex-shrink-0">
+            <div key={stay.id || (stay as any).propertyId || `${category.id}-stay-${idx}`} className="w-[min(280px,82vw)] sm:w-[310px] flex-shrink-0">
               <PropertyCard property={stay} />
             </div>
           ))}

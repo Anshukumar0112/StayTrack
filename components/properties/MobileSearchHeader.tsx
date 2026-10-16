@@ -30,7 +30,7 @@ export default function MobileSearchHeader({
   const subtitle = [displayArea, displayCat, displayStayType, displayPrice].filter(Boolean).join(" ");
 
   return (
-    <div className="lg:hidden sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-border/80 px-4 py-2.5 shadow-xs">
+    <div className="lg:hidden sticky top-0 z-[25] bg-surface/98 backdrop-blur-md border-b border-border px-4 py-2.5 shadow-subtle">
       <div className="flex items-center gap-2 max-w-md mx-auto">
         {/* Main Compact Search Bar Pill */}
         <button

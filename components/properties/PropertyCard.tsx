@@ -54,8 +54,8 @@ export default function PropertyCard(props: PropertyCardProps) {
       id={`property-card-${id}`}
       onMouseEnter={() => props.onHover && id && props.onHover(id)}
       onMouseLeave={() => props.onHover && props.onHover(null)}
-      className={`group flex flex-col justify-between overflow-hidden border rounded-2xl bg-surface transition-all duration-200 hover:-translate-y-1 hover:shadow-md h-full ${
-        props.isHovered ? "border-primary ring-2 ring-primary/20 shadow-lg scale-[1.01]" : "border-border/80"
+      className={`group flex flex-col justify-between overflow-hidden border rounded-xl bg-surface transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated h-full ${
+        props.isHovered ? "border-primary ring-2 ring-primary/20 shadow-elevated scale-[1.01]" : "border-border"
       }`}
     >
       {/* 55-65% Height Image Container with Hover Scale */}
@@ -78,17 +78,17 @@ export default function PropertyCard(props: PropertyCardProps) {
         </div>
 
         {/* Top Badges & Wishlist Heart */}
-        <div className="absolute top-3 left-3 z-10 flex gap-2 items-center">
-          <span className="px-2.5 py-1 rounded-md bg-white/90 backdrop-blur-md text-[10px] font-extrabold uppercase tracking-wider text-[#111716] border border-border/50 shadow-xs">
+        <div className="absolute top-3 left-3 z-10 flex gap-1.5 items-center">
+          <span className="px-2 py-0.5 rounded-md bg-white/95 backdrop-blur-md text-[10px] font-extrabold uppercase tracking-wider text-[#111716] border border-border shadow-subtle">
             {getCategoryLabel(category)}
           </span>
-          <span className="rounded-md bg-[#3F8A68] px-2.5 py-1 text-[10px] font-extrabold text-white shadow-xs">
+          <span className="rounded-md bg-success px-2 py-0.5 text-[10px] font-extrabold text-white shadow-subtle">
             Verified
           </span>
         </div>
 
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-          <span className="flex items-center gap-1 rounded-md bg-white/95 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-[#111716] border border-border/50 shadow-xs">
+          <span className="flex items-center gap-1 rounded-md bg-white/95 backdrop-blur-md px-2 py-0.5 text-xs font-bold text-[#111716] border border-border shadow-subtle">
             <StarIcon className="w-3 h-3 text-amber-500 fill-amber-500" /> {rating}
           </span>
           <button
@@ -97,7 +97,7 @@ export default function PropertyCard(props: PropertyCardProps) {
               e.preventDefault();
               e.stopPropagation();
             }}
-            className="flex items-center justify-center h-7 w-7 rounded-md bg-white/90 backdrop-blur-md border border-border/50 text-[#111716] hover:text-[#C85050] hover:scale-105 transition-all duration-200 shadow-xs cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-md bg-white/95 backdrop-blur-md border border-border text-[#111716] hover:text-error hover:scale-105 transition-all duration-200 shadow-subtle cursor-pointer focus-ring"
             title="Save to wishlist"
           >
             <HeartIcon className="w-3.5 h-3.5 text-foreground/80 hover:text-red-500 transition-colors" />
@@ -130,7 +130,7 @@ export default function PropertyCard(props: PropertyCardProps) {
           </div>
         </div>
 
-        <div className="mt-4 pt-3.5 border-t border-border/60 flex items-center justify-between">
+        <div className="mt-4 pt-3.5 border-t border-border-subtle flex items-center justify-between">
           <div>
             <span className="text-base sm:text-lg font-black text-[#111716]">{formatCurrency(rawPrice)}</span>
             <span className="text-[11px] font-semibold text-muted"> /{displayStayType}</span>
@@ -138,7 +138,7 @@ export default function PropertyCard(props: PropertyCardProps) {
 
           <Link
             href={targetPath}
-            className="rounded-xl bg-primary hover:bg-[#111716] px-3.5 py-1.5 text-xs font-bold text-white transition-all duration-200 shadow-xs inline-flex items-center gap-1 group/btn"
+            className="rounded-lg bg-[#111716] hover:bg-[#232D2B] px-3.5 py-1.5 text-xs font-bold text-white transition-all duration-200 shadow-subtle inline-flex items-center gap-1 group/btn focus-ring"
           >
             <span>View details</span>
             <ArrowRightIcon className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform duration-200" />

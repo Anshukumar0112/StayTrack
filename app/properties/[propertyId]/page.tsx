@@ -87,7 +87,7 @@ export default function PropertyDetailPage({
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full flex-1">
+      <main className="stay-container py-8 flex-1">
         {/* Navigation Breadcrumb */}
         <div className="mb-6 flex items-center gap-2 text-xs font-semibold text-zinc-500">
           <Link href="/properties" className="hover:text-black">Stays</Link>

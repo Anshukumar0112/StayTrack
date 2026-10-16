@@ -82,7 +82,7 @@ export default function ChatPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 pt-6 pb-28 md:py-8 w-full flex-1 flex flex-col">
+      <main className="stay-container pt-6 pb-28 md:py-8 flex-1 flex flex-col">
         <div className="mb-4">
           <h1 className="text-3xl font-black text-foreground">Direct Messages</h1>
           <p className="text-xs text-muted font-semibold mt-1">Chat directly with property hosts & guests</p>

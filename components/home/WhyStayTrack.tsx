@@ -31,14 +31,14 @@ export default function WhyStayTrack() {
   ];
 
   return (
-    <section className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-20 w-full border-t border-border/60">
+    <section className="stay-container fluid-section-spacing w-full border-t border-border/60">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* Left Editorial Header */}
         <div className="lg:col-span-4 lg:sticky lg:top-28 space-y-3">
           <span className="text-[11px] font-extrabold uppercase tracking-widest text-primary block">
             WHY STAYTRACK
           </span>
-          <h2 className="text-2xl sm:text-4xl font-black text-[#111716] leading-tight">
+          <h2 className="fluid-heading-section font-black text-[#111716]">
             Stay somewhere that actually works for you.
           </h2>
           <p className="text-xs sm:text-sm text-muted font-medium leading-relaxed pt-1">

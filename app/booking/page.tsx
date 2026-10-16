@@ -242,7 +242,7 @@ function CreateBookingContent() {
       alert("Booking request submitted successfully! Host will review your request. 🎉");
       
       if (newBookingId) {
-        router.push(`/booking/${newBookingId}`);
+        router.push(`/trips/${newBookingId}`);
       } else {
         router.push("/trips");
       }

@@ -91,7 +91,7 @@ export default function HostDashboardPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 pt-8 pb-24 md:py-10 w-full flex-1">
+      <main className="stay-container pt-8 pb-24 md:py-10 flex-1">
         {/* Header */}
         <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
           <div>
@@ -191,7 +191,7 @@ export default function HostDashboardPage() {
                             <span className="text-xs text-muted font-mono">#{id}</span>
                           </div>
                           <h4 className="text-sm font-bold text-foreground mt-1">{b.propertyTitle || `Property #${b.propertyId}`}</h4>
-                          <p className="text-xs text-muted font-semibold mt-0.5">Guest: {b.userName || b.userId || b.customerId || "Guest"}</p>
+                          <p className="text-xs text-muted font-semibold mt-0.5">Guest: {b.guestName || b.userName || "Guest"}</p>
                         </div>
 
                         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -213,6 +213,12 @@ export default function HostDashboardPage() {
                               </button>
                             </>
                           )}
+                          <Link
+                            href={`/trips/${id}`}
+                            className="rounded-xl border border-border bg-surface hover:bg-surface-muted text-foreground text-xs font-semibold px-3 py-2 transition-all shadow-2xs"
+                          >
+                            Details →
+                          </Link>
                         </div>
                       </div>
                     );

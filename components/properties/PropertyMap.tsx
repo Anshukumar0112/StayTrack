@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import { Property } from "@/types/property";
 
 interface PropertyMapProps {
@@ -63,8 +64,8 @@ export default function PropertyMap({
   className = "w-full h-full",
 }: PropertyMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<Record<string, any>>({});
+  const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const markersRef = useRef<Record<string, LeafletMarker>>({});
 
   // Ensure Leaflet CSS stylesheet is present in the document head
   useEffect(() => {
@@ -109,7 +110,7 @@ export default function PropertyMap({
       if (!map || !isMounted) return;
 
       // Clear existing markers
-      Object.values(markersRef.current).forEach((marker: any) => {
+      Object.values(markersRef.current).forEach((marker: LeafletMarker) => {
         map.removeLayer(marker);
       });
       markersRef.current = {};
@@ -118,7 +119,7 @@ export default function PropertyMap({
       const bounds: [number, number][] = [];
 
       properties.forEach((prop, idx) => {
-        const propId = prop.id || (prop as any).propertyId || `prop-${idx}`;
+        const propId = prop.id || (prop as { propertyId?: string }).propertyId || `prop-${idx}`;
         const coords = getPropertyCoordinates(prop, idx, cityCenter);
         bounds.push(coords);
 
@@ -170,11 +171,11 @@ export default function PropertyMap({
     return () => {
       isMounted = false;
     };
-  }, [properties, activeCity]);
+  }, [properties, activeCity, onHoverProperty, onSelectProperty, hoveredPropertyId]);
 
   // Update marker highlight styles when hoveredPropertyId changes
   useEffect(() => {
-    Object.entries(markersRef.current).forEach(([propId, marker]: [string, any]) => {
+    Object.entries(markersRef.current).forEach(([propId, marker]: [string, LeafletMarker]) => {
       const el = marker.getElement();
       if (!el) return;
       const markerDiv = el.querySelector(".staytrack-price-marker");
@@ -191,7 +192,7 @@ export default function PropertyMap({
   }, [hoveredPropertyId]);
 
   return (
-    <div className={`relative overflow-hidden rounded-3xl border border-border/80 shadow-xs bg-surface ${className}`}>
+    <div className={`isolate relative overflow-hidden rounded-3xl border border-border/80 shadow-xs bg-surface ${className}`}>
       {/* Map Element */}
       <div ref={mapContainerRef} className="w-full h-full min-h-[400px] z-10" />
 

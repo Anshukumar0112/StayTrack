@@ -270,6 +270,40 @@ public class BookingService {
                     amount
             );
 
+            /*
+             * Persist guest details and property display metadata
+             * so that both guest and host views can display human-readable
+             * information without exposing raw UUIDs.
+             */
+            String guestName = request.getGuestName() != null && !request.getGuestName().isBlank()
+                    ? request.getGuestName().trim()
+                    : "Guest";
+            booking.put("guestName", guestName);
+            booking.put("userName", guestName);
+
+            String contactPhone = request.getContactPhone() != null && !request.getContactPhone().isBlank()
+                    ? request.getContactPhone().trim()
+                    : "";
+            booking.put("contactPhone", contactPhone);
+
+            String propertyTitle = stringValue(propertyData.get("title"));
+            if (propertyTitle.isBlank()) {
+                propertyTitle = stringValue(propertyData.get("name"));
+            }
+            booking.put("propertyTitle", propertyTitle);
+
+            String propertyImage = "";
+            Object imagesObj = propertyData.get("images");
+            if (imagesObj instanceof List && !((List<?>) imagesObj).isEmpty()) {
+                propertyImage = String.valueOf(((List<?>) imagesObj).get(0));
+            } else if (propertyData.get("imageUrl") != null) {
+                propertyImage = String.valueOf(propertyData.get("imageUrl"));
+            }
+            booking.put("propertyImage", propertyImage);
+            booking.put("city", stringValue(propertyData.get("city")));
+            booking.put("area", stringValue(propertyData.get("area")));
+            booking.put("propertyType", stringValue(propertyData.get("propertyType")));
+
             booking.put(
                     "paymentStatus",
                     "created"
@@ -505,6 +539,36 @@ public class BookingService {
                 booking.put("totalPrice", booking.get("amount"));
             }
 
+            // Fallback enrichment for bookings missing propertyTitle or details
+            if (isBlank(stringValue(booking.get("propertyTitle")))) {
+                String propId = stringValue(booking.get("propertyId"));
+                if (!propId.isBlank()) {
+                    try {
+                        DocumentSnapshot propDoc = propertyRepository.findById(propId);
+                        if (propDoc.exists()) {
+                            Map<String, Object> pData = propDoc.getData();
+                            if (pData != null) {
+                                String title = stringValue(pData.get("title"));
+                                if (title.isBlank()) title = stringValue(pData.get("name"));
+                                booking.put("propertyTitle", title);
+                                if (isBlank(stringValue(booking.get("city")))) {
+                                    booking.put("city", stringValue(pData.get("city")));
+                                }
+                                if (isBlank(stringValue(booking.get("area")))) {
+                                    booking.put("area", stringValue(pData.get("area")));
+                                }
+                                if (isBlank(stringValue(booking.get("propertyImage")))) {
+                                    Object imgs = pData.get("images");
+                                    if (imgs instanceof List && !((List<?>) imgs).isEmpty()) {
+                                        booking.put("propertyImage", String.valueOf(((List<?>) imgs).get(0)));
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
             return booking;
 
         } catch (RuntimeException e) {
@@ -537,6 +601,13 @@ public class BookingService {
                         user,
                         bookingId
                 );
+
+        String hostId = stringValue(booking.get("hostId"));
+        if (!"admin".equalsIgnoreCase(user.getRole()) && !user.getUid().equals(hostId)) {
+            throw new SecurityException(
+                    "Only the host of this property can accept this booking"
+            );
+        }
 
         String currentStatus =
                 stringValue(
@@ -667,6 +738,13 @@ public class BookingService {
                         bookingId
                 );
 
+        String hostId = stringValue(booking.get("hostId"));
+        if (!"admin".equalsIgnoreCase(user.getRole()) && !user.getUid().equals(hostId)) {
+            throw new SecurityException(
+                    "Only the host of this property can reject this booking"
+            );
+        }
+
         String currentStatus =
                 stringValue(
                         booking.get(
@@ -754,6 +832,13 @@ public class BookingService {
                         user,
                         bookingId
                 );
+
+        String customerId = stringValue(booking.get("customerId"));
+        if (!"admin".equalsIgnoreCase(user.getRole()) && !user.getUid().equals(customerId)) {
+            throw new SecurityException(
+                    "Only the guest who made this booking can cancel it"
+            );
+        }
 
         String currentStatus =
                 stringValue(
@@ -869,6 +954,13 @@ public class BookingService {
                         user,
                         bookingId
                 );
+
+        String customerId = stringValue(booking.get("customerId"));
+        if (!"admin".equalsIgnoreCase(user.getRole()) && !user.getUid().equals(customerId)) {
+            throw new SecurityException(
+                    "Only the guest who made this booking can perform this action"
+            );
+        }
 
         String status =
                 stringValue(
@@ -1376,6 +1468,37 @@ public class BookingService {
                     booking.put("totalPrice", booking.get("amount"));
                 }
 
+                // Fallback enrichment if property metadata is missing
+                String propTitle = stringValue(booking.get("propertyTitle"));
+                if (propTitle.isBlank()) {
+                    String propId = stringValue(booking.get("propertyId"));
+                    if (!propId.isBlank()) {
+                        try {
+                            DocumentSnapshot propDoc = propertyRepository.findById(propId);
+                            if (propDoc != null && propDoc.exists()) {
+                                Map<String, Object> pData = propDoc.getData();
+                                if (pData != null) {
+                                    String title = stringValue(pData.get("title"));
+                                    if (title.isBlank()) title = stringValue(pData.get("name"));
+                                    booking.put("propertyTitle", title);
+                                    if (stringValue(booking.get("city")).isBlank()) {
+                                        booking.put("city", stringValue(pData.get("city")));
+                                    }
+                                    if (stringValue(booking.get("area")).isBlank()) {
+                                        booking.put("area", stringValue(pData.get("area")));
+                                    }
+                                    if (stringValue(booking.get("propertyImage")).isBlank()) {
+                                        Object imgs = pData.get("images");
+                                        if (imgs instanceof List && !((List<?>) imgs).isEmpty()) {
+                                            booking.put("propertyImage", String.valueOf(((List<?>) imgs).get(0)));
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+
                 bookings.add(
                         booking
                 );
@@ -1543,12 +1666,13 @@ public class BookingService {
 
         requireAuthenticated(user);
 
-        if (!"customer".equalsIgnoreCase(
-                user.getRole()
-        )) {
+        String role = user.getRole();
+        if (!"customer".equalsIgnoreCase(role)
+                && !"host".equalsIgnoreCase(role)
+                && !"admin".equalsIgnoreCase(role)) {
 
             throw new SecurityException(
-                    "Only customers can perform this action"
+                    "Only customers or hosts can perform this action"
             );
         }
     }

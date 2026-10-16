@@ -7,6 +7,7 @@ import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import PropertyCard from "@/components/properties/PropertyCard";
 import PropertyFilterBar from "@/components/properties/PropertyFilterBar";
+import PropertyFilters from "@/components/properties/PropertyFilters";
 import PropertyMap from "@/components/properties/PropertyMap";
 import MobileSearchHeader from "@/components/properties/MobileSearchHeader";
 import MobileBottomSheet from "@/components/properties/MobileBottomSheet";
@@ -24,14 +25,24 @@ function PropertySearchContent() {
   const categoryParam = rawCat !== "all" ? normalizeCategoryKey(rawCat) : "all";
   const stayTypeParam = searchParams.get("stayType") || "";
   const aiPromptParam = searchParams.get("aiPrompt") || "";
+  const maxPriceParam = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : 60000;
+  const minBedroomsParam = searchParams.get("minBedrooms")
+    ? Number(searchParams.get("minBedrooms"))
+    : searchParams.get("bedrooms")
+    ? Number(searchParams.get("bedrooms"))
+    : 0;
+  const furnishedParam =
+    searchParams.get("furnished") !== null
+      ? searchParams.get("furnished") === "true"
+      : undefined;
 
   const [city, setCity] = useState(cityParam);
   const [area, setArea] = useState(areaParam);
   const [propertyType, setPropertyType] = useState(categoryParam);
   const [stayType, setStayType] = useState(stayTypeParam);
-  const [maxPrice, setMaxPrice] = useState(60000);
-  const [minBedrooms, setMinBedrooms] = useState<number>(0);
-  const [furnished, setFurnished] = useState<boolean | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState(maxPriceParam);
+  const [minBedrooms, setMinBedrooms] = useState<number>(minBedroomsParam);
+  const [furnished, setFurnished] = useState<boolean | undefined>(furnishedParam);
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,63 +52,89 @@ function PropertySearchContent() {
   const [mobileSheetState, setMobileSheetState] = useState<"collapsed" | "expanded" | "map">("collapsed");
   const [showMobileFilterModal, setShowMobileFilterModal] = useState(false);
 
-  const fetchSearchData = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      if (aiPromptParam) {
-        const res = await searchWithAi({ prompt: aiPromptParam });
-        if (res && Array.isArray(res.properties)) {
-          setProperties(res.properties);
-        } else if (Array.isArray(res)) {
-          setProperties(res);
-        } else {
-          setProperties([]);
-        }
-      } else if (city || area || propertyType !== "all" || stayType || minBedrooms > 0 || furnished !== undefined) {
-        const requestPayload: SearchRequest = {
-          city: city || undefined,
-          area: area || undefined,
-          propertyType: propertyType !== "all" ? propertyType : undefined,
-          bookingType: stayType ? stayType.toLowerCase() : undefined,
-          maxPrice: maxPrice,
-          minBedrooms: minBedrooms > 0 ? minBedrooms : undefined,
-          furnished: furnished,
-          page: 1,
-          pageSize: 50,
-        };
-        const res = await searchProperties(requestPayload);
-        if (res && Array.isArray(res.results)) {
-          setProperties(res.results);
-        } else if (res && Array.isArray(res.content)) {
-          setProperties(res.content);
-        } else if (Array.isArray(res)) {
-          setProperties(res);
-        } else {
-          setProperties([]);
-        }
-      } else {
-        const stayStays = await getStayProperties();
-        const ncrOnly = (Array.isArray(stayStays) ? stayStays : []).filter((s) => isSupportedLocation(s.city));
-        setProperties(ncrOnly);
-      }
-    } catch (err: any) {
-      console.warn("Search API notice:", err);
-      try {
-        const stayStays = await getStayProperties();
-        const ncrOnly = (Array.isArray(stayStays) ? stayStays : []).filter((s) => isSupportedLocation(s.city));
-        setProperties(ncrOnly);
-      } catch {
-        setProperties([]);
-        setError(err.message || "Failed to load properties");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchSearchData();
+    let isCancelled = false;
+
+    const loadSearch = async () => {
+      // Defer to microtask to prevent synchronous cascading renders during mount/update
+      await Promise.resolve();
+      if (isCancelled) return;
+
+      setLoading(true);
+      setError("");
+      try {
+        if (aiPromptParam) {
+          const res = await searchWithAi({ prompt: aiPromptParam });
+          if (isCancelled) return;
+          if (res && Array.isArray(res.properties)) {
+            setProperties(res.properties);
+          } else if (Array.isArray(res)) {
+            setProperties(res);
+          } else {
+            setProperties([]);
+          }
+        } else if (
+          city ||
+          area ||
+          propertyType !== "all" ||
+          stayType ||
+          maxPrice < 60000 ||
+          minBedrooms > 0 ||
+          furnished !== undefined
+        ) {
+          const requestPayload: SearchRequest = {
+            city: city || undefined,
+            area: area || undefined,
+            propertyType: propertyType !== "all" ? propertyType : undefined,
+            bookingType: stayType ? stayType.toLowerCase() : undefined,
+            maxPrice: maxPrice < 60000 ? maxPrice : undefined,
+            minBedrooms: minBedrooms > 0 ? minBedrooms : undefined,
+            furnished: furnished,
+            page: 1,
+            pageSize: 50,
+          };
+          const res = await searchProperties(requestPayload);
+          if (isCancelled) return;
+          if (res && Array.isArray(res.results)) {
+            setProperties(res.results);
+          } else if (res && Array.isArray(res.content)) {
+            setProperties(res.content);
+          } else if (Array.isArray(res)) {
+            setProperties(res);
+          } else {
+            setProperties([]);
+          }
+        } else {
+          const stayStays = await getStayProperties();
+          if (isCancelled) return;
+          const ncrOnly = (Array.isArray(stayStays) ? stayStays : []).filter((s) => isSupportedLocation(s.city));
+          setProperties(ncrOnly);
+        }
+      } catch (err: unknown) {
+        console.warn("Search API notice:", err);
+        try {
+          const stayStays = await getStayProperties();
+          if (isCancelled) return;
+          const ncrOnly = (Array.isArray(stayStays) ? stayStays : []).filter((s) => isSupportedLocation(s.city));
+          setProperties(ncrOnly);
+        } catch {
+          if (isCancelled) return;
+          setProperties([]);
+          const message = err instanceof Error ? err.message : "Failed to load properties";
+          setError(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadSearch();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [city, area, propertyType, stayType, maxPrice, minBedrooms, furnished, aiPromptParam]);
 
   const handleResetFilters = () => {
@@ -168,7 +205,7 @@ function PropertySearchContent() {
       </div>
 
       {/* Desktop Main Content Layout (>= lg) */}
-      <main className="hidden lg:block w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 flex-1">
+      <main className="hidden lg:block stay-container-wide py-6 flex-1">
         {/* Header & Dynamic Result Count */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-4 border-b border-border/60">
           <div>
@@ -221,15 +258,15 @@ function PropertySearchContent() {
             {/* Left Property List Column */}
             <div className="w-full lg:w-[58%] xl:w-[60%] flex-1">
               {loading ? (
-                <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))]">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div key={i} className="h-80 rounded-2xl bg-surface animate-pulse border border-border" />
                   ))}
                 </div>
               ) : properties.length > 0 ? (
-                <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))]">
                   {properties.map((prop, idx) => {
-                    const propId = prop.id || (prop as any).propertyId || `prop-item-${idx}`;
+                    const propId = prop.id || (prop as { propertyId?: string }).propertyId || `prop-item-${idx}`;
                     return (
                       <PropertyCard
                         key={propId}
@@ -246,7 +283,7 @@ function PropertySearchContent() {
                   <span className="text-5xl">🏡</span>
                   <h3 className="text-lg font-bold text-foreground mt-4">No verified stays match your criteria</h3>
                   <p className="text-xs text-muted mt-2 max-w-md mx-auto">
-                    Try adjusting your budget, bedroom filters, or selecting a different category across Delhi NCR.
+                    {error || "Try adjusting your budget, bedroom filters, or selecting a different category across Delhi NCR."}
                   </p>
                   <button
                     onClick={handleResetFilters}
@@ -288,21 +325,21 @@ function PropertySearchContent() {
 
       {/* Mobile Filter Modal Sheet */}
       {showMobileFilterModal && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex flex-col justify-end">
-          <div className="bg-surface rounded-t-3xl border-t border-border p-6 max-h-[85vh] overflow-y-auto space-y-6 animate-in slide-in-from-bottom">
+        <div className="lg:hidden fixed inset-0 z-[60] bg-black/60 p-0 backdrop-blur-xs flex flex-col justify-end">
+          <div className="bg-surface rounded-t-2xl border-t border-border p-6 max-h-[85vh] overflow-y-auto space-y-6 shadow-floating animate-in slide-in-from-bottom">
             <div className="flex justify-between items-center pb-3 border-b border-border">
               <h3 className="text-sm font-black text-foreground">Filter & Refine Stays</h3>
               <button
                 type="button"
                 onClick={() => setShowMobileFilterModal(false)}
-                className="text-xs font-bold text-muted hover:text-foreground"
+                className="text-xs font-bold text-muted hover:text-foreground p-1 rounded-md focus-ring"
               >
                 ✕ Close
               </button>
             </div>
 
             {/* Filter Options Controls */}
-            <PropertyFilterBar
+            <PropertyFilters
               city={city}
               setCity={setCity}
               area={area}
@@ -318,12 +355,14 @@ function PropertySearchContent() {
               furnished={furnished}
               setFurnished={setFurnished}
               onReset={handleResetFilters}
+              hideHeader
+              className="border-0 shadow-none p-0 bg-transparent"
             />
 
             <button
               type="button"
               onClick={() => setShowMobileFilterModal(false)}
-              className="w-full py-3.5 rounded-2xl bg-[#111716] text-white text-xs font-bold text-center cursor-pointer shadow-md"
+              className="w-full py-3 rounded-lg bg-[#111716] hover:bg-[#232D2B] text-white text-xs font-bold text-center cursor-pointer shadow-subtle transition-all focus-ring"
             >
               Apply Filters ({properties.length} stays)
             </button>

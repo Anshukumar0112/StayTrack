@@ -304,3 +304,12 @@ export function AlertTriangleIcon({ className = "w-4 h-4", strokeWidth = 2 }: Ic
     </svg>
   );
 }
+
+export function ChevronDownIcon({ className = "w-4 h-4", strokeWidth = 2 }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={strokeWidth}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+

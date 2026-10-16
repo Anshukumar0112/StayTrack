@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { ACCOMMODATION_CATEGORIES, normalizeCategoryKey } from "@/lib/categories";
-import { FilterIcon, CloseIcon, MapPinIcon } from "@/components/ui/Icons";
+import { CloseIcon, MapPinIcon, ChevronDownIcon } from "@/components/ui/Icons";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
 
 interface PropertyFilterBarProps {
@@ -27,7 +27,6 @@ export default function PropertyFilterBar({
   city,
   setCity,
   area,
-  setArea,
   stayType,
   setStayType,
   propertyType,
@@ -51,8 +50,17 @@ export default function PropertyFilterBar({
         setOpenDropdown(null);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpenDropdown(null);
+      }
+    }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const hasActiveFilters =
@@ -69,17 +77,17 @@ export default function PropertyFilterBar({
   };
 
   return (
-    <div className="sticky top-[72px] z-30 bg-background/95 backdrop-blur-md border-b border-border/80 shadow-xs py-3 px-4 sm:px-6 transition-all">
+    <div className="sticky top-[68px] z-[30] bg-surface/98 backdrop-blur-md border-b border-border shadow-subtle py-3 px-4 sm:px-6 transition-all">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Left Side: Horizontal Scrollable Category Pills */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x py-0.5 scroll-smooth max-w-full">
           <button
             type="button"
             onClick={() => setPropertyType("all")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full text-xs transition-all duration-200 shrink-0 cursor-pointer focus-ring ${
               activeCategory === "ALL" || activeCategory === ""
-                ? "bg-[#111716] text-white shadow-xs"
-                : "bg-surface border border-border text-foreground/80 hover:border-[#111716] hover:bg-surface/80"
+                ? "bg-[#111716] text-white font-semibold shadow-subtle"
+                : "bg-surface border border-border text-foreground/80 hover:border-foreground/30 hover:bg-surface-muted/60 font-medium"
             }`}
           >
             All Stays
@@ -91,10 +99,10 @@ export default function PropertyFilterBar({
                 key={cat.id}
                 type="button"
                 onClick={() => setPropertyType(cat.id.toLowerCase())}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-full text-xs transition-all duration-200 shrink-0 flex items-center gap-1.5 cursor-pointer focus-ring ${
                   isActive
-                    ? "bg-[#111716] text-white shadow-xs"
-                    : "bg-surface border border-border text-foreground/80 hover:border-[#111716] hover:bg-surface/80"
+                    ? "bg-[#111716] text-white font-semibold shadow-subtle"
+                    : "bg-surface border border-border text-foreground/80 hover:border-foreground/30 hover:bg-surface-muted/60 font-medium"
                 }`}
               >
                 <span>{cat.label}</span>
@@ -104,32 +112,40 @@ export default function PropertyFilterBar({
         </div>
 
         {/* Right Side: Quick Dropdown Filters */}
-        <div ref={dropdownRef} className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x shrink-0 pt-1 md:pt-0 max-w-full">
+        <div ref={dropdownRef} className="flex items-center gap-2 shrink-0 pt-1 md:pt-0 relative overflow-visible">
           {/* Location Dropdown */}
           <div className="relative">
             <button
               type="button"
               onClick={() => toggleDropdown("location")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 cursor-pointer focus-ring ${
                 city
-                  ? "border-[#3F8A68] bg-[#3F8A68]/10 text-[#3F8A68]"
-                  : "border-border bg-surface text-foreground/80 hover:border-border/80"
+                  ? "border-primary/40 bg-primary/10 text-primary-dark font-semibold"
+                  : "border-border bg-surface text-foreground/80 hover:border-border-hover hover:bg-surface-muted/40 font-medium"
               }`}
             >
-              <MapPinIcon className="w-3.5 h-3.5 shrink-0" />
+              <MapPinIcon className="w-3.5 h-3.5 shrink-0 text-muted" />
               <span>{city || "City"}</span>
-              <span className="text-[10px]">▼</span>
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${
+                  openDropdown === "location" ? "rotate-180" : ""
+                }`}
+              />
             </button>
             {openDropdown === "location" && (
-              <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-surface border border-border shadow-xl p-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="text-[10px] font-extrabold text-muted uppercase px-2 py-1">Select City</div>
+              <div className="absolute left-0 mt-2 w-52 rounded-xl bg-surface border border-border shadow-elevated p-2 z-[50] animate-in fade-in zoom-in-95">
+                <div className="text-[11px] font-semibold text-muted uppercase tracking-wider px-2.5 py-1">
+                  Select City
+                </div>
                 <button
                   onClick={() => {
                     setCity("");
                     setOpenDropdown(null);
                   }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
-                    !city ? "bg-primary/10 text-primary font-bold" : "hover:bg-background text-foreground"
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs cursor-pointer focus-ring ${
+                    !city
+                      ? "bg-primary/10 text-primary-dark font-semibold"
+                      : "hover:bg-surface-muted text-foreground font-medium"
                   }`}
                 >
                   All Delhi NCR
@@ -141,10 +157,10 @@ export default function PropertyFilterBar({
                       setCity(loc.name);
                       setOpenDropdown(null);
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs cursor-pointer focus-ring ${
                       city.toLowerCase() === loc.name.toLowerCase()
-                        ? "bg-primary/10 text-primary font-bold"
-                        : "hover:bg-background text-foreground"
+                        ? "bg-primary/10 text-primary-dark font-semibold"
+                        : "hover:bg-surface-muted text-foreground font-medium"
                     }`}
                   >
                     {loc.name}
@@ -159,20 +175,24 @@ export default function PropertyFilterBar({
             <button
               type="button"
               onClick={() => toggleDropdown("price")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 cursor-pointer focus-ring ${
                 maxPrice < 60000
-                  ? "border-[#3F8A68] bg-[#3F8A68]/10 text-[#3F8A68]"
-                  : "border-border bg-surface text-foreground/80 hover:border-border/80"
+                  ? "border-primary/40 bg-primary/10 text-primary-dark font-semibold"
+                  : "border-border bg-surface text-foreground/80 hover:border-border-hover hover:bg-surface-muted/40 font-medium"
               }`}
             >
               <span>{maxPrice < 60000 ? `Max ₹${maxPrice.toLocaleString()}` : "Price"}</span>
-              <span className="text-[10px]">▼</span>
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${
+                  openDropdown === "price" ? "rotate-180" : ""
+                }`}
+              />
             </button>
             {openDropdown === "price" && (
-              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-surface border border-border shadow-xl p-4 z-50 animate-in fade-in zoom-in-95">
-                <div className="text-xs font-bold text-foreground mb-2 flex justify-between">
+              <div className="absolute left-0 mt-2 w-64 rounded-xl bg-surface border border-border shadow-elevated p-4 z-[50] animate-in fade-in zoom-in-95">
+                <div className="text-xs font-semibold text-foreground mb-2 flex justify-between items-center">
                   <span>Max Budget</span>
-                  <span className="text-primary font-black">₹{maxPrice.toLocaleString()}</span>
+                  <span className="text-primary-dark font-semibold text-sm">₹{maxPrice.toLocaleString()}</span>
                 </div>
                 <input
                   type="range"
@@ -181,9 +201,9 @@ export default function PropertyFilterBar({
                   step={1000}
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer"
+                  className="w-full accent-primary cursor-pointer focus-ring rounded"
                 />
-                <div className="flex justify-between text-[10px] text-muted font-semibold mt-1">
+                <div className="flex justify-between text-xs text-muted font-normal mt-1">
                   <span>₹1,000</span>
                   <span>₹60,000+</span>
                 </div>
@@ -195,12 +215,24 @@ export default function PropertyFilterBar({
                         setMaxPrice(p);
                         setOpenDropdown(null);
                       }}
-                      className="px-2 py-1 rounded-lg border border-border text-[11px] font-semibold hover:bg-background text-center"
+                      className="px-2 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-surface-muted text-foreground text-center cursor-pointer focus-ring transition-colors"
                     >
                       Under ₹{p.toLocaleString()}
                     </button>
                   ))}
                 </div>
+                {maxPrice < 60000 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMaxPrice(60000);
+                      setOpenDropdown(null);
+                    }}
+                    className="mt-2.5 w-full text-center py-1.5 rounded-lg text-xs font-medium text-muted hover:text-foreground hover:bg-surface-muted border border-border transition-colors cursor-pointer focus-ring"
+                  >
+                    Clear Budget Cap (₹60,000+)
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -210,18 +242,22 @@ export default function PropertyFilterBar({
             <button
               type="button"
               onClick={() => toggleDropdown("bedrooms")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 cursor-pointer focus-ring ${
                 minBedrooms > 0
-                  ? "border-[#3F8A68] bg-[#3F8A68]/10 text-[#3F8A68]"
-                  : "border-border bg-surface text-foreground/80 hover:border-border/80"
+                  ? "border-primary/40 bg-primary/10 text-primary-dark font-semibold"
+                  : "border-border bg-surface text-foreground/80 hover:border-border-hover hover:bg-surface-muted/40 font-medium"
               }`}
             >
               <span>{minBedrooms > 0 ? `${minBedrooms}+ BHK` : "Bedrooms"}</span>
-              <span className="text-[10px]">▼</span>
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${
+                  openDropdown === "bedrooms" ? "rotate-180" : ""
+                }`}
+              />
             </button>
             {openDropdown === "bedrooms" && (
-              <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-surface border border-border shadow-xl p-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="text-[10px] font-extrabold text-muted uppercase px-2 py-1">Bedrooms</div>
+              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-surface border border-border shadow-elevated p-2 z-[50] animate-in fade-in zoom-in-95">
+                <div className="text-[11px] font-semibold text-muted uppercase tracking-wider px-2.5 py-1">Bedrooms</div>
                 {[
                   { label: "Any Bedrooms", val: 0 },
                   { label: "1+ BHK", val: 1 },
@@ -234,10 +270,10 @@ export default function PropertyFilterBar({
                       setMinBedrooms(b.val);
                       setOpenDropdown(null);
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs cursor-pointer focus-ring ${
                       minBedrooms === b.val
-                        ? "bg-primary/10 text-primary font-bold"
-                        : "hover:bg-background text-foreground"
+                        ? "bg-primary/10 text-primary-dark font-semibold"
+                        : "hover:bg-surface-muted text-foreground font-medium"
                     }`}
                   >
                     {b.label}
@@ -252,18 +288,22 @@ export default function PropertyFilterBar({
             <button
               type="button"
               onClick={() => toggleDropdown("furnished")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 cursor-pointer focus-ring ${
                 furnished !== undefined
-                  ? "border-[#3F8A68] bg-[#3F8A68]/10 text-[#3F8A68]"
-                  : "border-border bg-surface text-foreground/80 hover:border-border/80"
+                  ? "border-primary/40 bg-primary/10 text-primary-dark font-semibold"
+                  : "border-border bg-surface text-foreground/80 hover:border-border-hover hover:bg-surface-muted/40 font-medium"
               }`}
             >
               <span>{furnished === true ? "Furnished" : furnished === false ? "Unfurnished" : "Furnishing"}</span>
-              <span className="text-[10px]">▼</span>
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${
+                  openDropdown === "furnished" ? "rotate-180" : ""
+                }`}
+              />
             </button>
             {openDropdown === "furnished" && (
-              <div className="absolute right-0 mt-2 w-44 rounded-2xl bg-surface border border-border shadow-xl p-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="text-[10px] font-extrabold text-muted uppercase px-2 py-1">Furnishing Status</div>
+              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-surface border border-border shadow-elevated p-2 z-[50] animate-in fade-in zoom-in-95">
+                <div className="text-[11px] font-semibold text-muted uppercase tracking-wider px-2.5 py-1">Furnishing Status</div>
                 {[
                   { label: "Any Status", val: undefined },
                   { label: "Fully Furnished", val: true },
@@ -275,10 +315,10 @@ export default function PropertyFilterBar({
                       setFurnished(f.val);
                       setOpenDropdown(null);
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs cursor-pointer focus-ring ${
                       furnished === f.val
-                        ? "bg-primary/10 text-primary font-bold"
-                        : "hover:bg-background text-foreground"
+                        ? "bg-primary/10 text-primary-dark font-semibold"
+                        : "hover:bg-surface-muted text-foreground font-medium"
                     }`}
                   >
                     {f.label}
@@ -293,18 +333,22 @@ export default function PropertyFilterBar({
             <button
               type="button"
               onClick={() => toggleDropdown("stayType")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 cursor-pointer focus-ring ${
                 stayType
-                  ? "border-[#3F8A68] bg-[#3F8A68]/10 text-[#3F8A68]"
-                  : "border-border bg-surface text-foreground/80 hover:border-border/80"
+                  ? "border-primary/40 bg-primary/10 text-primary-dark font-semibold"
+                  : "border-border bg-surface text-foreground/80 hover:border-border-hover hover:bg-surface-muted/40 font-medium"
               }`}
             >
               <span>{stayType ? stayType.charAt(0).toUpperCase() + stayType.slice(1) : "Stay Duration"}</span>
-              <span className="text-[10px]">▼</span>
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${
+                  openDropdown === "stayType" ? "rotate-180" : ""
+                }`}
+              />
             </button>
             {openDropdown === "stayType" && (
-              <div className="absolute right-0 mt-2 w-44 rounded-2xl bg-surface border border-border shadow-xl p-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="text-[10px] font-extrabold text-muted uppercase px-2 py-1">Booking Model</div>
+              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-surface border border-border shadow-elevated p-2 z-[50] animate-in fade-in zoom-in-95">
+                <div className="text-[11px] font-semibold text-muted uppercase tracking-wider px-2.5 py-1">Booking Model</div>
                 {[
                   { label: "All Models", val: "" },
                   { label: "Daily Stay", val: "daily" },
@@ -317,10 +361,10 @@ export default function PropertyFilterBar({
                       setStayType(st.val);
                       setOpenDropdown(null);
                     }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs cursor-pointer focus-ring ${
                       stayType === st.val
-                        ? "bg-primary/10 text-primary font-bold"
-                        : "hover:bg-background text-foreground"
+                        ? "bg-primary/10 text-primary-dark font-semibold"
+                        : "hover:bg-surface-muted text-foreground font-medium"
                     }`}
                   >
                     {st.label}
@@ -335,9 +379,9 @@ export default function PropertyFilterBar({
             <button
               type="button"
               onClick={onReset}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-muted/10 text-muted hover:text-foreground hover:bg-muted/20 border border-border/60 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-muted text-muted hover:text-foreground hover:bg-surface-muted/80 border border-border transition-all flex items-center gap-1 shrink-0 cursor-pointer focus-ring"
             >
-              <CloseIcon className="w-3.0 h-3.0" />
+              <CloseIcon className="w-3.5 h-3.5" />
               <span>Reset</span>
             </button>
           )}

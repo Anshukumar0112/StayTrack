@@ -5,14 +5,14 @@ import GlassCard from "@/components/ui/GlassCard";
 
 export default function CompactHostCta() {
   return (
-    <section className="mx-auto max-w-7xl px-4 sm:px-6 py-12 w-full">
+    <section className="stay-container py-12 w-full">
       <div className="rounded-3xl p-8 sm:p-12 bg-[#111716] text-white border border-white/10 shadow-2xl overflow-hidden relative">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 relative z-10">
           <div className="space-y-3 max-w-2xl">
             <span className="inline-block rounded-full bg-primary/20 border border-primary/40 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-widest text-primary-light">
               FOR PROPERTY OWNERS & HOSTS
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+            <h2 className="fluid-heading-section font-black text-white">
               Have a property to list?
             </h2>
             <p className="text-sm sm:text-base font-semibold text-zinc-300">

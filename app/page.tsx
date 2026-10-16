@@ -28,8 +28,8 @@ export default function RootHomePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#111716] via-[#111716]/60 to-black/40" />
           </div>
 
-          <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 pt-16 sm:pt-24 pb-12 sm:pb-16 text-center">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-[1.1]">
+          <div className="relative z-10 stay-container pt-[clamp(3rem,6vw,5rem)] pb-[clamp(2.5rem,5vw,4rem)] text-center">
+            <h1 className="fluid-heading-hero font-black text-white max-w-4xl mx-auto">
               Find Your Next Stay in Delhi NCR
             </h1>
 

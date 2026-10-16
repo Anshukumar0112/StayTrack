@@ -31,7 +31,7 @@ export default function ExploreDelhiNCR() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 sm:px-6 py-8 w-full">
+    <section className="stay-container py-8 w-full">
       <div className="flex justify-between items-baseline mb-5">
         <div>
           <h2 className="text-sm sm:text-base font-black tracking-wide text-foreground uppercase">
@@ -51,7 +51,7 @@ export default function ExploreDelhiNCR() {
       </div>
 
       {/* Visual Landmark Destination Cards Grid / Carousel */}
-      <div className="grid grid-flow-col auto-cols-[160px] sm:auto-cols-[190px] md:grid-cols-6 gap-3.5 overflow-x-auto no-scrollbar pb-2 pt-1 -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="grid grid-flow-col auto-cols-[clamp(145px,42vw,190px)] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-3 lg:grid-cols-6 gap-3.5 overflow-x-auto sm:overflow-visible no-scrollbar pb-2 pt-1">
         {SUPPORTED_LOCATIONS.map((loc) => {
           const count = propertyCounts[loc.id] || 0;
           const hasImageFailed = failedImages[loc.id];
@@ -59,7 +59,7 @@ export default function ExploreDelhiNCR() {
             <Link
               key={loc.id}
               href={`/properties?city=${encodeURIComponent(loc.name)}`}
-              className="group relative h-[130px] w-full rounded-2xl overflow-hidden border border-border/60 bg-surface-muted shadow-xs hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 hover:border-primary/40 block"
+              className="group relative aspect-[16/10] min-h-[120px] w-full rounded-2xl overflow-hidden border border-border/60 bg-surface-muted shadow-xs hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 hover:border-primary/40 block"
             >
               {/* Background Landmark Image with zoom effect */}
               {!hasImageFailed ? (

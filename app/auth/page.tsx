@@ -4,6 +4,7 @@ import { FormEvent, useState, useEffect, Suspense } from "react";
 import type { ConfirmationResult } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import GlassCard from "@/components/ui/GlassCard";
@@ -15,6 +16,7 @@ import {
   signInWithGoogle,
 } from "@/lib/auth";
 import { getCurrentUser, updateCurrentUser } from "@/lib/api";
+import { cacheUserProfile } from "@/hooks/useUser";
 
 function normalizePhoneNumber(value: string): string {
   const digitsOnly = value.replace(/\D/g, "");
@@ -84,7 +86,6 @@ function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const redirectUrl = searchParams.get("redirect") || "";
   const modeParam = searchParams.get("mode") || "login";
   const isRegister = modeParam === "register";
 
@@ -99,15 +100,20 @@ function AuthContent() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Reset state when switching modes
-  useEffect(() => {
-    resetRecaptcha();
+  // Clean state reset when switching modes without cascading render
+  const [prevMode, setPrevMode] = useState(modeParam);
+  if (prevMode !== modeParam) {
+    setPrevMode(modeParam);
     setConfirmationResult(null);
     setStep("phone");
     setPhone("");
     setOtp("");
     setMessage("");
     setError("");
+  }
+
+  useEffect(() => {
+    resetRecaptcha();
   }, [modeParam]);
 
   async function handleSendOtp(event: FormEvent<HTMLFormElement>) {
@@ -256,6 +262,7 @@ function AuthContent() {
         const backendUser = await getCurrentUser(idToken);
         if (backendUser && backendUser.role) {
           userRole = String(backendUser.role).toLowerCase();
+          cacheUserProfile(backendUser);
         }
       }
     } catch (backendErr) {
@@ -300,13 +307,13 @@ function AuthContent() {
 
   return (
     <main className="mx-auto max-w-md px-6 py-12 w-full flex-1 flex items-center justify-center">
-      <GlassCard className="p-8 border border-zinc-200 shadow-xl w-full relative">
+      <GlassCard className="p-8 border border-border shadow-elevated bg-surface w-full relative rounded-2xl">
         {/* Visible Back Button Top-Left Inside Card */}
         <div className="mb-4 flex items-center justify-start">
           <button
             type="button"
             onClick={handleBack}
-            className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-zinc-600 hover:bg-zinc-100 hover:text-black transition-all cursor-pointer border border-transparent hover:border-zinc-200"
+            className="group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-muted hover:text-foreground transition-all cursor-pointer border border-transparent hover:border-border focus-ring"
             aria-label="Go back"
           >
             <span className="transition-transform group-hover:-translate-x-0.5">←</span>
@@ -315,17 +322,20 @@ function AuthContent() {
         </div>
         {/* Logo */}
         <div className="text-center mb-6">
-          <Link href="/" className="inline-block">
-            <img
+          <Link href="/" className="inline-block focus-ring rounded-lg">
+            <Image
               src="/logo.png"
               alt="StayTrack"
+              width={160}
+              height={40}
               className="h-10 w-auto mx-auto object-contain"
+              priority
             />
           </Link>
-          <h1 className="text-2xl font-black text-zinc-950 mt-4">
+          <h1 className="text-2xl font-bold text-foreground mt-4">
             {isRegister ? "Create StayTrack Account" : "Welcome Back"}
           </h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">
+          <p className="text-xs text-muted font-normal mt-1">
             {isRegister
               ? "Join StayTrack to discover verified stays across Delhi NCR"
               : "Sign in to your StayTrack account"}
@@ -334,13 +344,13 @@ function AuthContent() {
 
         {/* Feedback Messages */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl text-center">
+          <div className="mb-4 p-3 bg-error-light border border-error/20 text-error text-xs font-medium rounded-xl text-center">
             {error}
           </div>
         )}
 
         {message && (
-          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center">
+          <div className="mb-4 p-3 bg-success-light border border-success/20 text-success text-xs font-medium rounded-xl text-center">
             {message}
           </div>
         )}
@@ -352,7 +362,7 @@ function AuthContent() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={googleLoading || loading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-300 bg-white px-4 py-3.5 text-xs font-bold text-zinc-800 transition hover:bg-zinc-50 hover:border-zinc-400 disabled:opacity-50 cursor-pointer shadow-xs"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-foreground transition hover:bg-surface-muted hover:border-border-hover disabled:opacity-50 cursor-pointer shadow-subtle focus-ring"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -383,7 +393,7 @@ function AuthContent() {
         {step === "profile" && (
           <form onSubmit={handleCompleteProfile} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
+              <label htmlFor="name" className="block text-xs font-medium uppercase tracking-wider text-foreground mb-1.5">
                 Full Name *
               </label>
               <input
@@ -392,12 +402,12 @@ function AuthContent() {
                 placeholder="Enter your full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-xs font-semibold text-black outline-none focus:border-black"
+                className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-normal text-foreground bg-surface outline-none focus-ring placeholder:text-muted/60 hover:border-border-hover transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
+              <label htmlFor="email" className="block text-xs font-medium uppercase tracking-wider text-foreground mb-1.5">
                 Email Address
               </label>
               <input
@@ -406,14 +416,14 @@ function AuthContent() {
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-300 text-xs font-semibold text-black outline-none focus:border-black"
+                className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-normal text-foreground bg-surface outline-none focus-ring placeholder:text-muted/60 hover:border-border-hover transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-black text-white text-xs font-bold hover:bg-zinc-800 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3 rounded-lg bg-[#111716] hover:bg-[#232D2B] text-white text-sm font-medium transition-all shadow-subtle cursor-pointer disabled:opacity-50 focus-ring"
             >
               {loading ? "Completing Registration..." : "Complete Registration"}
             </button>
@@ -421,18 +431,18 @@ function AuthContent() {
         )}
 
         {/* Bottom Mode Toggle Link */}
-        <div className="mt-6 text-center text-xs text-zinc-500 pt-4 border-t border-zinc-100">
+        <div className="mt-6 text-center text-xs text-muted pt-4 border-t border-border">
           {isRegister ? (
             <>
               Already have an account?{" "}
-              <Link href={toggleLinkHref} className="font-bold text-black hover:underline">
+              <Link href={toggleLinkHref} className="font-semibold text-foreground hover:underline focus-ring rounded">
                 Sign in
               </Link>
             </>
           ) : (
             <>
-              Don't have an account?{" "}
-              <Link href={toggleLinkHref} className="font-bold text-black hover:underline">
+              Don&apos;t have an account?{" "}
+              <Link href={toggleLinkHref} className="font-semibold text-foreground hover:underline focus-ring rounded">
                 Register
               </Link>
             </>

@@ -19,6 +19,8 @@ interface PropertyFiltersProps {
   furnished: boolean | undefined;
   setFurnished: (f: boolean | undefined) => void;
   onReset: () => void;
+  className?: string;
+  hideHeader?: boolean;
 }
 
 export default function PropertyFilters({
@@ -37,16 +39,20 @@ export default function PropertyFilters({
   furnished,
   setFurnished,
   onReset,
+  className = "",
+  hideHeader = false,
 }: PropertyFiltersProps) {
   return (
-    <GlassCard className="border border-border">
-      <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border">
-        Filter Stays
-      </h3>
+    <GlassCard className={`border border-border ${className}`}>
+      {!hideHeader && (
+        <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border">
+          Filter Stays
+        </h3>
+      )}
 
       {/* City */}
       <div className="space-y-1 mb-5">
-        <label className="block text-xs font-bold text-text uppercase tracking-wider">
+        <label className="block text-xs font-medium text-foreground uppercase tracking-wider">
           City
         </label>
         <input
@@ -54,13 +60,13 @@ export default function PropertyFilters({
           placeholder="e.g. Delhi, Gurugram, Noida"
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          className="glass-input w-full px-3 py-2 rounded-xl text-xs font-semibold"
+          className="w-full px-3 py-2 rounded-lg text-sm font-normal bg-surface border border-border text-foreground placeholder:text-muted/60 focus-ring"
         />
       </div>
 
       {/* Area */}
       <div className="space-y-1 mb-5">
-        <label className="block text-xs font-bold text-text uppercase tracking-wider">
+        <label className="block text-xs font-medium text-foreground uppercase tracking-wider">
           Area / Locality
         </label>
         <input
@@ -68,13 +74,13 @@ export default function PropertyFilters({
           placeholder="e.g. Cyber City, Sector 62, Connaught Place"
           value={area}
           onChange={(e) => setArea(e.target.value)}
-          className="glass-input w-full px-3 py-2 rounded-xl text-xs font-semibold"
+          className="w-full px-3 py-2 rounded-lg text-sm font-normal bg-surface border border-border text-foreground placeholder:text-muted/60 focus-ring"
         />
       </div>
 
       {/* Property Category */}
-      <div className="space-y-2 mb-5">
-        <label className="block text-xs font-bold text-text uppercase tracking-wider">
+      <div className="space-y-1.5 mb-5">
+        <label className="block text-xs font-medium text-foreground uppercase tracking-wider">
           Property Type
         </label>
         {[
@@ -91,10 +97,10 @@ export default function PropertyFilters({
               key={cat.id}
               type="button"
               onClick={() => setPropertyType(cat.id)}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-pointer focus-ring ${
                 isSelected
-                  ? "bg-primary text-white"
-                  : "text-text hover:bg-primary-light/60 hover:text-primary-dark"
+                  ? "bg-[#111716] text-white font-semibold shadow-subtle"
+                  : "text-foreground hover:bg-surface-muted font-medium"
               }`}
             >
               {cat.label}
@@ -105,10 +111,10 @@ export default function PropertyFilters({
 
       {/* Stay Model */}
       <div className="space-y-2 mb-5">
-        <label className="block text-xs font-bold text-text uppercase tracking-wider">
+        <label className="block text-xs font-medium text-foreground uppercase tracking-wider">
           Stay Model
         </label>
-        <div className="grid grid-cols-3 gap-1 bg-background p-1 rounded-xl border border-border">
+        <div className="grid grid-cols-3 gap-1 bg-surface-muted p-1 rounded-lg border border-border">
           {[
             { label: "Daily", value: "daily" },
             { label: "Monthly", value: "monthly" },
@@ -118,8 +124,8 @@ export default function PropertyFilters({
               key={st.value}
               type="button"
               onClick={() => setStayType(stayType === st.value ? "" : st.value)}
-              className={`py-1.5 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                stayType === st.value ? "bg-primary text-white" : "text-muted hover:text-foreground"
+              className={`py-1.5 text-xs rounded-md transition-all cursor-pointer focus-ring ${
+                stayType === st.value ? "bg-surface text-foreground font-semibold shadow-2xs" : "text-muted hover:text-foreground font-medium"
               }`}
             >
               {st.label}
@@ -131,10 +137,10 @@ export default function PropertyFilters({
       {/* Max Price Slider */}
       <div className="space-y-2 mb-5">
         <div className="flex justify-between items-center">
-          <label className="text-xs font-bold text-text uppercase tracking-wider">
+          <label className="text-xs font-medium text-foreground uppercase tracking-wider">
             Max Price
           </label>
-          <span className="text-xs font-bold text-foreground">₹{maxPrice.toLocaleString()}</span>
+          <span className="text-xs font-semibold text-foreground">₹{maxPrice.toLocaleString()}</span>
         </div>
         <input
           type="range"
@@ -143,13 +149,13 @@ export default function PropertyFilters({
           step="500"
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
-          className="w-full accent-primary bg-border rounded-lg cursor-pointer"
+          className="w-full accent-primary bg-border rounded-lg cursor-pointer focus-ring"
         />
       </div>
 
       {/* Bedrooms filter */}
       <div className="space-y-2 mb-5">
-        <label className="block text-xs font-bold text-text uppercase tracking-wider">
+        <label className="block text-xs font-medium text-foreground uppercase tracking-wider">
           Min Bedrooms
         </label>
         <div className="flex gap-1.5">
@@ -158,10 +164,10 @@ export default function PropertyFilters({
               key={num}
               type="button"
               onClick={() => setMinBedrooms(num)}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs rounded-lg border transition-all cursor-pointer focus-ring ${
                 minBedrooms === num
-                  ? "bg-primary text-white border-primary"
-                  : "border-border text-text hover:bg-background"
+                  ? "bg-[#111716] text-white border-[#111716] font-semibold shadow-subtle"
+                  : "border-border text-foreground hover:bg-surface-muted font-medium"
               }`}
             >
               {num === 0 ? "Any" : `${num}+`}
@@ -172,15 +178,15 @@ export default function PropertyFilters({
 
       {/* Furnished Status */}
       <div className="space-y-2 mb-6">
-        <label className="block text-xs font-bold text-text uppercase tracking-wider">
+        <label className="block text-xs font-medium text-foreground uppercase tracking-wider">
           Furnished Status
         </label>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setFurnished(furnished === true ? undefined : true)}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-xl border cursor-pointer ${
-              furnished === true ? "bg-primary text-white border-primary" : "border-border text-text hover:bg-background"
+            className={`flex-1 py-1.5 text-xs rounded-lg border cursor-pointer focus-ring transition-colors ${
+              furnished === true ? "bg-[#111716] text-white border-[#111716] font-semibold shadow-subtle" : "border-border text-foreground hover:bg-surface-muted font-medium"
             }`}
           >
             Furnished
@@ -188,8 +194,8 @@ export default function PropertyFilters({
           <button
             type="button"
             onClick={() => setFurnished(furnished === false ? undefined : false)}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-xl border cursor-pointer ${
-              furnished === false ? "bg-primary text-white border-primary" : "border-border text-text hover:bg-background"
+            className={`flex-1 py-1.5 text-xs rounded-lg border cursor-pointer focus-ring transition-colors ${
+              furnished === false ? "bg-[#111716] text-white border-[#111716] font-semibold shadow-subtle" : "border-border text-foreground hover:bg-surface-muted font-medium"
             }`}
           >
             Unfurnished
@@ -200,7 +206,7 @@ export default function PropertyFilters({
       {/* Reset Filter Button */}
       <button
         onClick={onReset}
-        className="w-full py-2.5 rounded-xl border border-border bg-surface text-xs font-bold text-text hover:bg-background transition-all cursor-pointer"
+        className="w-full py-2.5 rounded-lg border border-border bg-surface text-xs font-medium text-muted hover:text-foreground hover:bg-surface-muted transition-all cursor-pointer focus-ring"
       >
         Reset All Filters
       </button>

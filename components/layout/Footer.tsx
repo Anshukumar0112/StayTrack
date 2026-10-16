@@ -60,11 +60,11 @@ export default function Footer() {
 
   return (
     <footer className="mt-auto bg-[#111716] text-white py-12 pb-28 md:pb-12 border-t border-white/10">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+      <div className="stay-container">
         {/* 5-Column Layout Grid */}
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-5">
+        <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           {/* COLUMN 1: STAYTRACK BRANDING */}
-          <div className="space-y-3 md:col-span-1">
+          <div className="space-y-3 sm:col-span-2 lg:col-span-1">
             <Link href="/" className="inline-block">
               <img
                 src="/logo.png"
@@ -90,21 +90,21 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* COLUMNS 2-5: NAVIGATION SECTIONS (Desktop static, Mobile accordion) */}
+          {/* COLUMNS 2-5: NAVIGATION SECTIONS (Desktop/Tablet static, Mobile accordion) */}
           {navColumns.map((col) => {
             const isOpen = openSection === col.id;
             return (
-              <div key={col.id} className="border-b md:border-b-0 border-white/10 pb-4 md:pb-0">
+              <div key={col.id} className="border-b sm:border-b-0 border-white/10 pb-4 sm:pb-0">
                 {/* Mobile Collapsible Header / Desktop Static Header */}
                 <button
                   type="button"
                   onClick={() => toggleSection(col.id)}
-                  className="w-full flex justify-between items-center md:cursor-default text-left cursor-pointer py-1 md:py-0"
+                  className="w-full flex justify-between items-center sm:cursor-default text-left cursor-pointer py-1 sm:py-0"
                 >
                   <h4 className="text-xs font-extrabold uppercase tracking-widest text-white">
                     {col.title}
                   </h4>
-                  <span className="md:hidden text-xs text-zinc-400 font-bold">
+                  <span className="sm:hidden text-xs text-zinc-400 font-bold">
                     {isOpen ? "▲" : "▼"}
                   </span>
                 </button>
@@ -112,7 +112,7 @@ export default function Footer() {
                 {/* List Items */}
                 <ul
                   className={`mt-3 space-y-2 text-xs font-medium text-zinc-400 transition-all duration-200 ${
-                    isOpen ? "block" : "hidden md:block"
+                    isOpen ? "block" : "hidden sm:block"
                   }`}
                 >
                   {col.links.map((link, idx) => (
