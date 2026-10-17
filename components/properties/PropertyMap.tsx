@@ -173,6 +173,20 @@ export default function PropertyMap({
     };
   }, [properties, activeCity, onHoverProperty, onSelectProperty, hoveredPropertyId]);
 
+  // Handle container resizing to invalidate leaflet size smoothly
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const ro = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    ro.observe(mapContainerRef.current);
+    return () => {
+      ro.disconnect();
+    };
+  }, []);
+
   // Update marker highlight styles when hoveredPropertyId changes
   useEffect(() => {
     Object.entries(markersRef.current).forEach(([propId, marker]: [string, LeafletMarker]) => {

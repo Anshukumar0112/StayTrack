@@ -78,3 +78,57 @@ export function getCategoryConfig(type?: string): CategoryConfig | undefined {
   const normalized = normalizeCategoryKey(type);
   return ACCOMMODATION_CATEGORIES.find((c) => c.id === normalized);
 }
+
+export const PG_OCCUPANCY_OPTIONS = [
+  { id: "single", label: "Single Room" },
+  { id: "double", label: "Double Sharing" },
+  { id: "triple", label: "Triple Sharing" },
+  { id: "four_plus", label: "4+ Sharing" },
+] as const;
+
+export const GENDER_OPTIONS = [
+  { id: "boys", label: "Boys Only" },
+  { id: "girls", label: "Girls Only" },
+  { id: "unisex", label: "Unisex / Co-living" },
+] as const;
+
+export const HOSTEL_ROOM_OPTIONS = [
+  { id: "dormitory", label: "Dormitory" },
+  { id: "private", label: "Private Room" },
+] as const;
+
+export const HOTEL_ROOM_OPTIONS = [
+  { id: "standard", label: "Standard Room" },
+  { id: "deluxe", label: "Deluxe Room" },
+  { id: "executive", label: "Executive Room" },
+  { id: "suite", label: "Suite" },
+] as const;
+
+export const BNB_SPACE_OPTIONS = [
+  { id: "entire_place", label: "Entire Place" },
+  { id: "private_room", label: "Private Room" },
+] as const;
+
+export function formatOccupancyLabel(val?: string): string {
+  if (!val) return "";
+  const found = PG_OCCUPANCY_OPTIONS.find((o) => o.id === val.toLowerCase());
+  return found ? found.label : val;
+}
+
+export function formatGenderLabel(val?: string): string {
+  if (!val) return "";
+  const found = GENDER_OPTIONS.find((g) => g.id === val.toLowerCase());
+  return found ? found.label : val;
+}
+
+export function formatRoomTypeLabel(val?: string): string {
+  if (!val) return "";
+  const clean = val.toLowerCase();
+  const hotelFound = HOTEL_ROOM_OPTIONS.find((h) => h.id === clean);
+  if (hotelFound) return hotelFound.label;
+  const hostelFound = HOSTEL_ROOM_OPTIONS.find((h) => h.id === clean);
+  if (hostelFound) return hostelFound.label;
+  const bnbFound = BNB_SPACE_OPTIONS.find((b) => b.id === clean);
+  if (bnbFound) return bnbFound.label;
+  return val.charAt(0).toUpperCase() + val.slice(1);
+}

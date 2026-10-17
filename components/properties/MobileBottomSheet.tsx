@@ -158,33 +158,6 @@ export default function MobileBottomSheet({
           )}
         </div>
       </div>
-
-      {/* Floating Bottom View Toggle Button (List ↔ Map) */}
-      <div className="lg:hidden fixed bottom-[calc(4.2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-40">
-        <button
-          type="button"
-          onClick={() => {
-            if (sheetState === "expanded") {
-              setSheetState("map");
-            } else {
-              setSheetState("expanded");
-            }
-          }}
-          className="px-5 py-2.5 rounded-full bg-[#111716] hover:bg-[#232D2B] text-white font-medium text-xs shadow-floating border border-white/10 flex items-center gap-2 active:scale-95 transition-all cursor-pointer focus-ring"
-        >
-          {sheetState === "expanded" ? (
-            <>
-              <span>🗺️</span>
-              <span>Show Map</span>
-            </>
-          ) : (
-            <>
-              <span>📋</span>
-              <span>Show List ({properties.length})</span>
-            </>
-          )}
-        </button>
-      </div>
     </>
   );
 }

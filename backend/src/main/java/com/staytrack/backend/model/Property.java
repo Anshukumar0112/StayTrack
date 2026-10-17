@@ -46,6 +46,47 @@ public class Property {
     private Double averageRating;
     private Long reviewCount;
 
+    // Category / Classification
+    private String category;
+
+    // BNB attributes
+    private String spaceType;
+    private Integer maxGuests;
+    private Integer bedsCount;
+    private String checkInTime;
+    private String checkOutTime;
+    private List<String> houseRules;
+
+    // PG attributes
+    private String occupancyType;
+    private String genderCategory;
+    private Boolean foodIncluded;
+    private List<String> foodOptions;
+    private Double securityDeposit;
+    private Integer noticePeriodDays;
+    private String gateClosingTime;
+
+    // Hostel attributes
+    private String roomType;
+    private Integer totalBeds;
+    private Integer availableBeds;
+    private String priceModel;
+    private String studentOrWorking;
+    private List<String> sharedFacilities;
+
+    // Flat attributes
+    private String bhkConfig;
+    private Double maintenanceCharges;
+    private String tenantPreference;
+    private Integer floorNumber;
+    private Integer totalFloors;
+    private String parkingType;
+
+    // Hotel attributes
+    private String bedType;
+    private Boolean breakfastIncluded;
+    private String cancellationPolicy;
+
     public Boolean getTopVerified() {
         return topVerified;
     }
@@ -268,5 +309,237 @@ public class Property {
 
     public void setReviewCount(Long reviewCount) {
         this.reviewCount = reviewCount;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getSpaceType() {
+        return spaceType;
+    }
+
+    public void setSpaceType(String spaceType) {
+        this.spaceType = spaceType;
+    }
+
+    public Integer getMaxGuests() {
+        return maxGuests;
+    }
+
+    public void setMaxGuests(Integer maxGuests) {
+        this.maxGuests = maxGuests;
+    }
+
+    public Integer getBedsCount() {
+        return bedsCount;
+    }
+
+    public void setBedsCount(Integer bedsCount) {
+        this.bedsCount = bedsCount;
+    }
+
+    public String getCheckInTime() {
+        return checkInTime;
+    }
+
+    public void setCheckInTime(String checkInTime) {
+        this.checkInTime = checkInTime;
+    }
+
+    public String getCheckOutTime() {
+        return checkOutTime;
+    }
+
+    public void setCheckOutTime(String checkOutTime) {
+        this.checkOutTime = checkOutTime;
+    }
+
+    public List<String> getHouseRules() {
+        return houseRules;
+    }
+
+    public void setHouseRules(List<String> houseRules) {
+        this.houseRules = houseRules;
+    }
+
+    public String getOccupancyType() {
+        return occupancyType;
+    }
+
+    public void setOccupancyType(String occupancyType) {
+        this.occupancyType = occupancyType;
+    }
+
+    public String getGenderCategory() {
+        return genderCategory;
+    }
+
+    public void setGenderCategory(String genderCategory) {
+        this.genderCategory = genderCategory;
+    }
+
+    public Boolean getFoodIncluded() {
+        return foodIncluded;
+    }
+
+    public void setFoodIncluded(Boolean foodIncluded) {
+        this.foodIncluded = foodIncluded;
+    }
+
+    public List<String> getFoodOptions() {
+        return foodOptions;
+    }
+
+    public void setFoodOptions(List<String> foodOptions) {
+        this.foodOptions = foodOptions;
+    }
+
+    public Double getSecurityDeposit() {
+        return securityDeposit;
+    }
+
+    public void setSecurityDeposit(Double securityDeposit) {
+        this.securityDeposit = securityDeposit;
+    }
+
+    public Integer getNoticePeriodDays() {
+        return noticePeriodDays;
+    }
+
+    public void setNoticePeriodDays(Integer noticePeriodDays) {
+        this.noticePeriodDays = noticePeriodDays;
+    }
+
+    public String getGateClosingTime() {
+        return gateClosingTime;
+    }
+
+    public void setGateClosingTime(String gateClosingTime) {
+        this.gateClosingTime = gateClosingTime;
+    }
+
+    public String getRoomType() {
+        return roomType;
+    }
+
+    public void setRoomType(String roomType) {
+        this.roomType = roomType;
+    }
+
+    public Integer getTotalBeds() {
+        return totalBeds;
+    }
+
+    public void setTotalBeds(Integer totalBeds) {
+        this.totalBeds = totalBeds;
+    }
+
+    public Integer getAvailableBeds() {
+        return availableBeds;
+    }
+
+    public void setAvailableBeds(Integer availableBeds) {
+        this.availableBeds = availableBeds;
+    }
+
+    public String getPriceModel() {
+        return priceModel;
+    }
+
+    public void setPriceModel(String priceModel) {
+        this.priceModel = priceModel;
+    }
+
+    public String getStudentOrWorking() {
+        return studentOrWorking;
+    }
+
+    public void setStudentOrWorking(String studentOrWorking) {
+        this.studentOrWorking = studentOrWorking;
+    }
+
+    public List<String> getSharedFacilities() {
+        return sharedFacilities;
+    }
+
+    public void setSharedFacilities(List<String> sharedFacilities) {
+        this.sharedFacilities = sharedFacilities;
+    }
+
+    public String getBhkConfig() {
+        return bhkConfig;
+    }
+
+    public void setBhkConfig(String bhkConfig) {
+        this.bhkConfig = bhkConfig;
+    }
+
+    public Double getMaintenanceCharges() {
+        return maintenanceCharges;
+    }
+
+    public void setMaintenanceCharges(Double maintenanceCharges) {
+        this.maintenanceCharges = maintenanceCharges;
+    }
+
+    public String getTenantPreference() {
+        return tenantPreference;
+    }
+
+    public void setTenantPreference(String tenantPreference) {
+        this.tenantPreference = tenantPreference;
+    }
+
+    public Integer getFloorNumber() {
+        return floorNumber;
+    }
+
+    public void setFloorNumber(Integer floorNumber) {
+        this.floorNumber = floorNumber;
+    }
+
+    public Integer getTotalFloors() {
+        return totalFloors;
+    }
+
+    public void setTotalFloors(Integer totalFloors) {
+        this.totalFloors = totalFloors;
+    }
+
+    public String getParkingType() {
+        return parkingType;
+    }
+
+    public void setParkingType(String parkingType) {
+        this.parkingType = parkingType;
+    }
+
+    public String getBedType() {
+        return bedType;
+    }
+
+    public void setBedType(String bedType) {
+        this.bedType = bedType;
+    }
+
+    public Boolean getBreakfastIncluded() {
+        return breakfastIncluded;
+    }
+
+    public void setBreakfastIncluded(Boolean breakfastIncluded) {
+        this.breakfastIncluded = breakfastIncluded;
+    }
+
+    public String getCancellationPolicy() {
+        return cancellationPolicy;
+    }
+
+    public void setCancellationPolicy(String cancellationPolicy) {
+        this.cancellationPolicy = cancellationPolicy;
     }
 }

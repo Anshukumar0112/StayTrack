@@ -78,33 +78,38 @@ export default function CategoryNavigation() {
       <div
         className={`w-full transition-all duration-200 border-y ${
           isSticky
-            ? "bg-surface/98 backdrop-blur-md border-border shadow-subtle py-2"
-            : "bg-surface/90 backdrop-blur-md border-border-subtle py-2.5"
+            ? "bg-surface/98 backdrop-blur-md border-border shadow-subtle py-2.5"
+            : "bg-surface/90 backdrop-blur-md border-border-subtle py-3"
         }`}
       >
         <div className="stay-container flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xs font-black tracking-widest text-[#111716] uppercase whitespace-nowrap">
-              Categories
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xs font-bold tracking-wider text-foreground uppercase whitespace-nowrap">
+              Stay Types
             </h2>
-            <span className="text-muted/60 text-xs">•</span>
+            <span className="text-muted/40 text-xs hidden sm:inline">•</span>
           </div>
 
           {/* Category Tabs */}
           <nav
-            aria-label="Stay Categories"
+            role="tablist"
+            aria-label="Accommodation Categories"
             className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 w-full sm:w-auto justify-start sm:justify-end"
           >
             {ACCOMMODATION_CATEGORIES.map((cat) => {
               const isActive = activeCategory === cat.id;
+              const sectionAnchor = cat.id === "BNB" ? "bnbs" : cat.id === "HOSTEL" ? "hostels" : cat.id === "PG" ? "pgs" : cat.id === "HOTEL" ? "hotels" : "flats";
               return (
                 <button
                   key={cat.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={sectionAnchor}
                   onClick={() => scrollToCategory(cat.id)}
-                  className={`flex-shrink-0 flex items-center px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  className={`flex-shrink-0 flex items-center px-4 py-1.5 rounded-xl text-xs transition-all duration-200 cursor-pointer focus-ring select-none ${
                     isActive
-                      ? "bg-primary text-white shadow-xs"
-                      : "bg-surface text-muted hover:text-[#111716] hover:bg-background border border-border/70"
+                      ? "bg-[#111716] text-white shadow-2xs font-semibold"
+                      : "bg-surface text-muted hover:text-foreground hover:bg-surface-muted border border-border font-medium"
                   }`}
                 >
                   <span>{cat.label}</span>

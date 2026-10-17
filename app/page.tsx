@@ -1,5 +1,4 @@
-"use client";
-
+import Image from "next/image";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
@@ -17,28 +16,36 @@ export default function RootHomePage() {
 
       <main className="flex-1">
         {/* 1. Cinematic Hero / Search Section */}
-        <section className="relative w-full bg-brand-deep text-white">
-          {/* Background Image with Dark Gradient Overlay */}
-          <div className="absolute inset-0 z-0 overflow-hidden">
-            <img
+        <section className="relative w-full bg-brand-deep text-white overflow-hidden">
+          {/* Background Image with Calibrated Dual-Layer Overlay */}
+          <div className="absolute inset-0 z-0">
+            <Image
               src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2000&q=80"
-              alt="StayTrack Property Marketplace"
-              className="w-full h-full object-cover opacity-45 scale-105"
+              alt="StayTrack Hospitality & Stays in Delhi NCR"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#111716] via-[#111716]/60 to-black/40" />
+            {/* Layer 1: Warm-charcoal base tint for high WCAG contrast */}
+            <div className="absolute inset-0 bg-[#111716]/65" />
+            {/* Layer 2: Subtle vertical gradient to anchor top and gently blend bottom */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#111716]/75 via-transparent to-[#111716]" />
           </div>
 
-          <div className="relative z-10 stay-container pt-[clamp(3rem,6vw,5rem)] pb-[clamp(2.5rem,5vw,4rem)] text-center">
-            <h1 className="fluid-heading-hero font-black text-white max-w-4xl mx-auto">
+          <div className="relative z-10 stay-container pt-[clamp(3.5rem,7vw,5.5rem)] pb-[clamp(3rem,6vw,4.5rem)] text-center">
+            {/* Headline */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight text-white max-w-3xl mx-auto leading-[1.14]">
               Find Your Next Stay in Delhi NCR
             </h1>
 
-            <p className="mt-4 text-sm sm:text-base text-zinc-300 max-w-2xl mx-auto font-medium leading-relaxed">
+            {/* Supporting Copy */}
+            <p className="mt-3.5 sm:mt-4 text-sm sm:text-base md:text-lg text-white/80 max-w-2xl mx-auto font-normal leading-relaxed">
               Verified stays, flexible booking options, and direct communication with property owners.
             </p>
 
-            {/* Unified Search Bar Over Lower Portion of Hero */}
-            <div className="mt-10 max-w-5xl mx-auto">
+            {/* Unified Search Component */}
+            <div className="mt-8 sm:mt-10 max-w-5xl mx-auto">
               <HeroSearch />
             </div>
           </div>

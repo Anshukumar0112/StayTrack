@@ -31,27 +31,30 @@ export default function ExploreDelhiNCR() {
   }, []);
 
   return (
-    <section className="stay-container py-8 w-full">
-      <div className="flex justify-between items-baseline mb-5">
+    <section className="stay-container py-10 sm:py-12 w-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-3">
         <div>
-          <h2 className="text-sm sm:text-base font-black tracking-wide text-foreground uppercase">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-primary block mb-1">
+            Destinations
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Explore Delhi NCR
           </h2>
-          <p className="text-xs text-muted font-medium mt-0.5">
-            Discover verified accommodations across major landmark hubs
+          <p className="text-xs sm:text-sm text-muted mt-1 max-w-xl">
+            Discover verified accommodations across major landmark hubs and business corridors.
           </p>
         </div>
         <Link
           href="/properties"
-          className="text-xs font-bold text-primary hover:text-primary-dark transition-colors duration-200 flex items-center gap-1.5 group"
+          className="text-xs font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1.5 group focus-ring rounded-lg px-1 py-1"
         >
-          <span>Browse All</span>
+          <span>Browse All Destinations</span>
           <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200" />
         </Link>
       </div>
 
-      {/* Visual Landmark Destination Cards Grid / Carousel */}
-      <div className="grid grid-flow-col auto-cols-[clamp(145px,42vw,190px)] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-3 lg:grid-cols-6 gap-3.5 overflow-x-auto sm:overflow-visible no-scrollbar pb-2 pt-1">
+      {/* Destination Cards Responsive Grid / Mobile Horizontal Rail */}
+      <div className="grid grid-flow-col auto-cols-[clamp(150px,44vw,190px)] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto sm:overflow-visible no-scrollbar pb-2 pt-1">
         {SUPPORTED_LOCATIONS.map((loc) => {
           const count = propertyCounts[loc.id] || 0;
           const hasImageFailed = failedImages[loc.id];
@@ -59,35 +62,44 @@ export default function ExploreDelhiNCR() {
             <Link
               key={loc.id}
               href={`/properties?city=${encodeURIComponent(loc.name)}`}
-              className="group relative aspect-[16/10] min-h-[120px] w-full rounded-2xl overflow-hidden border border-border/60 bg-surface-muted shadow-xs hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 hover:border-primary/40 block"
+              className="group relative aspect-[16/11] min-h-[130px] w-full rounded-2xl overflow-hidden border border-border/70 bg-surface shadow-subtle hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 focus-ring block"
             >
-              {/* Background Landmark Image with zoom effect */}
+              {/* Background Landmark Image with calibrated hover zoom */}
               {!hasImageFailed ? (
                 <img
                   src={loc.image}
                   alt={loc.name}
                   onError={() => setFailedImages((prev) => ({ ...prev, [loc.id]: true }))}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                   loading="lazy"
                 />
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center p-3">
-                  <MapPinIcon className="w-8 h-8 text-primary opacity-60" />
+                <div className="absolute inset-0 bg-[#111716] flex items-center justify-center p-3">
+                  <MapPinIcon className="w-7 h-7 text-primary/70" />
                 </div>
               )}
 
-              {/* Dark Gradient Overlay for optimal legibility */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 group-hover:from-black/90 transition-colors duration-300" />
+              {/* Scrim Gradient for WCAG Contrast */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/5 group-hover:from-black/90 transition-colors duration-300" />
 
-              {/* Bottom Content: City Name & Landmark */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 z-10 text-white">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <MapPinIcon className="w-3 h-3 text-primary-light shrink-0" />
-                  <h3 className="text-sm font-bold tracking-tight text-white line-clamp-1">
+              {/* Optional Real Property Count Badge */}
+              {count > 0 && (
+                <div className="absolute top-2.5 right-2.5 z-10">
+                  <span className="px-2 py-0.5 rounded-md bg-black/45 backdrop-blur-xs text-[10px] font-medium text-white/90 border border-white/10 shadow-2xs">
+                    {count} {count === 1 ? "stay" : "stays"}
+                  </span>
+                </div>
+              )}
+
+              {/* Bottom Content: Destination Name & Landmark */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-3.5 z-10 text-white">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <MapPinIcon className="w-3.5 h-3.5 text-primary-light shrink-0" />
+                  <h3 className="text-sm sm:text-base font-bold tracking-tight text-white line-clamp-1">
                     {loc.name}
                   </h3>
                 </div>
-                <p className="text-[11px] font-medium text-neutral-300 line-clamp-1">
+                <p className="text-[11px] font-normal text-white/75 line-clamp-1">
                   {loc.landmark}
                 </p>
               </div>

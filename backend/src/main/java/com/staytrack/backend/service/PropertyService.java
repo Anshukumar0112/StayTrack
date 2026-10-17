@@ -220,6 +220,46 @@ public class PropertyService {
                         : new ArrayList<>()
         );
 
+        property.put("category", request.getCategory() != null ? request.getCategory() : request.getPropertyType());
+
+        // BNB attributes
+        property.put("spaceType", request.getSpaceType());
+        property.put("maxGuests", request.getMaxGuests());
+        property.put("bedsCount", request.getBedsCount());
+        property.put("checkInTime", request.getCheckInTime());
+        property.put("checkOutTime", request.getCheckOutTime());
+        property.put("houseRules", request.getHouseRules() != null ? request.getHouseRules() : new ArrayList<>());
+
+        // PG attributes
+        property.put("occupancyType", request.getOccupancyType());
+        property.put("genderCategory", request.getGenderCategory());
+        property.put("foodIncluded", request.getFoodIncluded());
+        property.put("foodOptions", request.getFoodOptions() != null ? request.getFoodOptions() : new ArrayList<>());
+        property.put("securityDeposit", request.getSecurityDeposit());
+        property.put("noticePeriodDays", request.getNoticePeriodDays());
+        property.put("gateClosingTime", request.getGateClosingTime());
+
+        // Hostel attributes
+        property.put("roomType", request.getRoomType());
+        property.put("totalBeds", request.getTotalBeds());
+        property.put("availableBeds", request.getAvailableBeds());
+        property.put("priceModel", request.getPriceModel());
+        property.put("studentOrWorking", request.getStudentOrWorking());
+        property.put("sharedFacilities", request.getSharedFacilities() != null ? request.getSharedFacilities() : new ArrayList<>());
+
+        // Flat attributes
+        property.put("bhkConfig", request.getBhkConfig());
+        property.put("maintenanceCharges", request.getMaintenanceCharges());
+        property.put("tenantPreference", request.getTenantPreference());
+        property.put("floorNumber", request.getFloorNumber());
+        property.put("totalFloors", request.getTotalFloors());
+        property.put("parkingType", request.getParkingType());
+
+        // Hotel attributes
+        property.put("bedType", request.getBedType());
+        property.put("breakfastIncluded", request.getBreakfastIncluded());
+        property.put("cancellationPolicy", request.getCancellationPolicy());
+
         // Every new property requires admin verification.
         property.put(
                 "verificationStatus",
@@ -371,6 +411,8 @@ public class PropertyService {
                     propertyId
             );
 
+            enrichPropertyWithFallbacks(property);
+
             return property;
 
         } catch (RuntimeException e) {
@@ -504,6 +546,7 @@ public class PropertyService {
                             document.getId()
                     );
 
+                    enrichPropertyWithFallbacks(property);
                     properties.add(property);
                 }
             }
@@ -534,6 +577,7 @@ public class PropertyService {
                     if (isTop) {
                         property.put("id", document.getId());
                         property.put("propertyId", document.getId());
+                        enrichPropertyWithFallbacks(property);
                         properties.add(property);
                     }
                 }
@@ -561,6 +605,7 @@ public class PropertyService {
                     if (isStay) {
                         property.put("id", document.getId());
                         property.put("propertyId", document.getId());
+                        enrichPropertyWithFallbacks(property);
                         properties.add(property);
                     }
                 }
@@ -600,12 +645,29 @@ public class PropertyService {
             );
         }
 
-        if (request.getPropertyType() == null ||
-                request.getPropertyType().isBlank()) {
+        if (request.getPropertyType() == null || request.getPropertyType().isBlank()) {
+            if (request.getCategory() != null && !request.getCategory().isBlank()) {
+                request.setPropertyType(request.getCategory());
+            } else {
+                throw new RuntimeException("Property type is required");
+            }
+        }
+        if (request.getCategory() == null || request.getCategory().isBlank()) {
+            request.setCategory(request.getPropertyType());
+        }
 
-            throw new RuntimeException(
-                    "Property type is required"
-            );
+        String propTypeLower = request.getPropertyType().trim().toLowerCase();
+        if ("flat".equals(propTypeLower) || "apartment".equals(propTypeLower) || "house".equals(propTypeLower)) {
+            if ((request.getBhkConfig() == null || request.getBhkConfig().isBlank()) && request.getBedrooms() != null) {
+                request.setBhkConfig(request.getBedrooms() + " BHK");
+            } else if (request.getBedrooms() == null && request.getBhkConfig() != null) {
+                String bhk = request.getBhkConfig().replaceAll("[^0-9]", "");
+                if (!bhk.isBlank()) {
+                    try {
+                        request.setBedrooms(Integer.parseInt(bhk));
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
         }
 
         // Auto-populate stayTypes from bookingType or stayModel if stayTypes is missing
@@ -860,6 +922,44 @@ public class PropertyService {
             if (request.getAmenities() != null) updates.put("amenities", request.getAmenities());
             if (request.getImages() != null) updates.put("images", request.getImages());
 
+            // BNB attributes
+            if (request.getSpaceType() != null) updates.put("spaceType", request.getSpaceType());
+            if (request.getMaxGuests() != null) updates.put("maxGuests", request.getMaxGuests());
+            if (request.getBedsCount() != null) updates.put("bedsCount", request.getBedsCount());
+            if (request.getCheckInTime() != null) updates.put("checkInTime", request.getCheckInTime());
+            if (request.getCheckOutTime() != null) updates.put("checkOutTime", request.getCheckOutTime());
+            if (request.getHouseRules() != null) updates.put("houseRules", request.getHouseRules());
+
+            // PG attributes
+            if (request.getOccupancyType() != null) updates.put("occupancyType", request.getOccupancyType());
+            if (request.getGenderCategory() != null) updates.put("genderCategory", request.getGenderCategory());
+            if (request.getFoodIncluded() != null) updates.put("foodIncluded", request.getFoodIncluded());
+            if (request.getFoodOptions() != null) updates.put("foodOptions", request.getFoodOptions());
+            if (request.getSecurityDeposit() != null) updates.put("securityDeposit", request.getSecurityDeposit());
+            if (request.getNoticePeriodDays() != null) updates.put("noticePeriodDays", request.getNoticePeriodDays());
+            if (request.getGateClosingTime() != null) updates.put("gateClosingTime", request.getGateClosingTime());
+
+            // Hostel attributes
+            if (request.getRoomType() != null) updates.put("roomType", request.getRoomType());
+            if (request.getTotalBeds() != null) updates.put("totalBeds", request.getTotalBeds());
+            if (request.getAvailableBeds() != null) updates.put("availableBeds", request.getAvailableBeds());
+            if (request.getPriceModel() != null) updates.put("priceModel", request.getPriceModel());
+            if (request.getStudentOrWorking() != null) updates.put("studentOrWorking", request.getStudentOrWorking());
+            if (request.getSharedFacilities() != null) updates.put("sharedFacilities", request.getSharedFacilities());
+
+            // Flat attributes
+            if (request.getBhkConfig() != null) updates.put("bhkConfig", request.getBhkConfig());
+            if (request.getMaintenanceCharges() != null) updates.put("maintenanceCharges", request.getMaintenanceCharges());
+            if (request.getTenantPreference() != null) updates.put("tenantPreference", request.getTenantPreference());
+            if (request.getFloorNumber() != null) updates.put("floorNumber", request.getFloorNumber());
+            if (request.getTotalFloors() != null) updates.put("totalFloors", request.getTotalFloors());
+            if (request.getParkingType() != null) updates.put("parkingType", request.getParkingType());
+
+            // Hotel attributes
+            if (request.getBedType() != null) updates.put("bedType", request.getBedType());
+            if (request.getBreakfastIncluded() != null) updates.put("breakfastIncluded", request.getBreakfastIncluded());
+            if (request.getCancellationPolicy() != null) updates.put("cancellationPolicy", request.getCancellationPolicy());
+
             updates.put("updatedAt", Timestamp.now());
             updates.put("id", propertyId.trim());
             updates.put("propertyId", propertyId.trim());
@@ -921,5 +1021,87 @@ public class PropertyService {
 
     private String stringValue(Object val) {
         return val != null ? val.toString() : "";
+    }
+
+    private double number(Object value) {
+        if (value instanceof Number num) {
+            return num.doubleValue();
+        }
+        if (value == null) {
+            return 0.0;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    private void enrichPropertyWithFallbacks(Map<String, Object> property) {
+        if (property == null) return;
+        String type = stringValue(property.get("propertyType")).trim().toLowerCase();
+        if (type.isBlank()) {
+            type = stringValue(property.get("category")).trim().toLowerCase();
+        }
+
+        // BNB
+        if ("bnb".equals(type) || "vacationstay".equals(type) || "vacation_stay".equals(type)) {
+            if (property.get("spaceType") == null) property.put("spaceType", "Entire place");
+            if (property.get("maxGuests") == null) {
+                int beds = (int) number(property.get("bedrooms"));
+                property.put("maxGuests", beds > 0 ? beds * 2 : 2);
+            }
+            if (property.get("bedsCount") == null) {
+                int beds = (int) number(property.get("bedrooms"));
+                property.put("bedsCount", beds > 0 ? beds : 1);
+            }
+            if (property.get("checkInTime") == null) property.put("checkInTime", "02:00 PM");
+            if (property.get("checkOutTime") == null) property.put("checkOutTime", "11:00 AM");
+        }
+
+        // PG
+        else if ("pg".equals(type)) {
+            if (property.get("occupancyType") == null) {
+                int beds = (int) number(property.get("bedrooms"));
+                property.put("occupancyType", beds == 1 ? "Single Room" : "Double Sharing");
+            }
+            if (property.get("genderCategory") == null) property.put("genderCategory", "Unisex");
+            if (property.get("foodIncluded") == null) property.put("foodIncluded", false);
+            if (property.get("gateClosingTime") == null) property.put("gateClosingTime", "10:30 PM");
+        }
+
+        // Hostel
+        else if ("hostel".equals(type)) {
+            if (property.get("roomType") == null) property.put("roomType", "Dormitory");
+            if (property.get("totalBeds") == null) {
+                int beds = (int) number(property.get("bedrooms"));
+                property.put("totalBeds", beds > 0 ? beds : 4);
+            }
+            if (property.get("availableBeds") == null) {
+                property.put("availableBeds", property.get("totalBeds"));
+            }
+            if (property.get("priceModel") == null) property.put("priceModel", "per_bed");
+            if (property.get("studentOrWorking") == null) property.put("studentOrWorking", "open_to_all");
+        }
+
+        // Flat
+        else if ("flat".equals(type) || "apartment".equals(type) || "house".equals(type)) {
+            if (property.get("bhkConfig") == null) {
+                int beds = (int) number(property.get("bedrooms"));
+                property.put("bhkConfig", (beds > 0 ? beds : 1) + " BHK");
+            }
+            if (property.get("tenantPreference") == null) property.put("tenantPreference", "Any");
+            if (property.get("parkingType") == null) property.put("parkingType", "Open");
+        }
+
+        // Hotel
+        else if ("hotel".equals(type) || "room".equals(type)) {
+            if (property.get("roomType") == null) property.put("roomType", "Standard Room");
+            if (property.get("bedType") == null) property.put("bedType", "Queen Bed");
+            if (property.get("maxGuests") == null) property.put("maxGuests", 2);
+            if (property.get("checkInTime") == null) property.put("checkInTime", "12:00 PM");
+            if (property.get("checkOutTime") == null) property.put("checkOutTime", "11:00 AM");
+            if (property.get("breakfastIncluded") == null) property.put("breakfastIncluded", false);
+        }
     }
 }

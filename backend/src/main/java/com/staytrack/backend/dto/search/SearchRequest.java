@@ -17,6 +17,11 @@ public class SearchRequest {
     private Integer minBathrooms;
     private Integer maxBathrooms;
     private Boolean furnished;
+    private String bhkConfig;
+    private String occupancyType;
+    private String genderCategory;
+    private String roomType;
+    private Integer maxGuests;
     private List<String> amenities = new ArrayList<>();
     private Double minRating;
     private String availableFrom;
@@ -93,4 +98,19 @@ public class SearchRequest {
 
     public Integer getPageSize() { return pageSize; }
     public void setPageSize(Integer pageSize) { this.pageSize = pageSize; }
+
+    public String getBhkConfig() { return bhkConfig; }
+    public void setBhkConfig(String bhkConfig) { this.bhkConfig = bhkConfig; }
+
+    public String getOccupancyType() { return occupancyType; }
+    public void setOccupancyType(String occupancyType) { this.occupancyType = occupancyType; }
+
+    public String getGenderCategory() { return genderCategory; }
+    public void setGenderCategory(String genderCategory) { this.genderCategory = genderCategory; }
+
+    public String getRoomType() { return roomType; }
+    public void setRoomType(String roomType) { this.roomType = roomType; }
+
+    public Integer getMaxGuests() { return maxGuests; }
+    public void setMaxGuests(Integer maxGuests) { this.maxGuests = maxGuests; }
 }

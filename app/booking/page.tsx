@@ -56,8 +56,12 @@ function CreateBookingContent() {
     return d.toISOString().split("T")[0];
   }, []);
 
-  const [startDate, setStartDate] = useState(todayStr);
-  const [endDate, setEndDate] = useState(tomorrowStr);
+  const [startDate, setStartDate] = useState(
+    () => searchParams.get("startDate") || todayStr
+  );
+  const [endDate, setEndDate] = useState(
+    () => searchParams.get("endDate") || tomorrowStr
+  );
 
   // Hourly fields
   const [hourlyDate, setHourlyDate] = useState(todayStr);
@@ -70,10 +74,16 @@ function CreateBookingContent() {
 
   useEffect(() => {
     if (!propertyId) return;
-    setLoading(true);
-    getPropertyDetails(propertyId)
-      .then((data) => {
-        if (data) {
+    let isMounted = true;
+
+    const loadProperty = async () => {
+      await Promise.resolve();
+      if (!isMounted) return;
+      setLoading(true);
+
+      try {
+        const data = await getPropertyDetails(propertyId);
+        if (data && isMounted) {
           setProperty(data);
           const supported = getSupportedStayTypes(data);
           if (supported.includes("daily")) {
@@ -82,9 +92,20 @@ function CreateBookingContent() {
             setBookingType(supported[0]);
           }
         }
-      })
-      .catch((err) => console.warn("Failed to load property details:", err))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.warn("Failed to load property details:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadProperty();
+
+    return () => {
+      isMounted = false;
+    };
   }, [propertyId]);
 
   useEffect(() => {
@@ -150,8 +171,8 @@ function CreateBookingContent() {
         total: price * hours,
       };
     } else if (bookingType === "monthly") {
-      let dailyPrice = property.dailyPrice || property.pricePerNight || property.price || 0;
-      let monthlyPrice = property.monthlyPrice || property.pricePerMonth || (dailyPrice > 0 ? dailyPrice * 30 : 0);
+      const dailyPrice = property.dailyPrice || property.pricePerNight || property.price || 0;
+      const monthlyPrice = property.monthlyPrice || property.pricePerMonth || (dailyPrice > 0 ? dailyPrice * 30 : 0);
 
       let bookedDays = 1;
       if (startDate && endDate) {
@@ -246,8 +267,9 @@ function CreateBookingContent() {
       } else {
         router.push("/trips");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to submit booking request.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to submit booking request.";
+      setError(msg);
     } finally {
       setSubmitLoading(false);
     }

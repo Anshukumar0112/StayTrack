@@ -213,6 +213,48 @@ public class SearchService {
             return false;
         }
 
+        if (request.getBhkConfig() != null && !request.getBhkConfig().isBlank()) {
+            String propBhk = stringValue(property.get("bhkConfig"));
+            if (propBhk.isBlank() && property.get("bedrooms") != null) {
+                propBhk = property.get("bedrooms") + " BHK";
+            }
+            if (!normalize(propBhk).equalsIgnoreCase(normalize(request.getBhkConfig()))) {
+                return false;
+            }
+        }
+
+        if (request.getOccupancyType() != null && !request.getOccupancyType().isBlank()) {
+            String propOcc = stringValue(property.get("occupancyType"));
+            if (!propOcc.isBlank() && !normalize(propOcc).equalsIgnoreCase(normalize(request.getOccupancyType()))) {
+                return false;
+            }
+        }
+
+        if (request.getGenderCategory() != null && !request.getGenderCategory().isBlank()) {
+            String propGender = stringValue(property.get("genderCategory"));
+            if (!propGender.isBlank()) {
+                String reqG = normalize(request.getGenderCategory());
+                String propG = normalize(propGender);
+                if (!propG.equals("unisex") && !propG.equals("coliving") && !propG.equals(reqG)) {
+                    return false;
+                }
+            }
+        }
+
+        if (request.getRoomType() != null && !request.getRoomType().isBlank()) {
+            String propRoom = stringValue(property.get("roomType"));
+            if (!propRoom.isBlank() && !normalize(propRoom).contains(normalize(request.getRoomType()))) {
+                return false;
+            }
+        }
+
+        if (request.getMaxGuests() != null && request.getMaxGuests() > 0) {
+            double propGuests = number(property.get("maxGuests"));
+            if (propGuests > 0 && propGuests < request.getMaxGuests()) {
+                return false;
+            }
+        }
+
         if (request.getMinRating() != null
                 && number(property.get("averageRating"))
                 < request.getMinRating()) {
