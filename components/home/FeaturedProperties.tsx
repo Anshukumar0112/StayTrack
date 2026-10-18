@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import PropertyCard from "@/components/properties/PropertyCard";
 import GlassCard from "@/components/ui/GlassCard";
+import { StarIcon } from "@/components/ui/Icons";
 import { getTopVerifiedProperties } from "@/lib/api";
 import { Property } from "@/types/property";
 import { isSupportedLocation } from "@/lib/locations";
@@ -55,7 +56,9 @@ export default function FeaturedProperties() {
         </div>
       ) : (
         <GlassCard className="py-12 text-center border border-zinc-200">
-          <span className="text-4xl">⭐</span>
+          <div className="w-12 h-12 rounded-2xl bg-[#D9A441]/10 border border-[#D9A441]/20 flex items-center justify-center mx-auto mb-3">
+            <StarIcon className="w-6 h-6 text-[#D9A441]" />
+          </div>
           <h3 className="text-base font-bold text-zinc-950 mt-3">No properties assigned as Top Verified</h3>
           <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
             Properties explicitly marked as Top Verified by admin will appear in this section.

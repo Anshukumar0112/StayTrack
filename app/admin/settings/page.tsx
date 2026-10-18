@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import GlassCard from "@/components/ui/GlassCard";
 import { getSubscriptionSettings, updateSubscriptionSettings, getAiSettings, updateAiSettings } from "@/lib/api";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { CrownIcon, CreditCardIcon, GiftIcon, InfoIcon, SparklesIcon, CheckIcon } from "@/components/ui/Icons";
 
 export default function AdminSettingsPage() {
   const { isAdmin, loading: guardLoading } = useAdminGuard();
@@ -107,8 +108,9 @@ export default function AdminSettingsPage() {
         <div className="space-y-8">
           {/* Host Subscription & Billing Mode Settings */}
           <GlassCard className="border border-zinc-200 p-6">
-            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4 pb-2 border-b border-zinc-200">
-              ⭐ Host Subscription Plan & Billing Mode
+            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4 pb-2 border-b border-zinc-200 flex items-center gap-2">
+              <CrownIcon className="w-4 h-4 text-[#D9A441] shrink-0" />
+              <span>Host Subscription Plan & Billing Mode</span>
             </h2>
 
             <form onSubmit={handleSaveSubSettings} className="space-y-6">
@@ -121,26 +123,31 @@ export default function AdminSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setSubMode("paid")}
-                    className={`py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center justify-center gap-2 ${
                       subMode === "paid" ? "bg-black text-white shadow-md" : "text-zinc-600 hover:text-black"
                     }`}
                   >
-                    💳 Paid Subscription Mode
+                    <CreditCardIcon className="w-4 h-4 shrink-0" />
+                    <span>Paid Subscription Mode</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSubMode("free")}
-                    className={`py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center justify-center gap-2 ${
                       subMode === "free" ? "bg-emerald-600 text-white shadow-md" : "text-zinc-600 hover:text-black"
                     }`}
                   >
-                    🎁 Free / Testing Mode
+                    <GiftIcon className="w-4 h-4 shrink-0" />
+                    <span>Free / Testing Mode</span>
                   </button>
                 </div>
 
                 {subMode === "free" && (
-                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900">
-                    ℹ️ <strong>FREE / TESTING MODE ACTIVE:</strong> Approved hosts can list properties without purchasing or activating a subscription. Razorpay payment gating is disabled for property creation.
+                  <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900 flex items-start gap-2">
+                    <InfoIcon className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>FREE / TESTING MODE ACTIVE:</strong> Approved hosts can list properties without purchasing or activating a subscription. Razorpay payment gating is disabled for property creation.
+                    </div>
                   </div>
                 )}
               </div>
@@ -232,8 +239,9 @@ export default function AdminSettingsPage() {
 
           {/* AI Search Settings */}
           <GlassCard className="border border-zinc-200 p-6">
-            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4 pb-2 border-b border-zinc-200">
-              ✨ AI Natural Language Search Config
+            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4 pb-2 border-b border-zinc-200 flex items-center gap-2">
+              <SparklesIcon className="w-4 h-4 text-accent shrink-0" />
+              <span>AI Natural Language Search Config</span>
             </h2>
             <form onSubmit={handleSaveAiSettings} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -259,11 +267,18 @@ export default function AdminSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setAiEnabled(!aiEnabled)}
-                    className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all ${
+                    className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 ${
                       aiEnabled ? "bg-emerald-600 text-white" : "bg-zinc-200 text-zinc-700"
                     }`}
                   >
-                    {aiEnabled ? "✓ AI Search Active" : "Disabled"}
+                    {aiEnabled ? (
+                      <>
+                        <CheckIcon className="w-3.5 h-3.5 text-white" />
+                        <span>AI Search Active</span>
+                      </>
+                    ) : (
+                      "Disabled"
+                    )}
                   </button>
                 </div>
               </div>

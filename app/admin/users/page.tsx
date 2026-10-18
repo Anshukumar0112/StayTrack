@@ -6,6 +6,7 @@ import { listAdminUsers, updateAdminUserStatus, updateAdminUserRole, deleteAdmin
 import { User } from "@/types/user";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { useAuth } from "@/hooks/useAuth";
+import { TrashIcon, AlertTriangleIcon } from "@/components/ui/Icons";
 
 export default function AdminUsersPage() {
   const { isAdmin, adminId, loading: guardLoading } = useAdminGuard();
@@ -205,9 +206,10 @@ export default function AdminUsersPage() {
                       onClick={() => setDeleteTarget(u)}
                       disabled={actionLoadingId === u.uid || isSelf}
                       title={isSelf ? "You cannot delete your own account" : "Delete user account"}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold border border-red-300 hover:bg-red-100 text-red-800 transition cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-red-300 hover:bg-red-100 text-red-800 transition cursor-pointer disabled:opacity-50"
                     >
-                      🗑 Delete
+                      <TrashIcon className="w-3.5 h-3.5 text-red-600" />
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>
@@ -229,8 +231,9 @@ export default function AdminUsersPage() {
             <p className="text-xs text-zinc-600 font-semibold leading-relaxed">
               Are you sure you want to delete user account <strong className="text-zinc-950">{deleteTarget.name || deleteTarget.email || deleteTarget.uid}</strong>?
             </p>
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800">
-              ⚠️ WARNING: This will permanently remove the user and any associated records. This action cannot be undone.
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800 flex items-start gap-2">
+              <AlertTriangleIcon className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <span>WARNING: This will permanently remove the user and any associated records. This action cannot be undone.</span>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button

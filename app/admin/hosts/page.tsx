@@ -24,6 +24,20 @@ import {
 import { HostApplication } from "@/types/host";
 import { User } from "@/types/user";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import {
+  MailIcon,
+  PhoneIcon,
+  CheckIcon,
+  CloseIcon,
+  PauseIcon,
+  PlayIcon,
+  CrownIcon,
+  BanIcon,
+  UnlockIcon,
+  BankIcon,
+  TrashIcon,
+  AlertTriangleIcon,
+} from "@/components/ui/Icons";
 
 type TabType = "all" | "active" | "suspended" | "banned" | "rejected" | "pending";
 
@@ -379,8 +393,16 @@ export default function AdminHostsPage() {
                     )}
                   </h3>
 
-                  <p className="text-xs text-zinc-500 mt-0.5 break-all">
-                    📧 {item.email} • 📞 {item.phone}
+                  <p className="text-xs text-zinc-500 mt-0.5 break-all flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1">
+                      <MailIcon className="w-3 h-3 text-zinc-400 shrink-0" />
+                      <span>{item.email}</span>
+                    </span>
+                    <span>•</span>
+                    <span className="inline-flex items-center gap-1">
+                      <PhoneIcon className="w-3 h-3 text-zinc-400 shrink-0" />
+                      <span>{item.phone}</span>
+                    </span>
                   </p>
 
                   <div className="flex gap-2 mt-2">
@@ -402,16 +424,18 @@ export default function AdminHostsPage() {
                       <button
                         onClick={() => handleApprove(item.id)}
                         disabled={actionLoadingId === item.id}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        ✓ Approve Host
+                        <CheckIcon className="w-3.5 h-3.5" />
+                        <span>Approve Host</span>
                       </button>
                       <button
                         onClick={() => handleReject(item.id)}
                         disabled={actionLoadingId === item.id}
-                        className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        ✕ Reject
+                        <CloseIcon className="w-3.5 h-3.5" />
+                        <span>Reject</span>
                       </button>
                     </>
                   )}
@@ -432,9 +456,10 @@ export default function AdminHostsPage() {
                             })
                           }
                           disabled={actionLoadingId === item.userId}
-                          className="rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                         >
-                          ⏸ Pause Sub
+                          <PauseIcon className="w-3.5 h-3.5" />
+                          <span>Pause Sub</span>
                         </button>
                       ) : item.subscriptionStatus === "PAUSED" ? (
                         <button
@@ -449,9 +474,10 @@ export default function AdminHostsPage() {
                             })
                           }
                           disabled={actionLoadingId === item.userId}
-                          className="rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                         >
-                          ▶ Resume Sub
+                          <PlayIcon className="w-3.5 h-3.5" />
+                          <span>Resume Sub</span>
                         </button>
                       ) : (
                         <button
@@ -466,9 +492,10 @@ export default function AdminHostsPage() {
                             })
                           }
                           disabled={actionLoadingId === item.userId}
-                          className="rounded-xl bg-black hover:bg-zinc-800 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-black hover:bg-zinc-800 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                         >
-                          ⭐ Grant Subscription
+                          <CrownIcon className="w-3.5 h-3.5 text-[#D9A441]" />
+                          <span>Grant Subscription</span>
                         </button>
                       )}
                     </>
@@ -489,9 +516,10 @@ export default function AdminHostsPage() {
                           })
                         }
                         disabled={actionLoadingId === item.userId}
-                        className="rounded-xl border border-red-200 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        ✋ Suspend
+                        <PauseIcon className="w-3.5 h-3.5" />
+                        <span>Suspend</span>
                       </button>
                       <button
                         onClick={() =>
@@ -505,9 +533,10 @@ export default function AdminHostsPage() {
                           })
                         }
                         disabled={actionLoadingId === item.userId}
-                        className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        🚫 Ban
+                        <BanIcon className="w-3.5 h-3.5" />
+                        <span>Ban</span>
                       </button>
                     </>
                   )}
@@ -527,9 +556,10 @@ export default function AdminHostsPage() {
                           })
                         }
                         disabled={actionLoadingId === item.userId}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        ✓ Reactivate
+                        <CheckIcon className="w-3.5 h-3.5" />
+                        <span>Reactivate</span>
                       </button>
                       <button
                         onClick={() =>
@@ -543,9 +573,10 @@ export default function AdminHostsPage() {
                           })
                         }
                         disabled={actionLoadingId === item.userId}
-                        className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        🚫 Ban
+                        <BanIcon className="w-3.5 h-3.5" />
+                        <span>Ban</span>
                       </button>
                     </>
                   )}
@@ -564,9 +595,10 @@ export default function AdminHostsPage() {
                         })
                       }
                       disabled={actionLoadingId === item.userId}
-                      className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                     >
-                      🔓 Unban Host
+                      <UnlockIcon className="w-3.5 h-3.5" />
+                      <span>Unban Host</span>
                     </button>
                   )}
 
@@ -575,10 +607,11 @@ export default function AdminHostsPage() {
                     <button
                       onClick={() => handleVerifyRoutePaymentAccount(item.userId)}
                       disabled={actionLoadingId === item.userId}
-                      className="rounded-xl border border-zinc-300 hover:bg-zinc-100 text-zinc-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 hover:bg-zinc-100 text-zinc-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       title="Verify Razorpay Route Account"
                     >
-                      🏦 Verify Payment Acc
+                      <BankIcon className="w-3.5 h-3.5 text-zinc-600" />
+                      <span>Verify Payment Acc</span>
                     </button>
                   )}
 
@@ -595,9 +628,10 @@ export default function AdminHostsPage() {
                       })
                     }
                     disabled={actionLoadingId === item.id}
-                    className="rounded-xl border border-red-300 hover:bg-red-100 text-red-800 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 hover:bg-red-100 text-red-800 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                   >
-                    🗑 Delete
+                    <TrashIcon className="w-3.5 h-3.5 text-red-600" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -617,8 +651,9 @@ export default function AdminHostsPage() {
             <h3 className="text-base font-black text-zinc-950">{confirmModal.title}</h3>
             <p className="text-xs text-zinc-600 font-semibold leading-relaxed">{confirmModal.description}</p>
             {confirmModal.actionType === "delete" && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800">
-                ⚠️ WARNING: This action is irreversible.
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800 flex items-start gap-2">
+                <AlertTriangleIcon className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <span>WARNING: This action is irreversible.</span>
               </div>
             )}
             <div className="flex justify-end gap-2 pt-2">
@@ -650,8 +685,9 @@ export default function AdminHostsPage() {
             onSubmit={handleGrantSubscriptionSubmit}
             className="bg-white rounded-3xl p-6 max-w-md w-full border border-zinc-200 shadow-2xl space-y-4"
           >
-            <h3 className="text-base font-black text-zinc-950">
-              ⭐ Grant Subscription: {grantModal.hostName}
+            <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
+              <CrownIcon className="w-4 h-4 text-[#D9A441] shrink-0" />
+              <span>Grant Subscription: {grantModal.hostName}</span>
             </h3>
             <p className="text-xs text-zinc-500">
               Grant a complimentary or manual active subscription to this host.

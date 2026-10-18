@@ -92,26 +92,10 @@ export default function PropertyGallery({
             <h3 className="text-sm font-bold text-foreground">
               {propertyType ? `${propertyType} in Delhi NCR` : "Direct Stay Listing"}
             </h3>
-            <p className="text-xs text-muted mt-0.5 font-medium leading-relaxed">
+            <p className="text-xs text-muted mt-1 font-medium leading-relaxed">
               Authentic property verification on file. Photography will be published shortly by host.
             </p>
           </div>
-          <span className="text-[11px] font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mt-1">
-            Verified Physical Property
-          </span>
-        </div>
-
-        {/* Badges in Top Left */}
-        <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2">
-          {isVerified && (
-            <span className="inline-flex items-center gap-1.5 bg-surface/95 backdrop-blur-md border border-border text-foreground px-3 py-1 rounded-full text-xs font-bold shadow-2xs">
-              <BadgeCheckIcon className="w-3.5 h-3.5 text-primary" />
-              <span>Verified Listing</span>
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1.5 bg-[#111716] text-white px-3 py-1 rounded-full text-xs font-bold shadow-2xs">
-            Direct Host
-          </span>
         </div>
       </div>
     );

@@ -25,6 +25,7 @@ import {
   CrownIcon,
   HousePlusIcon,
   LogOutIcon,
+  TrendingUpIcon,
 } from "@/components/ui/Icons";
 
 export default function Header() {
@@ -474,6 +475,24 @@ export default function Header() {
                         >
                           <Building2Icon className="w-4 h-4 text-muted stroke-[1.8]" />
                           <span>My Properties</span>
+                        </Link>
+                        <Link
+                          href="/host/earnings"
+                          onClick={() => setShowAccountMenu(false)}
+                          role="menuitem"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-muted transition-colors"
+                        >
+                          <TrendingUpIcon className="w-4 h-4 text-muted stroke-[1.8]" />
+                          <span>Earnings</span>
+                        </Link>
+                        <Link
+                          href="/host/subscription"
+                          onClick={() => setShowAccountMenu(false)}
+                          role="menuitem"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-muted transition-colors"
+                        >
+                          <CrownIcon className="w-4 h-4 text-muted stroke-[1.8]" />
+                          <span>Subscription</span>
                         </Link>
                       </>
                     )}

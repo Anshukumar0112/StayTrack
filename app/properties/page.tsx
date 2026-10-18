@@ -10,7 +10,14 @@ import PropertyFilterBar, { SORT_OPTIONS } from "@/components/properties/Propert
 import PropertyFilters from "@/components/properties/PropertyFilters";
 import PropertyMap from "@/components/properties/PropertyMap";
 import MobileSearchHeader from "@/components/properties/MobileSearchHeader";
-import { ChevronDownIcon } from "@/components/ui/Icons";
+import {
+  ChevronDownIcon,
+  CloseIcon,
+  CheckIcon,
+  MapPinIcon,
+  Building2Icon,
+  SparklesIcon,
+} from "@/components/ui/Icons";
 import { searchProperties, searchWithAi, getStayProperties } from "@/lib/api";
 import { Property, SearchRequest } from "@/types/property";
 import { isSupportedLocation, SUPPORTED_LOCATIONS } from "@/lib/locations";
@@ -99,6 +106,18 @@ function PropertySearchContent() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [showSortDropdown]);
+
+  // Preserve current listing search URL in sessionStorage so back navigation can restore filtered search state
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const fullSearchPath = window.location.pathname + window.location.search;
+        sessionStorage.setItem("staytrack_last_search", fullSearchPath);
+      } catch {
+        // Safe fallback if sessionStorage is inaccessible
+      }
+    }
+  }, [searchParams]);
 
   // Search destination modal draft inputs
   const [searchCity, setSearchCity] = useState(city);
@@ -486,7 +505,7 @@ function PropertySearchContent() {
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-surface border border-border text-foreground hover:bg-surface-muted transition-all cursor-pointer"
                   >
                     <span>{chip.label}</span>
-                    <span className="text-muted hover:text-foreground text-[10px]">✕</span>
+                    <CloseIcon className="w-2.5 h-2.5 text-muted hover:text-foreground" />
                   </button>
                 ))}
                 <button
@@ -555,7 +574,7 @@ function PropertySearchContent() {
                           }`}
                         >
                           <span>{opt.label}</span>
-                          {isSelected && <span className="text-primary-dark text-xs font-bold">✓</span>}
+                          {isSelected && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                         </button>
                       );
                     })}
@@ -567,7 +586,9 @@ function PropertySearchContent() {
             {/* Unsupported Location Banner */}
             {isUnsupported ? (
               <div className="py-12 text-center rounded-2xl border border-border bg-surface my-4 p-5">
-                <span className="text-4xl">📍</span>
+                <div className="w-12 h-12 rounded-2xl bg-surface-muted border border-border flex items-center justify-center mx-auto mb-3">
+                  <MapPinIcon className="w-6 h-6 text-muted" />
+                </div>
                 <h3 className="text-base font-bold text-foreground mt-3">StayTrack Operates in Delhi NCR Only</h3>
                 <p className="text-xs text-muted mt-2 max-w-sm mx-auto leading-relaxed">
                   We do not currently serve <strong className="text-foreground">{city}</strong>. StayTrack is available in Delhi, Gurugram, Noida, Greater Noida, Ghaziabad, and Faridabad.
@@ -619,7 +640,9 @@ function PropertySearchContent() {
             ) : (
               /* Empty Results */
               <div className="py-16 px-4 text-center rounded-2xl border border-border bg-surface">
-                <span className="text-4xl">🏡</span>
+                <div className="w-12 h-12 rounded-2xl bg-surface-muted border border-border flex items-center justify-center mx-auto mb-3">
+                  <Building2Icon className="w-6 h-6 text-muted" />
+                </div>
                 <h3 className="text-base font-bold text-foreground mt-3">No verified stays match your criteria</h3>
                 <p className="text-xs text-muted mt-1.5 leading-relaxed">
                   {error || "Try adjusting your budget, bedroom filters, or selecting a different category across Delhi NCR."}
@@ -662,7 +685,7 @@ function PropertySearchContent() {
                         className="absolute -top-2.5 -right-2.5 z-40 w-7 h-7 rounded-full bg-[#111716] text-white text-xs font-bold flex items-center justify-center shadow-md cursor-pointer hover:bg-[#232D2B]"
                         aria-label="Close preview"
                       >
-                        ✕
+                        <CloseIcon className="w-3.5 h-3.5" />
                       </button>
                       <PropertyCard
                         property={activeProp}
@@ -685,9 +708,12 @@ function PropertySearchContent() {
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-border/70">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-              {aiPromptParam
-                ? "✨ AI Recommended Stays"
-                : propertyType !== "all"
+              {aiPromptParam ? (
+                <span className="inline-flex items-center gap-2">
+                  <SparklesIcon className="w-6 h-6 text-accent shrink-0" />
+                  <span>AI Recommended Stays</span>
+                </span>
+              ) : propertyType !== "all"
                 ? `Discover ${getCategoryLabel(propertyType)} ${city ? `in ${city}` : "in Delhi NCR"}`
                 : city
                 ? `Verified Stays in ${city}`
@@ -733,7 +759,7 @@ function PropertySearchContent() {
                 title={`Remove filter: ${chip.label}`}
               >
                 <span>{chip.label}</span>
-                <span className="text-muted hover:text-foreground text-[11px] leading-none">✕</span>
+                <CloseIcon className="w-3 h-3 text-muted hover:text-foreground" />
               </button>
             ))}
             <button
@@ -749,7 +775,9 @@ function PropertySearchContent() {
         {/* Unsupported Location Warning */}
         {isUnsupported ? (
           <div className="py-16 text-center rounded-2xl border border-border bg-surface my-6 p-6">
-            <span className="text-5xl">📍</span>
+            <div className="w-14 h-14 rounded-2xl bg-surface-muted border border-border flex items-center justify-center mx-auto mb-3">
+              <MapPinIcon className="w-7 h-7 text-muted" />
+            </div>
             <h3 className="text-lg font-bold text-foreground mt-4">StayTrack Currently Operates in Delhi NCR Only</h3>
             <p className="text-xs text-muted mt-2 max-w-md mx-auto leading-relaxed">
               We do not currently serve <strong className="text-foreground font-bold">{city}</strong>. StayTrack is available in Delhi, Gurugram, Noida, Greater Noida, Ghaziabad, and Faridabad.
@@ -815,7 +843,9 @@ function PropertySearchContent() {
                 </div>
               ) : (
                 <div className="py-20 px-6 text-center rounded-2xl border border-border bg-surface">
-                  <span className="text-5xl">🏡</span>
+                  <div className="w-14 h-14 rounded-2xl bg-surface-muted border border-border flex items-center justify-center mx-auto mb-3">
+                    <Building2Icon className="w-7 h-7 text-muted" />
+                  </div>
                   <h3 className="text-lg font-bold text-foreground mt-4">No verified stays match your criteria</h3>
                   <p className="text-xs text-muted mt-2 max-w-md mx-auto leading-relaxed">
                     {error || "Try adjusting your budget, bedroom filters, or selecting a different category across Delhi NCR."}
@@ -868,7 +898,7 @@ function PropertySearchContent() {
                 className="w-8 h-8 rounded-full bg-surface-muted hover:bg-border text-foreground flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
                 aria-label="Close filters"
               >
-                ✕
+                <CloseIcon className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -942,7 +972,7 @@ function PropertySearchContent() {
                 className="w-8 h-8 rounded-full bg-surface-muted hover:bg-border text-foreground flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
                 aria-label="Close search"
               >
-                ✕
+                <CloseIcon className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -967,7 +997,7 @@ function PropertySearchContent() {
                       onClick={() => setSearchArea("")}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted hover:text-foreground p-1 cursor-pointer"
                     >
-                      ✕
+                      <CloseIcon className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>

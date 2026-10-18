@@ -2,6 +2,7 @@
 
 import GlassCard from "@/components/ui/GlassCard";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { CreditCardIcon, LockIcon } from "@/components/ui/Icons";
 
 export default function AdminPaymentsPage() {
   const { isAdmin, loading: guardLoading } = useAdminGuard();
@@ -22,13 +23,16 @@ export default function AdminPaymentsPage() {
       </div>
 
       <GlassCard className="border border-zinc-200 p-8 shadow-xl text-center space-y-3">
-        <span className="text-4xl">💳</span>
+        <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mx-auto mb-2">
+          <CreditCardIcon className="w-6 h-6 text-zinc-500" />
+        </div>
         <h3 className="text-base font-bold text-zinc-950">Razorpay Gateway Integration</h3>
         <p className="text-xs text-zinc-500 max-w-md mx-auto leading-relaxed">
           All guest transactions are processed securely through Razorpay client checkout and verified server-side by Spring Boot.
         </p>
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold rounded-xl max-w-md mx-auto">
-          🔒 Client security enforced: Secret keys strictly contained within backend environment.
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold rounded-xl max-w-md mx-auto flex items-center justify-center gap-1.5">
+          <LockIcon className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+          <span>Client security enforced: Secret keys strictly contained within backend environment.</span>
         </div>
       </GlassCard>
     </main>

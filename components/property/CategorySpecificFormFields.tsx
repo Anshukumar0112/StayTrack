@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { CheckIcon, PlusIcon } from "@/components/ui/Icons";
 
 export interface CategoryFormState {
   bedrooms: number;
@@ -238,13 +239,14 @@ export default function CategorySpecificFormFields({
                   type="button"
                   key={rule}
                   onClick={() => toggleArrayItem(form.houseRules || [], rule, form.setHouseRules)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                     active
                       ? "bg-zinc-950 text-white border-zinc-950"
                       : "bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400"
                   }`}
                 >
-                  {active ? `✓ ${rule}` : `+ ${rule}`}
+                  {active ? <CheckIcon className="w-3 h-3" /> : <PlusIcon className="w-3 h-3" />}
+                  <span>{rule}</span>
                 </button>
               );
             })}
@@ -378,13 +380,14 @@ export default function CategorySpecificFormFields({
             <button
               type="button"
               onClick={() => form.setFoodIncluded(!form.foodIncluded)}
-              className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all border ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold transition-all border ${
                 form.foodIncluded
                   ? "bg-emerald-600 text-white border-emerald-600"
                   : "bg-white text-zinc-600 border-zinc-300"
               }`}
             >
-              {form.foodIncluded ? "✓ Meals Included in Rent" : "Food Not Included / Optional"}
+              {form.foodIncluded && <CheckIcon className="w-3 h-3" />}
+              <span>{form.foodIncluded ? "Meals Included in Rent" : "Food Not Included / Optional"}</span>
             </button>
           </div>
 
@@ -399,13 +402,14 @@ export default function CategorySpecificFormFields({
                     onClick={() =>
                       toggleArrayItem(form.foodOptions || [], meal, form.setFoodOptions)
                     }
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all border ${
                       active
                         ? "bg-zinc-900 text-white border-zinc-900"
                         : "bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400"
                     }`}
                   >
-                    {active ? `✓ ${meal}` : `+ ${meal}`}
+                    {active ? <CheckIcon className="w-3 h-3" /> : <PlusIcon className="w-3 h-3" />}
+                    <span>{meal}</span>
                   </button>
                 );
               })}
@@ -550,13 +554,14 @@ export default function CategorySpecificFormFields({
                   onClick={() =>
                     toggleArrayItem(form.sharedFacilities || [], fac, form.setSharedFacilities)
                   }
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                     active
                       ? "bg-zinc-950 text-white border-zinc-950"
                       : "bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400"
                   }`}
                 >
-                  {active ? `✓ ${fac}` : `+ ${fac}`}
+                  {active ? <CheckIcon className="w-3 h-3" /> : <PlusIcon className="w-3 h-3" />}
+                  <span>{fac}</span>
                 </button>
               );
             })}
@@ -626,13 +631,14 @@ export default function CategorySpecificFormFields({
             <button
               type="button"
               onClick={() => form.setFurnished(!form.furnished)}
-              className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all border ${
+              className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all border inline-flex items-center justify-center gap-1.5 ${
                 form.furnished
                   ? "bg-zinc-900 text-white border-zinc-900"
                   : "bg-white text-zinc-700 border-zinc-300"
               }`}
             >
-              {form.furnished ? "✓ Fully Furnished" : "Semi / Unfurnished"}
+              {form.furnished && <CheckIcon className="w-3.5 h-3.5" />}
+              <span>{form.furnished ? "Fully Furnished" : "Semi / Unfurnished"}</span>
             </button>
           </div>
 
@@ -826,13 +832,14 @@ export default function CategorySpecificFormFields({
           <button
             type="button"
             onClick={() => form.setBreakfastIncluded(!form.breakfastIncluded)}
-            className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all border ${
+            className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all border inline-flex items-center justify-center gap-1.5 ${
               form.breakfastIncluded
                 ? "bg-emerald-600 text-white border-emerald-600"
                 : "bg-white text-zinc-700 border-zinc-300"
             }`}
           >
-            {form.breakfastIncluded ? "✓ Free Breakfast" : "Breakfast Extra"}
+            {form.breakfastIncluded && <CheckIcon className="w-3.5 h-3.5" />}
+            <span>{form.breakfastIncluded ? "Free Breakfast" : "Breakfast Extra"}</span>
           </button>
         </div>
 

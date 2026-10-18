@@ -142,6 +142,136 @@ export function getBookingStatusBadge(status: string): { bg: string; text: strin
   }
 }
 
+export function getBookingStatusBadgeVariant(status: string): "verified" | "success" | "warning" | "error" | "info" | "sage" | "neutral" | "dark" {
+  const s = (status || "").toLowerCase();
+  switch (s) {
+    case "confirmed":
+      return "success";
+    case "requested":
+      return "warning";
+    case "accepted":
+    case "payment_pending":
+      return "info";
+    case "completed":
+      return "neutral";
+    case "rejected":
+    case "cancelled":
+      return "error";
+    default:
+      return "neutral";
+  }
+}
+
+export function getBookingStatusDescription(status: string, role?: "customer" | "host"): string {
+  const s = (status || "").toLowerCase();
+  if (role === "host") {
+    switch (s) {
+      case "requested":
+        return "Guest has requested dates for your property. Review and approve or decline the reservation.";
+      case "accepted":
+      case "payment_pending":
+        return "You accepted this reservation. Waiting for the guest to finalize their payment.";
+      case "confirmed":
+        return "Booking is locked and confirmed. Prepare accommodation for guest arrival.";
+      case "rejected":
+        return "You declined this booking request.";
+      case "cancelled":
+        return "This booking was cancelled by the guest.";
+      case "completed":
+        return "Stay term has finished.";
+      default:
+        return "Booking status update.";
+    }
+  } else {
+    switch (s) {
+      case "requested":
+        return "Your reservation request has been sent to the host. No payment has been deducted.";
+      case "accepted":
+      case "payment_pending":
+        return "The host accepted your request! Complete payment to lock in your stay.";
+      case "confirmed":
+        return "Your stay is confirmed! The accommodation dates are reserved.";
+      case "rejected":
+        return "The host was unable to accept this booking request. No payment was charged.";
+      case "cancelled":
+        return "This booking was cancelled. Accommodation dates have been released.";
+      case "completed":
+        return "Your stay is complete. Thank you for traveling with StayTrack!";
+      default:
+        return "Reservation details.";
+    }
+  }
+}
+
+export function isBookingCancellable(b: Partial<Booking> & Record<string, any>): boolean {
+  const st = getBookingStatus(b);
+  if (st === "completed" || st === "cancelled" || st === "rejected") {
+    return false;
+  }
+  if (b.startDate) {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const start = new Date(b.startDate);
+      if (start < today) {
+        return false;
+      }
+      if (start.getTime() === today.getTime() && b.bookingType !== "hourly") {
+        return false;
+      }
+      if (start.getTime() === today.getTime() && b.bookingType === "hourly" && b.startTime) {
+        const [hours, minutes] = b.startTime.split(":").map(Number);
+        const now = new Date();
+        const startTimeDate = new Date();
+        startTimeDate.setHours(hours, minutes, 0, 0);
+        if (now >= startTimeDate) {
+          return false;
+        }
+      }
+    } catch {
+      return true;
+    }
+  }
+  return true;
+}
+
+export function calculateStayDuration(b: Partial<Booking> & Record<string, any>): string {
+  const type = (b.bookingType || "daily").toLowerCase();
+  if (type === "hourly") {
+    if (b.startTime && b.endTime) {
+      try {
+        const [sh, sm] = b.startTime.split(":").map(Number);
+        const [eh, em] = b.endTime.split(":").map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+        const diffHours = Math.max(1, Math.round((endMin - startMin) / 60));
+        return `${diffHours} ${diffHours === 1 ? "Hour" : "Hours"}`;
+      } catch {
+        return "Hourly Transit";
+      }
+    }
+    return "Hourly Transit";
+  }
+
+  if (b.startDate && b.endDate) {
+    try {
+      const start = new Date(b.startDate);
+      const end = new Date(b.endDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+      if (type === "monthly") {
+        const months = Math.max(1, Math.ceil(diffDays / 30));
+        return `${months} ${months === 1 ? "Month" : "Months"}`;
+      }
+      return `${diffDays} ${diffDays === 1 ? "Night" : "Nights"}`;
+    } catch {
+      return type === "monthly" ? "1 Month" : "1 Night";
+    }
+  }
+
+  return type === "monthly" ? "Monthly Stay" : "Daily Stay";
+}
+
 export interface Conversation {
   id?: string;
   conversationId?: string;

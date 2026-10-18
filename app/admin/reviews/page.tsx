@@ -2,6 +2,7 @@
 
 import GlassCard from "@/components/ui/GlassCard";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { MessageCircleIcon } from "@/components/ui/Icons";
 
 export default function AdminReviewsPage() {
   const { isAdmin, loading: guardLoading } = useAdminGuard();
@@ -22,7 +23,9 @@ export default function AdminReviewsPage() {
       </div>
 
       <GlassCard className="border border-zinc-200 p-8 shadow-xl text-center">
-        <span className="text-4xl">💬</span>
+        <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mx-auto mb-3">
+          <MessageCircleIcon className="w-6 h-6 text-zinc-500" />
+        </div>
         <h3 className="text-base font-bold text-zinc-950 mt-3">Property Reviews Moderation</h3>
         <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
           Reviews are submitted by verified guests upon stay completion and stored on the Spring Boot backend.

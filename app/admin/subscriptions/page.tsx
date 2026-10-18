@@ -2,6 +2,7 @@
 
 import GlassCard from "@/components/ui/GlassCard";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { CrownIcon } from "@/components/ui/Icons";
 
 export default function AdminSubscriptionsPage() {
   const { isAdmin, loading: guardLoading } = useAdminGuard();
@@ -22,7 +23,9 @@ export default function AdminSubscriptionsPage() {
       </div>
 
       <GlassCard className="border border-zinc-200 p-8 shadow-xl text-center">
-        <span className="text-4xl">⭐</span>
+        <div className="w-12 h-12 rounded-2xl bg-[#D9A441]/10 border border-[#D9A441]/20 flex items-center justify-center mx-auto mb-2">
+          <CrownIcon className="w-6 h-6 text-[#D9A441]" />
+        </div>
         <h3 className="text-base font-bold text-zinc-950 mt-3">Subscriptions Portal</h3>
         <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
           Host subscriptions are processed via Razorpay and verified by Spring Boot backend.

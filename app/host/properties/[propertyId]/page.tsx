@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import GlassCard from "@/components/ui/GlassCard";
+import { TrashIcon } from "@/components/ui/Icons";
 import PropertyImageUploader from "@/components/property/PropertyImageUploader";
 import Link from "next/link";
 import { getPropertyDetails, updateProperty, deleteProperty } from "@/lib/api";
@@ -426,9 +427,10 @@ export default function HostPropertyEditPage({
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 transition-all cursor-pointer disabled:opacity-50"
               >
-                {deleting ? "Deleting..." : "🗑️ Delete Property"}
+                <TrashIcon className="w-3.5 h-3.5 text-red-600" />
+                <span>{deleting ? "Deleting..." : "Delete Property"}</span>
               </button>
             </div>
 

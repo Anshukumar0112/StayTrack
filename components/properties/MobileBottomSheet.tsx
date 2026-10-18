@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Property } from "@/types/property";
 import PropertyCard from "@/components/properties/PropertyCard";
 import GlassCard from "@/components/ui/GlassCard";
+import { Building2Icon } from "@/components/ui/Icons";
 
 interface MobileBottomSheetProps {
   properties: Property[];
@@ -112,7 +113,9 @@ export default function MobileBottomSheet({
             </div>
           ) : properties.length === 0 ? (
             <GlassCard className="py-8 text-center border border-border bg-background">
-              <span className="text-3xl">🏡</span>
+              <div className="w-10 h-10 rounded-xl bg-surface-muted border border-border flex items-center justify-center mx-auto mb-2">
+                <Building2Icon className="w-5 h-5 text-muted" />
+              </div>
               <h4 className="text-xs font-semibold text-foreground mt-2">No properties match filters</h4>
               {onResetFilters && (
                 <button

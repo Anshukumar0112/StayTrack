@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { CrownIcon } from "@/components/ui/Icons";
 
 interface AdminHeaderProps {
   onToggleMobileSidebar?: () => void;
@@ -71,8 +72,8 @@ export default function AdminHeader({ onToggleMobileSidebar }: AdminHeaderProps)
             )}
 
             <Link href="/admin" className="flex items-center gap-2 font-black text-lg text-white hover:opacity-90 transition">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-black text-sm font-black shadow-xs">
-                👑
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-black shadow-xs">
+                <CrownIcon className="w-4 h-4 text-black" />
               </span>
               <span>
                 StayTrack <span className="text-emerald-400 font-semibold text-xs tracking-wider uppercase ml-1">ADMIN CONSOLE</span>

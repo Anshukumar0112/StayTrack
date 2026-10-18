@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
+import { AlertTriangleIcon } from "@/components/ui/Icons";
 import PropertyImageUploader from "@/components/property/PropertyImageUploader";
 import { createProperty, getEligibility } from "@/lib/api";
 import { SUPPORTED_LOCATIONS, isSupportedLocation } from "@/lib/locations";
@@ -254,7 +255,7 @@ export default function CreateNewPropertyPage() {
         cancellationPolicy: normCat === "HOTEL" ? cancellationPolicy : undefined,
       });
 
-      alert("Property submitted successfully for admin verification! 🎉");
+      alert("Property submitted successfully for admin verification!");
       router.push("/host/properties");
     } catch (err: any) {
       setError(err.message || "Failed to create property.");
@@ -287,7 +288,10 @@ export default function CreateNewPropertyPage() {
         {eligibility && !eligibility.eligible && eligibility.subscriptionMode === "paid" && (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="font-extrabold text-sm mb-1">⚠️ Active Subscription Required</p>
+              <p className="font-extrabold text-sm mb-1 flex items-center gap-1.5">
+                <AlertTriangleIcon className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Active Subscription Required</span>
+              </p>
               <p className="font-medium">
                 Platform billing mode is set to Paid. You need an active Host Subscription (Status: {eligibility.status || "Inactive"}) to publish properties.
               </p>

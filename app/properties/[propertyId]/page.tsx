@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import PropertyGallery from "@/components/properties/PropertyGallery";
+import BackButton from "@/components/ui/BackButton";
 import { formatCurrency } from "@/lib/utils";
 import {
   getPropertyDetails,
@@ -127,8 +128,8 @@ export default function PropertyDetailPage({
     reason?: string;
   } | null>(null);
 
-  // Review submission state
-  const [reviewRating, setReviewRating] = useState(5);
+  // Review submission state (guests tap stars to choose rating, no default 5.0)
+  const [reviewRating, setReviewRating] = useState<number | null>(null);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewFeedback, setReviewFeedback] = useState<{
@@ -266,12 +267,76 @@ export default function PropertyDetailPage({
     };
   }, [propertyId, startDate, endDate, property?.bookingType]);
 
+  // Determine active booking type and rates
+  const resolvedBookingType = useMemo(() => {
+    if (!property) return "daily";
+
+    // 1. Explicit bookingType if valid
+    const bType = String(property.bookingType || "").toLowerCase();
+    if (bType === "monthly" || bType === "hourly" || bType === "daily") {
+      return bType;
+    }
+
+    // 2. Check stayTypes array
+    if (Array.isArray(property.stayTypes) && property.stayTypes.length > 0) {
+      const lowerTypes = property.stayTypes.map((t) => String(t).toLowerCase());
+      if (lowerTypes.includes("monthly") && !lowerTypes.includes("daily")) return "monthly";
+      if (lowerTypes.includes("hourly") && !lowerTypes.includes("daily")) return "hourly";
+      if (lowerTypes.includes("daily")) return "daily";
+      if (lowerTypes.includes("monthly")) return "monthly";
+    }
+
+    // 3. Infer from available rate fields
+    const hasDaily = Boolean(property.dailyPrice || property.pricePerNight);
+    const hasMonthly = Boolean(property.monthlyPrice || property.pricePerMonth);
+    const hasHourly = Boolean(property.hourlyPrice || property.pricePerHour);
+
+    if (hasMonthly && !hasDaily) return "monthly";
+    if (hasHourly && !hasDaily && !hasMonthly) return "hourly";
+    if (hasDaily) return "daily";
+
+    // 4. Infer from property category defaults
+    const cat = String(property.propertyType || property.category || "").toUpperCase();
+    if (cat === "FLAT" || cat === "APARTMENT" || cat === "PG" || cat === "HOUSE") {
+      return "monthly";
+    }
+
+    return "daily";
+  }, [property]);
+
+  // Authoritative primary rate reflecting selected booking type
+  const primaryPrice = useMemo(() => {
+    if (!property) return 0;
+    if (resolvedBookingType === "monthly") {
+      return property.monthlyPrice || property.pricePerMonth || property.price || 0;
+    }
+    if (resolvedBookingType === "hourly") {
+      return property.hourlyPrice || property.pricePerHour || property.price || 0;
+    }
+    return property.dailyPrice || property.pricePerNight || property.price || 0;
+  }, [property, resolvedBookingType]);
+
+  const bookingPeriodLabel = useMemo(() => {
+    if (resolvedBookingType === "monthly") return "month";
+    if (resolvedBookingType === "hourly") return "hour";
+    return "night";
+  }, [resolvedBookingType]);
+
+  // Sync default checkout date for monthly rentals to 30 days
+  useEffect(() => {
+    if (resolvedBookingType === "monthly") {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      setEndDate(d.toISOString().split("T")[0]);
+    }
+  }, [resolvedBookingType]);
+
   const handleBookNow = () => {
     const query = new URLSearchParams({
       propertyId,
       startDate,
       endDate,
-      bookingType: property?.bookingType || "daily",
+      bookingType: resolvedBookingType,
     });
     router.push(`/booking?${query.toString()}`);
   };
@@ -290,6 +355,13 @@ export default function PropertyDetailPage({
 
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!reviewRating) {
+      setReviewFeedback({
+        type: "error",
+        message: "Please select a star rating (1 to 5) before submitting your review.",
+      });
+      return;
+    }
     if (!reviewComment.trim()) return;
 
     setReviewLoading(true);
@@ -303,6 +375,7 @@ export default function PropertyDetailPage({
       });
       setReviews((prev) => [newRev, ...prev]);
       setReviewComment("");
+      setReviewRating(null);
       setReviewFeedback({
         type: "success",
         message: "Thank you! Your verified review has been published.",
@@ -325,25 +398,6 @@ export default function PropertyDetailPage({
   const displayAddress = property?.address || "";
   const isVerified =
     property?.verificationStatus === "approved" || Boolean(property?.topVerified);
-
-  // Authoritative primary rate
-  const primaryPrice =
-    property?.pricePerNight ||
-    property?.dailyPrice ||
-    property?.pricePerMonth ||
-    property?.monthlyPrice ||
-    property?.pricePerHour ||
-    property?.hourlyPrice ||
-    property?.price ||
-    0;
-
-  const bookingPeriodLabel =
-    property?.bookingType === "monthly" ||
-    (property?.pricePerMonth && !property?.pricePerNight)
-      ? "month"
-      : property?.bookingType === "hourly"
-      ? "hour"
-      : "night";
 
   // Honest rating presentation (no fake 4.8)
   const hasRating =
@@ -370,47 +424,51 @@ export default function PropertyDetailPage({
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground selection:bg-primary/20 selection:text-foreground">
       <Header />
 
-      <main className="stay-container py-6 sm:py-8 flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <main className="stay-container pt-4 sm:pt-6 pb-[calc(9.5rem+env(safe-area-inset-bottom))] lg:pb-12 flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* Navigation Breadcrumb & Header Action Strip */}
-        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center flex-wrap gap-2 text-xs font-medium text-muted"
-          >
-            <Link
-              href="/properties"
-              className="hover:text-foreground transition-colors"
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <BackButton fallbackUrl="/properties" />
+            <span className="hidden sm:inline-block h-4 w-px bg-border shrink-0" aria-hidden="true" />
+            <nav
+              aria-label="Breadcrumb"
+              className="hidden sm:flex items-center flex-wrap gap-2 text-xs font-medium text-muted truncate"
             >
-              Stays
-            </Link>
-            <span className="text-border">/</span>
-            <Link
-              href={`/properties?city=${encodeURIComponent(displayCity)}`}
-              className="hover:text-foreground transition-colors"
-            >
-              {displayCity}
-            </Link>
-            {displayArea && (
-              <>
-                <span className="text-border">/</span>
-                <span className="text-muted">{displayArea}</span>
-              </>
-            )}
-            <span className="text-border">/</span>
-            <span className="text-foreground font-semibold truncate max-w-xs sm:max-w-md">
-              {displayTitle}
-            </span>
-          </nav>
+              <Link
+                href="/properties"
+                className="hover:text-foreground transition-colors"
+              >
+                Stays
+              </Link>
+              <span className="text-border">/</span>
+              <Link
+                href={`/properties?city=${encodeURIComponent(displayCity)}`}
+                className="hover:text-foreground transition-colors"
+              >
+                {displayCity}
+              </Link>
+              {displayArea && (
+                <>
+                  <span className="text-border">/</span>
+                  <span className="text-muted">{displayArea}</span>
+                </>
+              )}
+              <span className="text-border">/</span>
+              <span className="text-foreground font-semibold truncate max-w-xs sm:max-w-md">
+                {displayTitle}
+              </span>
+            </nav>
+          </div>
 
           {/* Header Quick Actions: Wishlist & Share */}
-          <div className="flex items-center gap-2 self-start sm:self-auto relative">
+          <div className="flex items-center gap-2 shrink-0 relative">
             <button
               type="button"
               onClick={handleToggleFavorite}
               aria-label={
                 isFavorite ? "Remove from saved stays" : "Save this stay"
               }
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
                 isFavorite
                   ? "bg-rose-50 border-rose-200 text-rose-600"
                   : "bg-surface border-border text-muted hover:text-foreground hover:border-foreground/30 shadow-2xs"
@@ -428,7 +486,7 @@ export default function PropertyDetailPage({
               type="button"
               onClick={handleShare}
               aria-label="Share this listing"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-border bg-surface text-muted hover:text-foreground hover:border-foreground/30 text-xs font-medium transition-colors cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-surface text-muted hover:text-foreground hover:border-foreground/30 text-xs font-medium transition-colors cursor-pointer shadow-2xs"
             >
               <Share2Icon className="w-3.5 h-3.5" />
               <span>Share</span>
@@ -495,7 +553,7 @@ export default function PropertyDetailPage({
         ) : (
           <div className="space-y-6">
             {/* Editorial Property Header Block (Above Gallery) */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-md border border-primary/20">
                   {property.propertyType || "Verified Stay"}
@@ -506,18 +564,15 @@ export default function PropertyDetailPage({
                     <span>Host Verified</span>
                   </span>
                 )}
-                <span className="text-[11px] font-bold text-foreground/80 bg-surface border border-border px-2 py-0.5 rounded-md">
-                  Zero Brokerage
-                </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight leading-snug">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight leading-snug">
                 {displayTitle}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-y-1.5 gap-x-3 text-xs text-muted font-medium pt-0.5">
-                <div className="flex items-center gap-1.5 text-foreground font-semibold">
-                  <MapPinIcon className="w-4 h-4 text-primary shrink-0" />
+              <div className="flex flex-wrap items-center gap-y-1.5 gap-x-2.5 text-xs text-muted font-medium pt-0.5">
+                <div className="flex items-center gap-1 text-foreground font-semibold">
+                  <MapPinIcon className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span>
                     {displayArea ? `${displayArea}, ` : ""}
                     {displayCity}
@@ -526,11 +581,11 @@ export default function PropertyDetailPage({
                 {displayAddress && (
                   <>
                     <span className="text-border">·</span>
-                    <span className="truncate max-w-md">{displayAddress}</span>
+                    <span className="truncate max-w-xs sm:max-w-md">{displayAddress}</span>
                   </>
                 )}
                 <span className="text-border">·</span>
-                {hasRating ? (
+                {hasRating && reviews.length > 0 ? (
                   <div className="flex items-center gap-1 text-foreground font-bold">
                     <StarIcon className="w-3.5 h-3.5 text-[#D9A441]" />
                     <span>{property.rating?.toFixed(1)}</span>
@@ -540,9 +595,12 @@ export default function PropertyDetailPage({
                     </span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1 text-muted">
-                    <StarOutlineIcon className="w-3.5 h-3.5 text-muted" />
-                    <span>New Listing · 0 reviews</span>
+                  <div className="flex items-center gap-1 text-muted text-xs">
+                    <span className="px-2 py-0.5 rounded-md bg-surface-muted text-[11px] font-medium text-muted border border-border/60">
+                      New listing
+                    </span>
+                    <span className="text-muted/60">·</span>
+                    <span>No reviews yet</span>
                   </div>
                 )}
               </div>
@@ -561,17 +619,17 @@ export default function PropertyDetailPage({
               {/* Left Column: Cohesive Editorial Details (Card Clutter Eliminated) */}
               <div className="lg:col-span-2 space-y-9">
                 {/* 1. Host Introduction Strip */}
-                <div className="pb-8 border-b border-border/70 flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-full bg-surface-muted border border-border flex items-center justify-center text-primary font-bold text-base shadow-2xs">
+                <div className="pb-6 border-b border-border/70 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-surface-muted border border-border flex items-center justify-center text-primary font-bold text-sm shadow-2xs">
                       {property.hostId ? property.hostId.charAt(0).toUpperCase() : "H"}
                     </div>
                     <div>
                       <h2 className="text-sm font-bold text-foreground">
-                        Directly Hosted Stay
+                        Hosted by {property.hostId ? `Host ${property.hostId.slice(0, 8)}` : "Verified Host"}
                       </h2>
                       <p className="text-xs text-muted font-medium mt-0.5">
-                        Host ID: {property.hostId ? property.hostId.slice(0, 8) : "Verified Host"} · Identity Verified · 0% Middleman Fees
+                        Identity Verified · Direct Host Contact
                       </p>
                     </div>
                   </div>
@@ -582,7 +640,7 @@ export default function PropertyDetailPage({
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border bg-surface hover:bg-surface-muted text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs shrink-0 focus-ring"
                   >
                     <MessageCircleIcon className="w-3.5 h-3.5 text-primary" />
-                    <span>Message Host</span>
+                    <span>{contactLoading ? "Opening..." : "Message Host"}</span>
                   </button>
                 </div>
 
@@ -1038,50 +1096,15 @@ export default function PropertyDetailPage({
                     </div>
                   )}
 
-                {/* 5. Host & Direct Communication Trust Block */}
+                {/* 5. Transparent Pricing & Duration Options */}
                 <div className="pb-8 border-b border-border/70 space-y-4">
-                  <div className="space-y-1">
+                  <div>
                     <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
-                      Direct Host Guarantee
+                      Transparent Rates & Durations
                     </h2>
-                    <p className="text-xs text-foreground font-semibold">
-                      Direct booking with verified hosts across Delhi NCR
+                    <p className="text-xs text-foreground font-semibold mt-0.5">
+                      Authoritative pricing configured directly by host
                     </p>
-                  </div>
-
-                  <p className="text-xs text-muted leading-relaxed">
-                    StayTrack connects guests directly with property hosts with zero broker commissions and zero hidden platform markups. You can message the host directly with inquiries before submitting a reservation.
-                  </p>
-
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={handleContactHost}
-                      disabled={contactLoading}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-surface hover:bg-surface-muted text-xs font-semibold text-foreground transition-all cursor-pointer disabled:opacity-60 shadow-2xs focus-ring"
-                    >
-                      <MessageCircleIcon className="w-4 h-4 text-primary" />
-                      <span>
-                        {contactLoading ? "Opening Chat..." : "Send Message to Host"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 6. Transparent Pricing & Duration Options */}
-                <div className="pb-8 border-b border-border/70 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
-                        Transparent Rates & Durations
-                      </h2>
-                      <p className="text-xs text-foreground font-semibold mt-0.5">
-                        Authoritative pricing configured directly by host
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                      Zero Commission
-                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
@@ -1175,7 +1198,9 @@ export default function PropertyDetailPage({
                       </p>
                     </div>
                     <span className="text-xs font-bold text-foreground bg-surface border border-border px-3 py-1 rounded-full shadow-2xs">
-                      {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
+                      {reviews.length > 0
+                        ? `${reviews.length} ${reviews.length === 1 ? "Review" : "Reviews"}`
+                        : "No reviews yet"}
                     </span>
                   </div>
 
@@ -1203,7 +1228,7 @@ export default function PropertyDetailPage({
                           >
                             <StarIcon
                               className={`w-4 h-4 ${
-                                star <= reviewRating
+                                reviewRating !== null && star <= reviewRating
                                   ? "text-[#D9A441]"
                                   : "text-border"
                               }`}
@@ -1211,7 +1236,7 @@ export default function PropertyDetailPage({
                           </button>
                         ))}
                         <span className="text-xs font-bold text-foreground ml-1">
-                          {reviewRating}.0
+                          {reviewRating ? `${reviewRating} / 5` : "Tap to rate"}
                         </span>
                       </div>
                     </div>
@@ -1292,7 +1317,7 @@ export default function PropertyDetailPage({
               </div>
 
               {/* Right Column: Desktop Sticky Reservation Card */}
-              <div className="lg:col-span-1">
+              <div className="hidden lg:block lg:col-span-1">
                 <aside className="lg:sticky lg:top-[96px] bg-surface border border-border/80 rounded-3xl p-6 shadow-subtle space-y-5">
                   {/* Price Header */}
                   <div className="flex items-baseline justify-between pb-4 border-b border-border/80">
@@ -1304,9 +1329,6 @@ export default function PropertyDetailPage({
                         / {bookingPeriodLabel}
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
-                      ₹0 Brokerage
-                    </span>
                   </div>
 
                   {/* Interactive Date Selector */}
@@ -1451,9 +1473,9 @@ export default function PropertyDetailPage({
 
         {/* Mobile Sticky Booking Bar */}
         {property && !loading && (
-          <div className="lg:hidden fixed bottom-[calc(3.8rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 bg-surface/98 backdrop-blur-md border-t border-border p-3.5 px-4 shadow-elevated flex items-center justify-between gap-3">
+          <div className="lg:hidden fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] left-0 right-0 z-30 bg-surface/98 backdrop-blur-md border-t border-border px-4 py-2.5 shadow-elevated flex items-center justify-between gap-3">
             <div>
-              <span className="text-lg font-bold text-foreground block leading-tight">
+              <span className="text-base sm:text-lg font-extrabold text-foreground block leading-tight">
                 {formatCurrency(primaryPrice)}
               </span>
               <span className="text-[11px] text-muted font-medium">
@@ -1461,12 +1483,13 @@ export default function PropertyDetailPage({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleContactHost}
                 disabled={contactLoading}
-                className="px-3.5 py-2.5 rounded-xl border border-border bg-surface text-foreground font-semibold text-xs cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                aria-label="Chat with host"
+                className="px-3.5 py-2 rounded-xl border border-border bg-surface hover:bg-surface-muted text-foreground font-semibold text-xs cursor-pointer flex items-center gap-1.5 shadow-2xs transition-colors"
               >
                 <MessageCircleIcon className="w-3.5 h-3.5 text-primary" />
                 <span>Chat</span>
@@ -1475,7 +1498,8 @@ export default function PropertyDetailPage({
                 type="button"
                 onClick={handleBookNow}
                 disabled={availStatus ? !availStatus.available : false}
-                className="px-5 py-2.5 rounded-xl bg-[#111716] text-white font-bold text-xs shadow-xs hover:bg-black transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                aria-label="Reserve this stay"
+                className="px-4 sm:px-5 py-2 rounded-xl bg-[#111716] text-white font-bold text-xs shadow-xs hover:bg-black transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
                 <span>Reserve</span>
                 <ArrowRightIcon className="w-3.5 h-3.5" />

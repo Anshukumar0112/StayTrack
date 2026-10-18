@@ -19,5 +19,8 @@ export * from "./Select";
 export { default as Textarea } from "./Textarea";
 export * from "./Textarea";
 
+export { default as BackButton } from "./BackButton";
+export * from "./BackButton";
+
 export * from "./Icons";
 

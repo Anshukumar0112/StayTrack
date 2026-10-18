@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getAdminSummary, getAdminActivities, clearAdminActivities } from "@/lib/api";
 import { AdminDashboardSummary } from "@/types/host";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { BellIcon, Building2Icon, ZapIcon, LayoutDashboardIcon } from "@/components/ui/Icons";
 
 function UserCheckIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -232,7 +233,9 @@ export default function AdminPage() {
                         : `${pendingHostAppsCount} pending host applications awaiting verification review.`}
                     </p>
                   </div>
-                  <span className="text-2xl animate-bounce">🔔</span>
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <BellIcon className="w-5 h-5 text-amber-700" />
+                  </div>
                 </div>
                 <div>
                   <Link
@@ -260,7 +263,9 @@ export default function AdminPage() {
                         : `${pendingPropsCount} property submissions awaiting verification review.`}
                     </p>
                   </div>
-                  <span className="text-2xl animate-bounce">🏢</span>
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <Building2Icon className="w-5 h-5 text-amber-700" />
+                  </div>
                 </div>
                 <div>
                   <Link
@@ -305,8 +310,8 @@ export default function AdminPage() {
               {activities.map((act) => (
                 <div key={act.id || act.eventId} className="py-3 flex items-center justify-between gap-4 text-xs">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-700 font-bold shrink-0">
-                      ⚡
+                    <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center shrink-0">
+                      <ZapIcon className="w-4 h-4 text-amber-600" />
                     </div>
                     <div>
                       <p className="font-bold text-zinc-900">{act.description || act.eventType}</p>
@@ -323,7 +328,7 @@ export default function AdminPage() {
         ) : (
           <GlassCard className="border border-zinc-200 p-8 text-center bg-white space-y-2">
             <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto text-zinc-400">
-              📊
+              <LayoutDashboardIcon className="w-5 h-5 text-zinc-400" />
             </div>
             <h3 className="text-sm font-bold text-zinc-950">No Recent Activity</h3>
             <p className="text-xs text-zinc-500 max-w-sm mx-auto">

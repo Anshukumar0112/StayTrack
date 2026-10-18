@@ -11,6 +11,7 @@ import Link from "next/link";
 import { SUPPORTED_LOCATIONS, SupportedLocation } from "@/lib/locations";
 import { getStayProperties } from "@/lib/api";
 import { Property } from "@/types/property";
+import { TrainIcon, Building2Icon } from "@/components/ui/Icons";
 
 interface PageProps {
   params: Promise<{ city: string }>;
@@ -219,8 +220,11 @@ export default async function LocationStaysPage({ params, searchParams }: PagePr
                   Noida-Greater Noida Expressway
                 </Link>
               </div>
-              <p className="text-[11px] text-muted font-medium mt-3 leading-relaxed">
-                🚆 <strong>Aqua Line Metro Connectivity:</strong> Knowledge Park II and Pari Chowk metro stations connect Greater Noida directly to Sector 51 Noida and central NCR corridors.
+              <p className="text-[11px] text-muted font-medium mt-3 leading-relaxed flex items-center gap-1.5">
+                <TrainIcon className="w-4 h-4 text-primary shrink-0" />
+                <span>
+                  <strong>Aqua Line Metro Connectivity:</strong> Knowledge Park II and Pari Chowk metro stations connect Greater Noida directly to Sector 51 Noida and central NCR corridors.
+                </span>
               </p>
             </div>
           )}
@@ -240,7 +244,9 @@ export default async function LocationStaysPage({ params, searchParams }: PagePr
               </div>
             ) : (
               <GlassCard className="py-16 text-center border border-border bg-surface">
-                <span className="text-4xl">🏡</span>
+                <div className="w-12 h-12 rounded-2xl bg-surface-muted border border-border flex items-center justify-center mx-auto mb-3">
+                  <Building2Icon className="w-6 h-6 text-muted" />
+                </div>
                 <h3 className="text-base font-bold text-foreground mt-3">
                   No verified stays currently listed in {area ? `${area}, ` : ""}{location.name}
                 </h3>

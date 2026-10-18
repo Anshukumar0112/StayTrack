@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
+import { ClockIcon, LockIcon, CloseIcon, CheckIcon } from "@/components/ui/Icons";
 import { submitHostApplication, getMyHostApplication } from "@/lib/api";
 import { HostApplication } from "@/types/host";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
@@ -154,8 +155,8 @@ export default function HostApplicationPage() {
         ) : existingApp && status === "pending" ? (
           /* STATUS: PENDING */
           <GlassCard className="border border-zinc-200 p-8 shadow-xl space-y-6 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white text-2xl font-black shadow-md animate-pulse">
-              ⏳
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-md animate-pulse">
+              <ClockIcon className="w-7 h-7 text-white" />
             </div>
             <div>
               <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
@@ -253,7 +254,7 @@ export default function HostApplicationPage() {
 
               <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1 text-left">
                 <div className="flex items-center gap-2 text-xs font-bold text-zinc-900">
-                  <span>🔒</span>
+                  <LockIcon className="w-4 h-4 text-zinc-700" />
                   <span>Identity Verification Policy</span>
                 </div>
                 <p className="text-xs text-zinc-600 font-medium leading-relaxed">
@@ -273,8 +274,8 @@ export default function HostApplicationPage() {
         ) : existingApp && status === "rejected" ? (
           /* STATUS: REJECTED */
           <GlassCard className="border border-red-200 p-8 shadow-xl space-y-6 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600 text-white text-2xl font-black shadow-md">
-              ✕
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600 text-white shadow-md">
+              <CloseIcon className="w-7 h-7" />
             </div>
             <div>
               <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
@@ -305,14 +306,14 @@ export default function HostApplicationPage() {
         ) : existingApp && status === "approved" ? (
           /* STATUS: APPROVED */
           <GlassCard className="border border-emerald-200 bg-emerald-50/20 p-8 shadow-xl space-y-6 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white text-2xl font-black shadow-md">
-              ✓
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md">
+              <CheckIcon className="w-7 h-7" />
             </div>
             <div>
               <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
                 Verified StayTrack Host
               </span>
-              <h2 className="text-2xl font-black text-zinc-950">You're Now a StayTrack Host 🎉</h2>
+              <h2 className="text-2xl font-black text-zinc-950">You're Now a StayTrack Host</h2>
               <p className="text-xs text-zinc-600 font-medium mt-2 max-w-md mx-auto leading-relaxed">
                 Your host verification is complete. Activate your host subscription to list your properties and manage direct bookings.
               </p>
@@ -404,7 +405,7 @@ export default function HostApplicationPage() {
 
                 <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1 text-left">
                   <div className="flex items-center gap-2 text-xs font-bold text-zinc-900">
-                    <span>🔒</span>
+                    <LockIcon className="w-4 h-4 text-zinc-700" />
                     <span>Identity Verification Policy</span>
                   </div>
                   <p className="text-xs text-zinc-600 font-medium leading-relaxed">

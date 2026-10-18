@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
+import { CheckIcon, BellIcon } from "@/components/ui/Icons";
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/api";
 import { Notification } from "@/types/booking";
 
@@ -62,9 +63,10 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="rounded-xl bg-black text-white px-4 py-2 text-xs font-bold hover:bg-zinc-800 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-black text-white px-4 py-2 text-xs font-bold hover:bg-zinc-800 transition-all cursor-pointer"
             >
-              ✓ Mark All As Read
+              <CheckIcon className="w-3.5 h-3.5" />
+              <span>Mark All As Read</span>
             </button>
           )}
         </div>
@@ -112,8 +114,11 @@ export default function NotificationsPage() {
               ))}
             </div>
           ) : (
-            <div className="py-16 text-center text-xs font-semibold text-zinc-400">
-              🔔 You have no notifications right now.
+            <div className="py-16 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mx-auto mb-3">
+                <BellIcon className="w-6 h-6 text-zinc-400" />
+              </div>
+              <p className="text-xs font-semibold text-zinc-500">You have no notifications right now.</p>
             </div>
           )}
         </GlassCard>

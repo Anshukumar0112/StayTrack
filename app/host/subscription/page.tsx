@@ -7,6 +7,13 @@ import Footer from "@/components/layout/Footer";
 import MobileNav from "@/components/layout/MobileNav";
 import GlassCard from "@/components/ui/GlassCard";
 import ClayCard from "@/components/ui/ClayCard";
+import {
+  AlertTriangleIcon,
+  ShieldCheckIcon,
+  CrownIcon,
+  CheckIcon,
+  CreditCardIcon,
+} from "@/components/ui/Icons";
 import { getSubscriptionPlans, getMySubscription, createSubscriptionOrder, verifySubscriptionPayment } from "@/lib/api";
 
 declare global {
@@ -77,7 +84,7 @@ export default function HostSubscriptionPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-            alert("Subscription Activated Successfully! 🎉");
+            alert("Subscription Activated Successfully!");
             fetchSubscriptionData();
           } catch (err: any) {
             setErrorMessage("Subscription payment verification failed: " + (err.message || "Unknown error"));
@@ -134,8 +141,9 @@ export default function HostSubscriptionPage() {
         </div>
 
         {errorMessage && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
-            ⚠️ {errorMessage}
+          <div className="mb-6 p-4 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 flex items-center gap-1.5">
+            <AlertTriangleIcon className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{errorMessage}</span>
           </div>
         )}
 
@@ -146,7 +154,10 @@ export default function HostSubscriptionPage() {
             {/* Free Mode Info Alert */}
             {isFreeMode && (
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs">
-                <p className="font-extrabold text-sm mb-1">🎉 Free Mode Active</p>
+                <p className="font-extrabold text-sm mb-1 flex items-center gap-1.5">
+                  <ShieldCheckIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Free Mode Active</span>
+                </p>
                 <p className="font-medium">
                   Host subscriptions are currently <strong>FREE</strong>. You can create and list up to {listingLimit} properties without any paid subscription or payment!
                 </p>
@@ -217,7 +228,9 @@ export default function HostSubscriptionPage() {
 
             {/* Subscribe Action Card */}
             <ClayCard className="p-8 border border-zinc-200 text-center space-y-4">
-              <span className="text-4xl">⭐</span>
+              <div className="w-14 h-14 rounded-2xl bg-[#D9A441]/10 border border-[#D9A441]/20 flex items-center justify-center mx-auto mb-3">
+                <CrownIcon className="w-7 h-7 text-[#D9A441]" />
+              </div>
               <h3 className="text-2xl font-black text-zinc-950">
                 {isFreeMode ? "Host Pro Access Included" : "Upgrade To Host Pro"}
               </h3>
@@ -247,21 +260,30 @@ export default function HostSubscriptionPage() {
               {isFreeMode ? (
                 <button
                   disabled
-                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-zinc-200 text-zinc-600 text-xs font-bold cursor-not-allowed"
+                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-zinc-200 text-zinc-600 text-xs font-bold cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                 >
-                  ✓ Free Mode Active (No Payment Required)
+                  <CheckIcon className="w-4 h-4 text-emerald-600" />
+                  <span>Free Mode Active (No Payment Required)</span>
                 </button>
               ) : (
                 <button
                   onClick={handleSubscribe}
                   disabled={buyLoading || subStatus === "ACTIVE"}
-                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-black text-white text-xs font-bold hover:bg-zinc-800 shadow-lg cursor-pointer transition-all disabled:opacity-50"
+                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-black text-white text-xs font-bold hover:bg-zinc-800 shadow-lg cursor-pointer transition-all disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                 >
-                  {buyLoading
-                    ? "Initiating Checkout..."
-                    : subStatus === "ACTIVE"
-                    ? "✓ Active Subscription"
-                    : "💳 Activate Host Pro Subscription"}
+                  {buyLoading ? (
+                    "Initiating Checkout..."
+                  ) : subStatus === "ACTIVE" ? (
+                    <>
+                      <CheckIcon className="w-4 h-4 text-emerald-400" />
+                      <span>Active Subscription</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCardIcon className="w-4 h-4" />
+                      <span>Activate Host Pro Subscription</span>
+                    </>
+                  )}
                 </button>
               )}
             </ClayCard>

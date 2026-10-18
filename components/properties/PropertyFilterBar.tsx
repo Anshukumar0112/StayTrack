@@ -13,7 +13,7 @@ import {
   formatGenderLabel,
   formatRoomTypeLabel,
 } from "@/lib/categories";
-import { CloseIcon, MapPinIcon, ChevronDownIcon } from "@/components/ui/Icons";
+import { CloseIcon, MapPinIcon, ChevronDownIcon, CheckIcon } from "@/components/ui/Icons";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
 
 export const SORT_OPTIONS = [
@@ -476,7 +476,7 @@ export default function PropertyFilterBar({
                   }`}
                 >
                   <span>All Delhi NCR</span>
-                  {!city && <span className="text-primary-dark text-xs">✓</span>}
+                  {!city && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                 </button>
                 {SUPPORTED_LOCATIONS.map((loc) => {
                   const isSelected = city.toLowerCase() === loc.name.toLowerCase();
@@ -495,7 +495,7 @@ export default function PropertyFilterBar({
                       }`}
                     >
                       <span>{loc.name}</span>
-                      {isSelected && <span className="text-primary-dark text-xs">✓</span>}
+                      {isSelected && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                     </button>
                   );
                 })}
@@ -645,7 +645,7 @@ export default function PropertyFilterBar({
                     }`}
                   >
                     <span>{opt.label}</span>
-                    {opt.active && <span className="text-primary-dark text-xs">✓</span>}
+                    {opt.active && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                   </button>
                 ))}
               </div>
@@ -691,7 +691,7 @@ export default function PropertyFilterBar({
                     }`}
                   >
                     <span>{opt.label}</span>
-                    {opt.active && <span className="text-primary-dark text-xs">✓</span>}
+                    {opt.active && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                   </button>
                 ))}
               </div>
@@ -747,7 +747,7 @@ export default function PropertyFilterBar({
                       }`}
                     >
                       <span>{st.label}</span>
-                      {isSelected && <span className="text-primary-dark text-xs">✓</span>}
+                      {isSelected && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                     </button>
                   );
                 })}
@@ -800,7 +800,7 @@ export default function PropertyFilterBar({
                         }`}
                       >
                         <span>{opt.label}</span>
-                        {isSelected && <span className="text-primary-dark text-xs">✓</span>}
+                        {isSelected && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                       </button>
                     );
                   })}

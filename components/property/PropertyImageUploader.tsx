@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
+import { AlertTriangleIcon, CameraIcon, StarIcon, CloseIcon } from "@/components/ui/Icons";
 
 interface PropertyImageUploaderProps {
   images: string[];
@@ -108,8 +109,9 @@ export default function PropertyImageUploader({
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl">
-          ⚠️ {error}
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-1.5">
+          <AlertTriangleIcon className="w-4 h-4 shrink-0 text-red-600" />
+          <span>{error}</span>
         </div>
       )}
 
@@ -124,7 +126,9 @@ export default function PropertyImageUploader({
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         />
         <div className="space-y-2 pointer-events-none">
-          <span className="text-3xl block">📸</span>
+          <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mx-auto mb-1">
+            <CameraIcon className="w-6 h-6 text-zinc-500 stroke-[1.5]" />
+          </div>
           <p className="text-xs font-bold text-zinc-900">
             {uploading ? "Uploading photos..." : "Click or drag photos here to upload"}
           </p>
@@ -146,8 +150,9 @@ export default function PropertyImageUploader({
 
               {/* Cover Photo Badge */}
               {idx === 0 ? (
-                <span className="absolute top-2 left-2 z-10 bg-black text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
-                  ★ Cover Photo
+                <span className="absolute top-2 left-2 z-10 bg-black text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md inline-flex items-center gap-1">
+                  <StarIcon className="w-2.5 h-2.5 text-[#D9A441]" />
+                  <span>Cover Photo</span>
                 </span>
               ) : (
                 <button
@@ -166,7 +171,7 @@ export default function PropertyImageUploader({
                 className="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold h-6 w-6 rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer"
                 title="Remove photo"
               >
-                ✕
+                <CloseIcon className="w-3 h-3" />
               </button>
             </div>
           ))}

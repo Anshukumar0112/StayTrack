@@ -13,6 +13,18 @@ import {
 } from "@/lib/api";
 import { Property } from "@/types/property";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import {
+  StarIcon,
+  Building2Icon,
+  MapPinIcon,
+  CheckIcon,
+  EditIcon,
+  CloseIcon,
+  EyeIcon,
+  EyeOffIcon,
+  TrashIcon,
+  AlertTriangleIcon,
+} from "@/components/ui/Icons";
 
 const TABS = [
   { key: "all", label: "All" },
@@ -238,20 +250,26 @@ export default function AdminPropertiesPage() {
                       </span>
 
                       {p.topVerified && (
-                        <span className="bg-amber-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-                          ⭐ Top Verified
+                        <span className="bg-amber-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                          <StarIcon className="w-3 h-3 text-white" />
+                          <span>Top Verified</span>
                         </span>
                       )}
                       {p.showInStay && (
-                        <span className="bg-emerald-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-                          🏠 Stay Section
+                        <span className="bg-emerald-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                          <Building2Icon className="w-3 h-3 text-white" />
+                          <span>Stay Section</span>
                         </span>
                       )}
                     </div>
 
                     <h3 className="text-sm font-bold text-zinc-950">{p.title}</h3>
                     <p className="text-xs text-zinc-500 mt-0.5">
-                      📍 {p.city}, {p.area} • Host ID: <span className="font-mono text-zinc-700">{p.hostId}</span> • Price: ₹
+                      <span className="inline-flex items-center gap-1">
+                        <MapPinIcon className="w-3 h-3 text-zinc-400 shrink-0" />
+                        <span>{p.city}, {p.area}</span>
+                      </span>{" "}
+                      • Host ID: <span className="font-mono text-zinc-700">{p.hostId}</span> • Price: ₹
                       {p.price || p.pricePerNight || 0}
                     </p>
 
@@ -260,26 +278,28 @@ export default function AdminPropertiesPage() {
                       <button
                         onClick={() => handleToggleAssignment(targetId, { topVerified: !p.topVerified })}
                         disabled={actionLoadingId === targetId}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                           p.topVerified
                             ? "bg-amber-500 text-white border-amber-600 shadow-sm"
                             : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100"
                         }`}
                         title="Toggle Top Verified section assignment"
                       >
-                        {p.topVerified ? "⭐ Remove Top Verified" : "⭐ Assign Top Verified"}
+                        <StarIcon className="w-3 h-3 shrink-0" />
+                        <span>{p.topVerified ? "Remove Top Verified" : "Assign Top Verified"}</span>
                       </button>
                       <button
                         onClick={() => handleToggleAssignment(targetId, { showInStay: !p.showInStay })}
                         disabled={actionLoadingId === targetId}
-                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                           p.showInStay
                             ? "bg-emerald-600 text-white border-emerald-700 shadow-sm"
                             : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100"
                         }`}
                         title="Toggle Stay section assignment"
                       >
-                        {p.showInStay ? "🏠 Remove Stay Section" : "🏠 Assign Stay Section"}
+                        <Building2Icon className="w-3 h-3 shrink-0" />
+                        <span>{p.showInStay ? "Remove Stay Section" : "Assign Stay Section"}</span>
                       </button>
                     </div>
                   </div>
@@ -290,27 +310,30 @@ export default function AdminPropertiesPage() {
                       <button
                         onClick={() => handleOpenModal(p, "approve")}
                         disabled={actionLoadingId === targetId}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        ✓ Approve
+                        <CheckIcon className="w-3.5 h-3.5" />
+                        <span>Approve</span>
                       </button>
                     )}
 
                     <button
                       onClick={() => handleOpenModal(p, "changes")}
                       disabled={actionLoadingId === targetId}
-                      className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                     >
-                      ✏ Request Changes
+                      <EditIcon className="w-3.5 h-3.5" />
+                      <span>Request Changes</span>
                     </button>
 
                     {!isApproved && (
                       <button
                         onClick={() => handleOpenModal(p, "reject")}
                         disabled={actionLoadingId === targetId}
-                        className="rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 hover:bg-red-50 text-red-700 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        ✕ Reject
+                        <CloseIcon className="w-3.5 h-3.5" />
+                        <span>Reject</span>
                       </button>
                     )}
 
@@ -318,22 +341,33 @@ export default function AdminPropertiesPage() {
                       <button
                         onClick={() => handleOpenModal(p, lStatus === "active" ? "hide" : "activate")}
                         disabled={actionLoadingId === targetId}
-                        className={`rounded-xl font-bold text-xs px-3 py-2 transition-all cursor-pointer border ${
+                        className={`inline-flex items-center gap-1.5 rounded-xl font-bold text-xs px-3 py-2 transition-all cursor-pointer border ${
                           lStatus === "active"
                             ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border-zinc-300"
                             : "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
                         }`}
                       >
-                        {lStatus === "active" ? "🙈 Hide Listing" : "👁 Activate Listing"}
+                        {lStatus === "active" ? (
+                          <>
+                            <EyeOffIcon className="w-3.5 h-3.5" />
+                            <span>Hide Listing</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeIcon className="w-3.5 h-3.5" />
+                            <span>Activate Listing</span>
+                          </>
+                        )}
                       </button>
                     )}
 
                     <button
                       onClick={() => handleOpenModal(p, "delete")}
                       disabled={actionLoadingId === targetId}
-                      className="rounded-xl border border-red-300 hover:bg-red-100 text-red-800 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 hover:bg-red-100 text-red-800 font-bold text-xs px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                     >
-                      🗑 Delete
+                      <TrashIcon className="w-3.5 h-3.5 text-red-600" />
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>
@@ -356,8 +390,9 @@ export default function AdminPropertiesPage() {
             </h3>
 
             {modalMode === "delete" && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800">
-                ⚠️ WARNING: This will permanently remove the listing from StayTrack. Host will be notified.
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] font-bold text-red-800 flex items-start gap-2">
+                <AlertTriangleIcon className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <span>WARNING: This will permanently remove the listing from StayTrack. Host will be notified.</span>
               </div>
             )}
 

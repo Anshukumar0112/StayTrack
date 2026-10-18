@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CrownIcon } from "@/components/ui/Icons";
 
 interface AdminSidebarProps {
   isOpen?: boolean;
@@ -152,7 +153,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
       {/* Mobile Drawer Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-foreground text-white">
         <div className="flex items-center gap-2 font-bold text-sm">
-          <span>👑</span>
+          <CrownIcon className="w-4 h-4 text-emerald-400" />
           <span>StayTrack Admin Navigation</span>
         </div>
         <button

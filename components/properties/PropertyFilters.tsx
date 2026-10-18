@@ -11,7 +11,7 @@ import {
   BNB_SPACE_OPTIONS,
 } from "@/lib/categories";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
-import { ChevronDownIcon } from "@/components/ui/Icons";
+import { ChevronDownIcon, CheckIcon } from "@/components/ui/Icons";
 
 export const SUPPORTED_PRICES = [1000, 2500, 5000, 10000, 20000, 40000, 60000] as const;
 export const PRICE_SCALE = [0, 1000, 2500, 5000, 10000, 20000, 40000, 60000] as const;
@@ -465,7 +465,7 @@ export default function PropertyFilters({
                   }`}
                 >
                   <span>Min</span>
-                  {effectiveMin === 0 && <span className="text-primary-dark text-xs font-bold">✓</span>}
+                  {effectiveMin === 0 && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                 </button>
                 {minOptions
                   .filter((p) => p > 0)
@@ -488,7 +488,7 @@ export default function PropertyFilters({
                         }`}
                       >
                         <span>₹{p.toLocaleString()}</span>
-                        {isSelected && <span className="text-primary-dark text-xs font-bold">✓</span>}
+                        {isSelected && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                       </button>
                     );
                   })}
@@ -548,7 +548,7 @@ export default function PropertyFilters({
                       }`}
                     >
                       <span>{p >= 60000 ? "₹60,000+" : `₹${p.toLocaleString()}`}</span>
-                      {isSelected && <span className="text-primary-dark text-xs font-bold">✓</span>}
+                      {isSelected && <CheckIcon className="w-3.5 h-3.5 text-primary-dark" />}
                     </button>
                   );
                 })}

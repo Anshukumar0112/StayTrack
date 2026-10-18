@@ -2,6 +2,7 @@
 
 import GlassCard from "@/components/ui/GlassCard";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { CalendarDaysIcon } from "@/components/ui/Icons";
 
 export default function AdminBookingsPage() {
   const { isAdmin, loading: guardLoading } = useAdminGuard();
@@ -22,7 +23,9 @@ export default function AdminBookingsPage() {
       </div>
 
       <GlassCard className="border border-zinc-200 p-8 shadow-xl text-center">
-        <span className="text-4xl">📅</span>
+        <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mx-auto mb-3">
+          <CalendarDaysIcon className="w-6 h-6 text-zinc-500" />
+        </div>
         <h3 className="text-base font-bold text-zinc-950 mt-3">Platform Bookings Management</h3>
         <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
           Bookings are created via guest requests and confirmed through host acceptance & Razorpay verification.

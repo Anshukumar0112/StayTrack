@@ -9,6 +9,16 @@ import Link from "next/link";
 import { getHostBookings, acceptBooking, rejectBooking } from "@/lib/api";
 import { Booking, getBookingId, getBookingStatus, getBookingAmount, getBookingStatusLabel, getBookingStatusBadge } from "@/types/booking";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import {
+  Building2Icon,
+  UserIcon,
+  PhoneIcon,
+  MapPinIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+  CheckIcon,
+  ArrowRightIcon,
+} from "@/components/ui/Icons";
 
 type HostFilter = "all" | "requested" | "payment_pending" | "confirmed" | "closed";
 
@@ -201,9 +211,7 @@ export default function HostBookingsPage() {
                           loading="lazy"
                         />
                       ) : (
-                        <span className="text-3xl select-none" role="img" aria-label="Property">
-                          🏢
-                        </span>
+                        <Building2Icon className="w-10 h-10 text-muted stroke-[1.5]" />
                       )}
                       <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs">
                         {stayModel}
@@ -227,21 +235,32 @@ export default function HostBookingsPage() {
                         {propertyTitle}
                       </h3>
 
-                      <div className="flex items-center gap-2 mt-1 text-xs text-foreground/85 font-medium flex-wrap">
-                        <span>👤 Guest: <strong className="text-foreground">{guestDisplay}</strong></span>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-foreground/85 font-medium flex-wrap">
+                        <span className="inline-flex items-center gap-1">
+                          <UserIcon className="w-3.5 h-3.5 text-muted shrink-0" />
+                          <span>Guest: <strong className="text-foreground">{guestDisplay}</strong></span>
+                        </span>
                         {b.contactPhone && (
-                          <span className="text-muted">📞 {b.contactPhone}</span>
+                          <span className="text-muted inline-flex items-center gap-1">
+                            <PhoneIcon className="w-3.5 h-3.5 text-muted shrink-0" />
+                            <span>{b.contactPhone}</span>
+                          </span>
                         )}
-                        <span className="text-muted">• 📍 {locationText}</span>
+                        <span className="text-muted inline-flex items-center gap-1">
+                          <MapPinIcon className="w-3.5 h-3.5 text-muted shrink-0" />
+                          <span>{locationText}</span>
+                        </span>
                       </div>
 
-                      <div className="mt-2 flex items-center gap-3 text-xs text-muted font-medium">
-                        <span>
-                          🗓️ {b.startDate || "Date tbd"} → {b.endDate || "Date tbd"}
+                      <div className="mt-2 flex items-center gap-3 text-xs text-muted font-medium flex-wrap">
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarDaysIcon className="w-3.5 h-3.5 text-muted shrink-0" />
+                          <span>{b.startDate || "Date tbd"} → {b.endDate || "Date tbd"}</span>
                         </span>
                         {b.startTime && (
-                          <span>
-                            ⏰ {b.startTime} - {b.endTime || "TBD"}
+                          <span className="inline-flex items-center gap-1">
+                            <ClockIcon className="w-3.5 h-3.5 text-muted shrink-0" />
+                            <span>{b.startTime} - {b.endTime || "TBD"}</span>
                           </span>
                         )}
                       </div>
@@ -265,9 +284,14 @@ export default function HostBookingsPage() {
                           <button
                             onClick={() => handleAccept(id)}
                             disabled={actionLoadingId === id}
-                            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-all shadow-subtle cursor-pointer disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-all shadow-subtle cursor-pointer disabled:opacity-50"
                           >
-                            {actionLoadingId === id ? "Accepting..." : "✓ Accept"}
+                            {actionLoadingId === id ? "Accepting..." : (
+                              <>
+                                <CheckIcon className="w-3.5 h-3.5" />
+                                <span>Accept</span>
+                              </>
+                            )}
                           </button>
                           <button
                             onClick={() => handleReject(id)}
@@ -281,9 +305,10 @@ export default function HostBookingsPage() {
 
                       <Link
                         href={`/trips/${id}`}
-                        className="px-3.5 py-2 rounded-xl text-xs font-semibold text-foreground bg-surface-muted hover:bg-border/60 border border-border transition-all shadow-2xs"
+                        className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-semibold text-foreground bg-surface-muted hover:bg-border/60 border border-border transition-all shadow-2xs"
                       >
-                        Details →
+                        <span>Details</span>
+                        <ArrowRightIcon className="w-3 h-3 text-muted" />
                       </Link>
                     </div>
                   </div>
@@ -293,8 +318,8 @@ export default function HostBookingsPage() {
           </div>
         ) : (
           <div className="py-20 text-center rounded-3xl border border-dashed border-border bg-surface p-8 shadow-2xs">
-            <div className="h-14 w-14 rounded-2xl bg-surface-muted border border-border flex items-center justify-center text-3xl mx-auto mb-3">
-              📋
+            <div className="h-14 w-14 rounded-2xl bg-surface-muted border border-border flex items-center justify-center mx-auto mb-3">
+              <CalendarDaysIcon className="w-6 h-6 text-muted" />
             </div>
             <h3 className="text-base font-bold text-foreground">No booking requests found</h3>
             <p className="text-xs text-muted mt-1 max-w-sm mx-auto">
@@ -307,7 +332,7 @@ export default function HostBookingsPage() {
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-foreground text-background px-5 py-2.5 text-xs font-bold hover:opacity-90 transition-opacity shadow-subtle"
             >
               <span>Back to Host Dashboard</span>
-              <span>→</span>
+              <ArrowRightIcon className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}
