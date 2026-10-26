@@ -137,7 +137,14 @@ export default function HostDashboardHeader({ onToggleSidebar, collapsed = false
     firebaseUser?.displayName ||
     (firebaseUser?.email ? firebaseUser.email.split("@")[0] : "Host Admin");
 
-  const displayRole = userProfile?.role || "Host";
+  const displayRole =
+    userProfile?.role === "host"
+      ? "Verified Host"
+      : userProfile?.role === "admin"
+      ? "System Admin"
+      : userProfile?.role
+      ? userProfile.role.toUpperCase()
+      : "Verified Host";
 
   const userInitial = userProfile?.name
     ? userProfile.name.charAt(0).toUpperCase()

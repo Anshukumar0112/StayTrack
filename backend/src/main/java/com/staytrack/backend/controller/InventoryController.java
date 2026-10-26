@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/properties/{propertyId}/inventory")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class InventoryController {
 
     private final InventoryService inventoryService;

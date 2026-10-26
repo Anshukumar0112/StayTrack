@@ -11,7 +11,7 @@ import com.google.firebase.auth.FirebaseToken;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class AuthController {
 
     @GetMapping("/verify")

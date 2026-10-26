@@ -19,7 +19,7 @@ import com.staytrack.backend.service.PaymentService;
 
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class PaymentController {
 
     private final PaymentService paymentService;

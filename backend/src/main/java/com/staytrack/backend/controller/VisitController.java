@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/visits")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class VisitController {
 
     private final VisitService visitService;

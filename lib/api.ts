@@ -147,16 +147,72 @@ export async function verifyFirebaseToken(idToken: string): Promise<string> {
 }
 
 export async function getCurrentUser(idToken: string): Promise<User | null> {
+  // 1. Attempt to fetch from Spring Boot backend API
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const response = await fetch(`${API_BASE_URL}/api/users/me`, {
       headers: { Authorization: `Bearer ${idToken}` },
+      signal: controller.signal,
     });
-    if (!response.ok) throw new Error("Failed to get profile");
-    return await response.json();
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && (data.uid || data.id)) {
+        return {
+          ...data,
+          uid: data.uid || data.id,
+          role: (data.role || "customer").toLowerCase(),
+        };
+      }
+    }
   } catch (error) {
-    console.warn("Backend user me offline:", error);
-    return null;
+    console.warn("Backend user me offline, falling back to Firestore:", error);
   }
+
+  // 2. Authoritative Firestore fallback for authenticated Firebase user
+  if (typeof window !== "undefined") {
+    try {
+      const { auth, db } = await import("./firebase");
+      const currentAuthUser = auth?.currentUser;
+      if (currentAuthUser && db) {
+        const { doc, getDoc } = await import("firebase/firestore");
+        const userDocRef = doc(db, "users", currentAuthUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const docData = userDocSnap.data() as any;
+          return {
+            uid: currentAuthUser.uid,
+            name: docData.name || currentAuthUser.displayName || "",
+            email: docData.email || currentAuthUser.email || "",
+            phone: docData.phone || currentAuthUser.phoneNumber || "",
+            role: (docData.role || "customer").toLowerCase(),
+            profileCompleted: docData.profileCompleted ?? false,
+            status: docData.status || "active",
+            createdAt: docData.createdAt?.toDate ? docData.createdAt.toDate().toISOString() : docData.createdAt,
+            updatedAt: docData.updatedAt?.toDate ? docData.updatedAt.toDate().toISOString() : docData.updatedAt,
+          };
+        } else {
+          // Document not found in Firestore -> return active customer profile
+          return {
+            uid: currentAuthUser.uid,
+            name: currentAuthUser.displayName || "",
+            email: currentAuthUser.email || "",
+            phone: currentAuthUser.phoneNumber || "",
+            role: "customer",
+            profileCompleted: false,
+            status: "active",
+          };
+        }
+      }
+    } catch (fsError) {
+      console.warn("Firestore user fallback failed:", fsError);
+    }
+  }
+
+  return null;
 }
 
 export async function updateCurrentUser(data: {

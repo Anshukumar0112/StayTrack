@@ -33,7 +33,7 @@ const EMAIL_PATTERN =
 export default function ProfilePage() {
   const router = useRouter();
   const { user: firebaseUser, loading: authLoading } = useAuth();
-  const { user, loading: userLoading } = useUser();
+  const { user, loading: userLoading, error: userError, refetch: refetchUser } = useUser();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,7 +42,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
 
-  const isLoading = authLoading || userLoading;
+  const isLoading = authLoading || (userLoading && !user);
 
   // Sync form inputs when user profile loads
   useEffect(() => {
@@ -121,6 +121,7 @@ export default function ProfilePage() {
     }
   };
 
+  const isVerifiedProfile = Boolean(user && user.role);
   const role = user?.role || "customer";
   const isHost = role === "host";
   const isAdmin = role === "admin";
@@ -135,6 +136,10 @@ export default function ProfilePage() {
     ? "Verified Host"
     : isAdmin
     ? "System Admin"
+    : isVerifiedProfile
+    ? "Guest Account"
+    : userLoading
+    ? "Verifying Permissions..."
     : "Guest Account";
 
   // Display initial
@@ -178,6 +183,22 @@ export default function ProfilePage() {
             Manage your personal contact details and verified account credentials.
           </p>
         </div>
+
+        {userError && !user && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5 text-xs sm:text-sm">
+              <AlertTriangleIcon className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Unable to verify your account permissions with the server. Please check your connection or retry.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => refetchUser()}
+              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors shrink-0"
+            >
+              Retry Sync
+            </button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid gap-6 md:grid-cols-3 animate-pulse">

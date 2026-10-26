@@ -89,44 +89,50 @@ export function useUser() {
   );
 
   const [networkLoading, setNetworkLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchUser() {
-      if (!firebaseUser) {
-        cacheUserProfile(null);
-        return;
-      }
-
-      try {
-        setNetworkLoading(true);
-        const token = await firebaseUser.getIdToken();
-        const profile = await getCurrentUser(token);
-        if (profile && isMounted) {
-          cacheUserProfile(profile);
-        }
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-      } finally {
-        if (isMounted) {
-          setNetworkLoading(false);
-        }
-      }
+  const fetchUser = async (force: boolean = false) => {
+    if (!firebaseUser) {
+      cacheUserProfile(null);
+      setError(null);
+      return;
     }
 
+    try {
+      setNetworkLoading(true);
+      setError(null);
+      const token = await firebaseUser.getIdToken(force);
+      const profile = await getCurrentUser(token);
+      if (profile) {
+        cacheUserProfile(profile);
+      } else if (!user) {
+        setError("Unable to sync profile with server.");
+      }
+    } catch (err: any) {
+      console.error("Error fetching user profile:", err);
+      if (!user) {
+        setError(err?.message || "Failed to load user profile.");
+      }
+    } finally {
+      setNetworkLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (!authLoading) {
       if (firebaseUser) {
         fetchUser();
       } else {
         cacheUserProfile(null);
+        setError(null);
       }
     }
-
-    return () => {
-      isMounted = false;
-    };
   }, [firebaseUser, authLoading]);
 
-  return { user, loading: authLoading || networkLoading };
+  return {
+    user,
+    loading: authLoading || networkLoading,
+    error,
+    refetch: () => fetchUser(true),
+  };
 }

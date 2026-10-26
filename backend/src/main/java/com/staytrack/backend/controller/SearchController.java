@@ -9,7 +9,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/search")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class SearchController {
 
     private final SearchService searchService;

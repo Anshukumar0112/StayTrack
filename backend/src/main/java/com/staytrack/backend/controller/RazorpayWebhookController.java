@@ -15,7 +15,7 @@ import com.staytrack.backend.service.RazorpayWebhookService;
 
 @RestController
 @RequestMapping("/api/payments/webhook")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class RazorpayWebhookController {
 
     private final RazorpayWebhookService webhookService;

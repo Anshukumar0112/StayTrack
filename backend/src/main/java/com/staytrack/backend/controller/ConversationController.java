@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/conversations")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class ConversationController {
 
     private final ConversationService conversationService;

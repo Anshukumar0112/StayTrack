@@ -21,7 +21,7 @@ import com.staytrack.backend.service.BookingService;
 
 @RestController
 @RequestMapping("/api/bookings")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class BookingController {
 
     private final BookingService bookingService;

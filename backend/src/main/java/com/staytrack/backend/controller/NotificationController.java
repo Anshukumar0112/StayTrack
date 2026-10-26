@@ -17,7 +17,7 @@ import com.staytrack.backend.service.NotificationService;
 
 @RestController
 @RequestMapping("/api/notifications")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class NotificationController {
 
     private final NotificationService notificationService;
