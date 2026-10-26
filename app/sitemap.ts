@@ -1,5 +1,4 @@
 import { MetadataRoute } from "next";
-import { getStayProperties } from "@/lib/api";
 import { SUPPORTED_LOCATIONS } from "@/lib/locations";
 
 function parseValidDate(dateStr?: string | null): Date {
@@ -78,19 +77,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // Canonical Property Detail Pages (Safely fetched from Backend API)
+  // Canonical Property Detail Pages (Safely fetched with timeout & fallback)
   let propertyRoutes: MetadataRoute.Sitemap = [];
   try {
-    const properties = await getStayProperties();
-    if (Array.isArray(properties)) {
-      propertyRoutes = properties
-        .filter((p) => p && (p.id || (p as any).propertyId))
-        .map((p) => ({
-          url: `${baseUrl}/properties/${p.id || (p as any).propertyId}`,
-          lastModified: parseValidDate(p.createdAt),
-          changeFrequency: "weekly",
-          priority: 0.7,
-        }));
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`${apiUrl}/api/properties`, {
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json" },
+      next: { revalidate: 3600 },
+    }).catch(() => null);
+    clearTimeout(timeout);
+
+    if (res && res.ok) {
+      const properties = await res.json();
+      if (Array.isArray(properties)) {
+        propertyRoutes = properties
+          .filter((p: any) => p && (p.id || p.propertyId))
+          .map((p: any) => ({
+            url: `${baseUrl}/properties/${p.id || p.propertyId}`,
+            lastModified: parseValidDate(p.createdAt),
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          }));
+      }
     }
   } catch (err) {
     console.warn("Notice: Backend offline during sitemap prerender fallback:", err);

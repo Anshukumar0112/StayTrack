@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import MobileNav from "@/components/layout/MobileNav";
-import GlassCard from "@/components/ui/GlassCard";
-import ClayCard from "@/components/ui/ClayCard";
+import BackButton from "@/components/ui/BackButton";
 import { getMyPayments, getHostBookings } from "@/lib/api";
 import { Booking } from "@/types/booking";
+import { CreditCardIcon, CheckCircleIcon, ShieldCheckIcon } from "@/components/ui/Icons";
 
 export default function HostEarningsPage() {
   const [payments, setPayments] = useState<any[]>([]);
@@ -29,80 +26,93 @@ export default function HostEarningsPage() {
   }, []);
 
   const totalEarnings = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const totalSettledBookings = bookings.filter((b) => b.status === "CONFIRMED").length;
+  const totalSettledBookings = bookings.filter((b) => b.status === "CONFIRMED" || b.status === "confirmed").length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-10 w-full flex-1">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-zinc-950">Earnings & Settlements</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">
-            Backend-derived settlement information and direct guest payments via Razorpay
+    <div className="space-y-6 max-w-5xl">
+      {/* Header and Back Button */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <BackButton
+            fallbackUrl="/host"
+            label="Back to Dashboard"
+            className="text-xs font-semibold mb-2"
+          />
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Earnings & Payouts</h1>
+          <p className="text-xs text-muted font-medium mt-1">
+            Track direct guest payments, settlements, and Razorpay transaction records
           </p>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading settlement data...</div>
-        ) : (
-          <div className="space-y-8">
-            {/* Stat Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <ClayCard className="p-6 border border-zinc-200">
-                <span className="text-[11px] font-bold text-zinc-500 uppercase">Total Settled Earnings</span>
-                <div className="text-3xl font-black text-zinc-950 mt-2">₹{totalEarnings.toLocaleString()}</div>
-                <span className="text-[10px] text-emerald-600 font-bold mt-1 block">100% Direct Payouts</span>
-              </ClayCard>
-
-              <ClayCard className="p-6 border border-zinc-200">
-                <span className="text-[11px] font-bold text-zinc-500 uppercase">Completed Stays</span>
-                <div className="text-3xl font-black text-zinc-950 mt-2">{totalSettledBookings}</div>
-                <span className="text-[10px] text-zinc-500 font-medium mt-1 block">Confirmed Bookings</span>
-              </ClayCard>
-
-              <ClayCard className="p-6 border border-zinc-200">
-                <span className="text-[11px] font-bold text-zinc-500 uppercase">Host Payout Terms</span>
-                <div className="text-3xl font-black text-emerald-600 mt-2">Direct</div>
-                <span className="text-[10px] text-emerald-700 font-extrabold mt-1 block">Verified Payouts</span>
-              </ClayCard>
+      {loading ? (
+        <div className="rounded-2xl border border-border bg-surface p-12 text-center shadow-subtle">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-sm font-semibold text-muted">Loading settlement records...</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Stat Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-border bg-surface p-5 shadow-subtle">
+              <span className="text-[11px] font-bold text-muted uppercase tracking-wider">Total Settled Earnings</span>
+              <div className="text-2xl sm:text-3xl font-black text-foreground mt-2">₹{totalEarnings.toLocaleString()}</div>
+              <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold mt-1.5">
+                <ShieldCheckIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>100% Direct Payouts</span>
+              </div>
             </div>
 
-            {/* Settlements Table */}
-            <GlassCard className="border border-zinc-200 p-6 shadow-xl">
-              <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider mb-4 pb-3 border-b border-zinc-200">
-                Backend Payment Ledger ({payments.length})
-              </h3>
+            <div className="rounded-2xl border border-border bg-surface p-5 shadow-subtle">
+              <span className="text-[11px] font-bold text-muted uppercase tracking-wider">Completed Stays</span>
+              <div className="text-2xl sm:text-3xl font-black text-foreground mt-2">{totalSettledBookings}</div>
+              <div className="flex items-center gap-1 text-[11px] text-muted font-medium mt-1.5">
+                <CheckCircleIcon className="w-3.5 h-3.5 shrink-0 text-primary" />
+                <span>Confirmed Bookings</span>
+              </div>
+            </div>
 
-              {payments.length > 0 ? (
-                <div className="divide-y divide-zinc-100">
-                  {payments.map((p, idx) => (
-                    <div key={p.id || idx} className="py-3.5 flex justify-between items-center text-xs">
-                      <div>
-                        <span className="font-bold text-zinc-950 block">{p.description || `Payment #${p.id || idx}`}</span>
-                        <span className="text-[11px] text-zinc-500">
-                          {p.createdAt ? new Date(p.createdAt).toLocaleString() : "Confirmed"}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-black text-black text-sm block">₹{p.amount || 0}</span>
-                        <span className="text-[10px] font-bold text-emerald-600 uppercase">{p.status || "SUCCESS"}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center text-xs font-semibold text-zinc-400">
-                  No payment settlement records found yet.
-                </div>
-              )}
-            </GlassCard>
+            <div className="rounded-2xl border border-border bg-surface p-5 shadow-subtle">
+              <span className="text-[11px] font-bold text-muted uppercase tracking-wider">Payout Schedule</span>
+              <div className="text-2xl sm:text-3xl font-black text-primary mt-2">Direct</div>
+              <div className="flex items-center gap-1 text-[11px] text-muted font-medium mt-1.5">
+                <CreditCardIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>Automated 24h post check-in</span>
+              </div>
+            </div>
           </div>
-        )}
-      </main>
 
-      <Footer />
-      <MobileNav />
+          {/* Settlements Table */}
+          <div className="rounded-2xl border border-border bg-surface p-6 shadow-subtle">
+            <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-4 pb-3 border-b border-border">
+              Payment & Settlement Ledger ({payments.length})
+            </h3>
+
+            {payments.length > 0 ? (
+              <div className="divide-y divide-border">
+                {payments.map((p, idx) => (
+                  <div key={p.id || idx} className="py-3.5 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-bold text-foreground block">{p.description || `Payment #${p.id || idx}`}</span>
+                      <span className="text-[11px] text-muted">
+                        {p.createdAt ? new Date(p.createdAt).toLocaleString() : "Confirmed"}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-foreground text-sm block">₹{p.amount || 0}</span>
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase">{p.status || "SUCCESS"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-xs font-semibold text-muted">
+                No payment settlement records found yet. Bookings will generate payouts here once confirmed.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

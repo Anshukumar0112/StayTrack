@@ -40,6 +40,9 @@ function getPropertyCoordinates(property: Property, index: number, cityCenter: [
   if (property.latitude && property.longitude && property.latitude !== 0 && property.longitude !== 0) {
     return [property.latitude, property.longitude];
   }
+  if (property.approximateLatitude && property.approximateLongitude && property.approximateLatitude !== 0 && property.approximateLongitude !== 0) {
+    return [property.approximateLatitude, property.approximateLongitude];
+  }
   const idNum = (property.id || `${index}`).split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const angle = (idNum % 360) * (Math.PI / 180);
   const radius = 0.012 + ((idNum % 5) * 0.006); // ~1km - 3km spread

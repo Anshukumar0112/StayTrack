@@ -52,11 +52,27 @@ export const ACCOMMODATION_CATEGORIES: CategoryConfig[] = [
 export function normalizeCategoryKey(input?: string): string {
   if (!input) return '';
   const clean = input.trim().toUpperCase();
-  if (clean === 'BNB' || clean === 'BNBS') return 'BNB';
+  if (
+    clean === 'BNB' ||
+    clean === 'BNBS' ||
+    clean === 'B&B' ||
+    clean === 'BED & BREAKFAST' ||
+    clean === 'BED AND BREAKFAST' ||
+    clean === 'BED_AND_BREAKFAST' ||
+    clean === 'VACATIONSTAY' ||
+    clean === 'VACATION_STAY' ||
+    clean === 'ROOM'
+  ) return 'BNB';
   if (clean === 'HOSTEL' || clean === 'HOSTELS') return 'HOSTEL';
-  if (clean === 'PG' || clean === 'PGS') return 'PG';
+  if (clean === 'PG' || clean === 'PGS' || clean === 'PAYING GUEST') return 'PG';
   if (clean === 'HOTEL' || clean === 'HOTELS') return 'HOTEL';
-  if (clean === 'FLAT' || clean === 'FLATS') return 'FLAT';
+  if (
+    clean === 'FLAT' ||
+    clean === 'FLATS' ||
+    clean === 'APARTMENT' ||
+    clean === 'APARTMENTS' ||
+    clean === 'HOUSE'
+  ) return 'FLAT';
   return clean;
 }
 
@@ -117,8 +133,37 @@ export function formatOccupancyLabel(val?: string): string {
 
 export function formatGenderLabel(val?: string): string {
   if (!val) return "";
-  const found = GENDER_OPTIONS.find((g) => g.id === val.toLowerCase());
-  return found ? found.label : val;
+  const clean = val.toLowerCase().trim();
+  const found = GENDER_OPTIONS.find((g) => g.id === clean);
+  if (found) return found.label;
+  if (clean.includes("boy") || clean.includes("male") || clean.includes("men")) return "Boys Only";
+  if (clean.includes("girl") || clean.includes("female") || clean.includes("women")) return "Girls Only";
+  if (clean.includes("unisex") || clean.includes("co-living") || clean.includes("coliving")) return "Unisex / Co-living";
+  return val.charAt(0).toUpperCase() + val.slice(1);
+}
+
+export const CONTRACT_DURATION_OPTIONS = [
+  { id: "3_months", label: "3 Months Minimum" },
+  { id: "4_months", label: "4 Months Minimum" },
+  { id: "6_months", label: "6 Months Minimum" },
+  { id: "10_months", label: "10 Months Academic Term" },
+  { id: "12_months", label: "12 Months (1 Year Lease)" },
+] as const;
+
+export function formatContractDuration(
+  val?: string,
+  customVal?: number | string,
+  customUnit?: string
+): string {
+  if (!val) return "";
+  if (val === "custom" && customVal) {
+    const unit = customUnit || "months";
+    return `${customVal} ${unit.charAt(0).toUpperCase() + unit.slice(1)} Minimum`;
+  }
+  const found = CONTRACT_DURATION_OPTIONS.find((c) => c.id === val.toLowerCase());
+  if (found) return found.label;
+  const cleaned = val.replace(/_/g, " ");
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
 export function formatRoomTypeLabel(val?: string): string {
@@ -131,4 +176,50 @@ export function formatRoomTypeLabel(val?: string): string {
   const bnbFound = BNB_SPACE_OPTIONS.find((b) => b.id === clean);
   if (bnbFound) return bnbFound.label;
   return val.charAt(0).toUpperCase() + val.slice(1);
+}
+
+export type StayModelId = "daily" | "monthly" | "hourly";
+
+export interface StayModelOption {
+  id: StayModelId;
+  label: string;
+}
+
+export const STAY_MODELS: Record<StayModelId, StayModelOption> = {
+  daily: { id: "daily", label: "Nightly / Daily" },
+  monthly: { id: "monthly", label: "Monthly Stay" },
+  hourly: { id: "hourly", label: "Hourly Stay" },
+};
+
+export const CATEGORY_STAY_MODELS: Record<string, StayModelId[]> = {
+  PG: ["monthly"],
+  FLAT: ["monthly"],
+  APARTMENT: ["monthly"],
+  HOUSE: ["monthly"],
+  HOSTEL: ["monthly", "daily"],
+  HOTEL: ["daily", "hourly"],
+  BNB: ["daily", "hourly"],
+  VACATIONSTAY: ["daily", "hourly"],
+  VACATION_STAY: ["daily", "hourly"],
+};
+
+export function getAllowedStayModels(category?: string): StayModelOption[] {
+  const norm = normalizeCategoryKey(category);
+  const allowed = CATEGORY_STAY_MODELS[norm] || ["daily", "monthly", "hourly"];
+  return allowed.map((id) => STAY_MODELS[id]);
+}
+
+export function getDefaultStayModel(category?: string): StayModelId {
+  const norm = normalizeCategoryKey(category);
+  if (norm === "PG" || norm === "FLAT" || norm === "APARTMENT" || norm === "HOUSE") return "monthly";
+  if (norm === "HOSTEL") return "monthly";
+  return "daily";
+}
+
+export function isStayModelAllowedForCategory(category?: string, stayModel?: string): boolean {
+  if (!stayModel) return false;
+  const cleanModel = stayModel.trim().toLowerCase() as StayModelId;
+  const norm = normalizeCategoryKey(category);
+  const allowed = CATEGORY_STAY_MODELS[norm] || ["daily", "monthly", "hourly"];
+  return allowed.includes(cleanModel);
 }

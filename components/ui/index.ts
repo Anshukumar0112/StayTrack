@@ -22,5 +22,8 @@ export * from "./Textarea";
 export { default as BackButton } from "./BackButton";
 export * from "./BackButton";
 
+export { default as StatusFilterDropdown } from "./StatusFilterDropdown";
+export * from "./StatusFilterDropdown";
+
 export * from "./Icons";
 

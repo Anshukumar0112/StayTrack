@@ -12,8 +12,10 @@ import {
   getUnreadNotificationsCount,
   getNotifications,
   markAllNotificationsAsRead,
+  markNotificationAsRead,
 } from "@/lib/api";
-import { Notification } from "@/types/booking";
+import { Notification, getNotificationId } from "@/types/booking";
+import NotificationPopover from "@/components/notifications/NotificationPopover";
 import {
   BellIcon,
   MessageCircleIcon,
@@ -51,11 +53,11 @@ export default function Header() {
   const accountRef = useRef<HTMLDivElement>(null);
 
   // Derive unread count from auth state
-  const unreadCount = firebaseUser ? rawUnreadCount : 0;
+  const unreadCount = (firebaseUser || userProfile) ? rawUnreadCount : 0;
 
   // Fetch unread count on login
   useEffect(() => {
-    if (!firebaseUser) return;
+    if (!firebaseUser && !userProfile) return;
     let isMounted = true;
     getUnreadNotificationsCount()
       .then((res) => {
@@ -67,7 +69,7 @@ export default function Header() {
     return () => {
       isMounted = false;
     };
-  }, [firebaseUser]);
+  }, [firebaseUser, userProfile]);
 
   // Click outside and escape key handling
   useEffect(() => {
@@ -96,7 +98,7 @@ export default function Header() {
   }, []);
 
   const toggleNotifications = () => {
-    if (!showNotifDrawer && firebaseUser) {
+    if (!showNotifDrawer) {
       getNotifications(10)
         .then((data) => setNotifications(data || []))
         .catch(() => setNotifications([]));
@@ -110,6 +112,18 @@ export default function Header() {
       await markAllNotificationsAsRead();
       setRawUnreadCount(0);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.warn("Mark read error:", err);
+    }
+  };
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await markNotificationAsRead(id);
+      setRawUnreadCount((prev) => Math.max(0, prev - 1));
+      setNotifications((prev) =>
+        prev.map((n) => (getNotificationId(n) === id ? { ...n, read: true } : n))
+      );
     } catch (err) {
       console.warn("Mark read error:", err);
     }
@@ -299,59 +313,14 @@ export default function Header() {
 
               {/* Notifications Popover Drawer */}
               {showNotifDrawer && (
-                <div
-                  role="region"
-                  aria-label="Notifications Drawer"
-                  className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl bg-surface shadow-elevated border border-border p-3.5 z-[50] animate-in fade-in zoom-in-95"
-                >
-                  <div className="flex justify-between items-center pb-2.5 border-b border-border">
-                    <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                      Notifications
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {unreadCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={handleMarkAllRead}
-                          className="text-[11px] font-bold text-success hover:underline cursor-pointer"
-                        >
-                          Mark all read
-                        </button>
-                      )}
-                      <Link
-                        href="/notifications"
-                        onClick={() => setShowNotifDrawer(false)}
-                        className="text-[11px] font-bold text-primary hover:underline"
-                      >
-                        View All
-                      </Link>
-                    </div>
-                  </div>
-
-                  <div className="mt-2.5 max-h-64 overflow-y-auto space-y-1.5">
-                    {notifications.length > 0 ? (
-                      notifications.map((notif, idx) => (
-                        <div
-                          key={notif.id || `hdr-notif-${idx}`}
-                          className={`p-2.5 rounded-lg text-xs transition-colors ${
-                            notif.read
-                              ? "bg-surface-muted/50 text-muted"
-                              : "bg-primary-soft text-foreground font-semibold border-l-2 border-primary"
-                          }`}
-                        >
-                          <div className="font-bold">{notif.title}</div>
-                          <div className="text-[11px] mt-0.5 text-muted-dark leading-relaxed">
-                            {notif.body}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="py-6 text-center text-xs text-muted font-medium">
-                        No recent notifications
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <NotificationPopover
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  isHost={false}
+                  onMarkRead={handleMarkRead}
+                  onMarkAllRead={handleMarkAllRead}
+                  onClose={() => setShowNotifDrawer(false)}
+                />
               )}
             </div>
           )}

@@ -2,16 +2,20 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import GlassCard from "@/components/ui/GlassCard";
-import { TrashIcon } from "@/components/ui/Icons";
+import { TrashIcon, ArrowLeftIcon, ShieldCheckIcon } from "@/components/ui/Icons";
 import PropertyImageUploader from "@/components/property/PropertyImageUploader";
+import PropertyLocationPicker from "@/components/property/PropertyLocationPicker";
 import Link from "next/link";
 import { getPropertyDetails, updateProperty, deleteProperty } from "@/lib/api";
-import { Property, getPropertyId } from "@/types/property";
+import { Property, getPropertyId, OccupancyOption } from "@/types/property";
 import { SUPPORTED_LOCATIONS, isSupportedLocation } from "@/lib/locations";
-import { ACCOMMODATION_CATEGORIES } from "@/lib/categories";
+import {
+  ACCOMMODATION_CATEGORIES,
+  getAllowedStayModels,
+  getDefaultStayModel,
+  isStayModelAllowedForCategory,
+} from "@/lib/categories";
 
 import CategorySpecificFormFields, { CategoryFormState } from "@/components/property/CategorySpecificFormFields";
 
@@ -36,6 +40,9 @@ export default function HostPropertyEditPage({
   const [price, setPrice] = useState("");
   const [city, setCity] = useState("Gurugram");
   const [area, setArea] = useState("");
+  const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState<number | undefined>(undefined);
+  const [longitude, setLongitude] = useState<number | undefined>(undefined);
   const [bedrooms, setBedrooms] = useState(1);
   const [bathrooms, setBathrooms] = useState(1);
   const [furnished, setFurnished] = useState(true);
@@ -51,6 +58,13 @@ export default function HostPropertyEditPage({
   const [checkInTime, setCheckInTime] = useState("02:00 PM");
   const [checkOutTime, setCheckOutTime] = useState("11:00 AM");
   const [houseRules, setHouseRules] = useState<string[]>(["No smoking inside", "Quiet hours after 10 PM"]);
+
+  // Stay Terms (PG & Hostel)
+  const [contractDuration, setContractDuration] = useState("3_months");
+  const [customDurationValue, setCustomDurationValue] = useState("");
+  const [customDurationUnit, setCustomDurationUnit] = useState("months");
+  const [monthlyRentPerBed, setMonthlyRentPerBed] = useState("");
+  const [securityDepositEnabled, setSecurityDepositEnabled] = useState(true);
 
   // PG
   const [occupancyType, setOccupancyType] = useState("single");
@@ -81,107 +95,207 @@ export default function HostPropertyEditPage({
   const [bedType, setBedType] = useState("queen");
   const [breakfastIncluded, setBreakfastIncluded] = useState(false);
   const [cancellationPolicy, setCancellationPolicy] = useState("flexible");
+  const [occupancyOptions, setOccupancyOptions] = useState<OccupancyOption[]>([]);
+
+  const populateForm = (data: Property) => {
+    setTitle(data.title || "");
+    setDescription(data.description || "");
+    const loadedCat = data.propertyType || data.category || "BNB";
+    setPropertyType(loadedCat);
+    let bType = data.bookingType || (data.stayTypes && data.stayTypes[0]) || "";
+    if (!isStayModelAllowedForCategory(loadedCat, bType)) {
+      bType = getDefaultStayModel(loadedCat);
+    }
+    setBookingType(bType.toLowerCase());
+
+    const extractedPrice =
+      data.pricePerNight != null
+        ? data.pricePerNight
+        : data.pricePerMonth != null
+        ? data.pricePerMonth
+        : data.pricePerHour != null
+        ? data.pricePerHour
+        : data.dailyPrice != null
+        ? data.dailyPrice
+        : data.monthlyPrice != null
+        ? data.monthlyPrice
+        : data.hourlyPrice != null
+        ? data.hourlyPrice
+        : data.price != null
+        ? data.price
+        : "";
+    setPrice(extractedPrice !== "" ? String(extractedPrice) : "");
+
+    setCity(data.city || "Gurugram");
+    setArea(data.area || "");
+    setAddress(data.address || "");
+    setLatitude(data.latitude != null ? data.latitude : undefined);
+    setLongitude(data.longitude != null ? data.longitude : undefined);
+    setBedrooms(data.bedrooms != null ? data.bedrooms : 1);
+    setBathrooms(data.bathrooms != null ? data.bathrooms : 1);
+    setFurnished(data.furnished ?? true);
+    setAreaSqFt(data.areaSqFt != null ? String(data.areaSqFt) : "");
+    setImages(Array.isArray(data.images) ? data.images : []);
+    setVerificationStatus(data.verificationStatus || "pending");
+
+    // BNB
+    if (data.spaceType) setSpaceType(data.spaceType);
+    if (data.maxGuests != null) setMaxGuests(data.maxGuests);
+    if (data.bedsCount != null) setBedsCount(data.bedsCount);
+    if (data.checkInTime) setCheckInTime(data.checkInTime);
+    if (data.checkOutTime) setCheckOutTime(data.checkOutTime);
+    if (Array.isArray(data.houseRules) && data.houseRules.length > 0) setHouseRules(data.houseRules);
+
+    // Stay Terms (PG & Hostel)
+    if (data.contractDuration) setContractDuration(data.contractDuration);
+    if (data.customDurationValue != null) setCustomDurationValue(String(data.customDurationValue));
+    if (data.customDurationUnit) setCustomDurationUnit(data.customDurationUnit);
+
+    const normLoaded = loadedCat.trim().toUpperCase();
+    if (data.monthlyRentPerBed != null) {
+      setMonthlyRentPerBed(String(data.monthlyRentPerBed));
+      if (normLoaded === "PG" || (normLoaded === "HOSTEL" && data.priceModel === "per_bed")) {
+        setPrice(String(data.monthlyRentPerBed));
+      }
+    } else if (normLoaded === "PG" && extractedPrice) {
+      setMonthlyRentPerBed(String(extractedPrice));
+    } else {
+      setMonthlyRentPerBed("");
+    }
+
+    if (data.securityDepositEnabled != null) {
+      setSecurityDepositEnabled(Boolean(data.securityDepositEnabled));
+    } else if (data.securityDeposit != null) {
+      setSecurityDepositEnabled(Number(data.securityDeposit) > 0);
+    }
+
+    // PG
+    if (data.occupancyType) {
+      const rawOcc = String(data.occupancyType).toLowerCase();
+      if (rawOcc.includes("single")) setOccupancyType("single");
+      else if (rawOcc.includes("double")) setOccupancyType("double");
+      else if (rawOcc.includes("triple")) setOccupancyType("triple");
+      else if (rawOcc.includes("four")) setOccupancyType("four_plus");
+      else setOccupancyType(rawOcc);
+    }
+    if (data.genderCategory) {
+      setGenderCategory(String(data.genderCategory).toLowerCase());
+    }
+    if (data.foodIncluded != null) setFoodIncluded(Boolean(data.foodIncluded));
+    if (Array.isArray(data.foodOptions) && data.foodOptions.length > 0) setFoodOptions(data.foodOptions);
+    if (data.securityDeposit != null) setSecurityDeposit(String(data.securityDeposit));
+    if (data.noticePeriodDays != null) setNoticePeriodDays(String(data.noticePeriodDays));
+    if (data.gateClosingTime) setGateClosingTime(data.gateClosingTime);
+
+    // Hostel
+    if (data.roomType) setRoomType(data.roomType);
+    if (data.totalBeds != null) setTotalBeds(data.totalBeds);
+    if (data.availableBeds != null) setAvailableBeds(data.availableBeds);
+    if (data.priceModel) setPriceModel(data.priceModel);
+    if (data.studentOrWorking) setStudentOrWorking(data.studentOrWorking);
+    if (Array.isArray(data.sharedFacilities) && data.sharedFacilities.length > 0) setSharedFacilities(data.sharedFacilities);
+
+    // Flat
+    if (data.bhkConfig) {
+      setBhkConfig(data.bhkConfig);
+    } else if (data.bedrooms) {
+      setBhkConfig(`${data.bedrooms} BHK`);
+    }
+    if (data.maintenanceCharges != null) setMaintenanceCharges(String(data.maintenanceCharges));
+    if (data.tenantPreference) setTenantPreference(data.tenantPreference);
+    if (data.floorNumber != null) setFloorNumber(String(data.floorNumber));
+    if (data.totalFloors != null) setTotalFloors(String(data.totalFloors));
+    if (data.parkingType) setParkingType(data.parkingType);
+
+    // Hotel
+    if (data.bedType) setBedType(data.bedType);
+    if (data.breakfastIncluded != null) setBreakfastIncluded(Boolean(data.breakfastIncluded));
+    if (data.cancellationPolicy) setCancellationPolicy(data.cancellationPolicy);
+
+    // Occupancy Options (PG, Hostel & Hotel)
+    if (Array.isArray(data.occupancyOptions)) {
+      setOccupancyOptions(
+        data.occupancyOptions.map((opt) => ({
+          ...opt,
+          name: opt.name || "",
+          occupancyType: opt.occupancyType || "single",
+          roomCount: opt.roomCount != null ? opt.roomCount : 1,
+          bedsCount: opt.bedsCount != null ? opt.bedsCount : 1,
+          monthlyRentPerBed: opt.monthlyRentPerBed != null ? opt.monthlyRentPerBed : 0,
+          securityDeposit: opt.securityDeposit != null ? opt.securityDeposit : undefined,
+          bathroomType: opt.bathroomType || "attached",
+          bathrooms: opt.bathrooms != null ? opt.bathrooms : 1,
+          furnished: opt.furnished ?? true,
+          amenities: Array.isArray(opt.amenities) ? opt.amenities : [],
+          roomDetails: opt.roomDetails || "",
+          price: opt.price != null ? opt.price : undefined,
+          nightlyPrice: opt.nightlyPrice != null ? opt.nightlyPrice : undefined,
+          maxOccupancy: opt.maxOccupancy != null ? opt.maxOccupancy : 2,
+        }))
+      );
+    } else {
+      setOccupancyOptions([]);
+    }
+  };
+
+  const loadPropertyData = async () => {
+    try {
+      const data = await getPropertyDetails(propertyId);
+      if (data) {
+        populateForm(data);
+        return data;
+      }
+    } catch (err: any) {
+      console.error("Failed to load property details:", err);
+      setError("Failed to load property details.");
+    }
+    return null;
+  };
 
   useEffect(() => {
     setLoading(true);
-    getPropertyDetails(propertyId)
-      .then((data) => {
-        if (data) {
-          setTitle(data.title || "");
-          setDescription(data.description || "");
-          setPropertyType(data.propertyType || data.category || "BNB");
-          const bType = data.bookingType || (data.stayTypes && data.stayTypes[0]) || "daily";
-          setBookingType(bType.toLowerCase());
-
-          const extractedPrice =
-            data.pricePerNight ||
-            data.pricePerMonth ||
-            data.pricePerHour ||
-            data.dailyPrice ||
-            data.monthlyPrice ||
-            data.hourlyPrice ||
-            data.price ||
-            "";
-          setPrice(String(extractedPrice));
-
-          setCity(data.city || "Gurugram");
-          setArea(data.area || "");
-          setBedrooms(data.bedrooms || 1);
-          setBathrooms(data.bathrooms || 1);
-          setFurnished(data.furnished ?? true);
-          setAreaSqFt(data.areaSqFt ? String(data.areaSqFt) : "");
-          setImages(Array.isArray(data.images) ? data.images : []);
-          setVerificationStatus(data.verificationStatus || "pending");
-
-          // BNB
-          if (data.spaceType) setSpaceType(data.spaceType);
-          if (data.maxGuests) setMaxGuests(data.maxGuests);
-          if (data.bedsCount) setBedsCount(data.bedsCount);
-          if (data.checkInTime) setCheckInTime(data.checkInTime);
-          if (data.checkOutTime) setCheckOutTime(data.checkOutTime);
-          if (Array.isArray(data.houseRules) && data.houseRules.length > 0) setHouseRules(data.houseRules);
-
-          // PG
-          if (data.occupancyType) setOccupancyType(data.occupancyType);
-          if (data.genderCategory) setGenderCategory(data.genderCategory);
-          if (data.foodIncluded !== undefined) setFoodIncluded(data.foodIncluded);
-          if (Array.isArray(data.foodOptions) && data.foodOptions.length > 0) setFoodOptions(data.foodOptions);
-          if (data.securityDeposit !== undefined && data.securityDeposit !== null) setSecurityDeposit(String(data.securityDeposit));
-          if (data.noticePeriodDays !== undefined && data.noticePeriodDays !== null) setNoticePeriodDays(String(data.noticePeriodDays));
-          if (data.gateClosingTime) setGateClosingTime(data.gateClosingTime);
-
-          // Hostel
-          if (data.roomType) setRoomType(data.roomType);
-          if (data.totalBeds) setTotalBeds(data.totalBeds);
-          if (data.availableBeds !== undefined && data.availableBeds !== null) setAvailableBeds(data.availableBeds);
-          if (data.priceModel) setPriceModel(data.priceModel);
-          if (data.studentOrWorking) setStudentOrWorking(data.studentOrWorking);
-          if (Array.isArray(data.sharedFacilities) && data.sharedFacilities.length > 0) setSharedFacilities(data.sharedFacilities);
-
-          // Flat
-          if (data.bhkConfig) {
-            setBhkConfig(data.bhkConfig);
-          } else if (data.bedrooms) {
-            setBhkConfig(`${data.bedrooms} BHK`);
-          }
-          if (data.maintenanceCharges !== undefined && data.maintenanceCharges !== null) setMaintenanceCharges(String(data.maintenanceCharges));
-          if (data.tenantPreference) setTenantPreference(data.tenantPreference);
-          if (data.floorNumber !== undefined && data.floorNumber !== null) setFloorNumber(String(data.floorNumber));
-          if (data.totalFloors !== undefined && data.totalFloors !== null) setTotalFloors(String(data.totalFloors));
-          if (data.parkingType) setParkingType(data.parkingType);
-
-          // Hotel
-          if (data.bedType) setBedType(data.bedType);
-          if (data.breakfastIncluded !== undefined) setBreakfastIncluded(data.breakfastIncluded);
-          if (data.cancellationPolicy) setCancellationPolicy(data.cancellationPolicy);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load property details:", err);
-        setError("Failed to load property details.");
-      })
-      .finally(() => setLoading(false));
+    loadPropertyData().finally(() => setLoading(false));
   }, [propertyId]);
+
+  const handlePriceChange = (val: string) => {
+    setPrice(val);
+    const norm = propertyType.trim().toUpperCase();
+    if (norm === "PG" || (norm === "HOSTEL" && priceModel === "per_bed")) {
+      setMonthlyRentPerBed(val);
+    }
+  };
+
+  const handleMonthlyRentPerBedChange = (val: string) => {
+    setMonthlyRentPerBed(val);
+    const norm = propertyType.trim().toUpperCase();
+    if (norm === "PG" || (norm === "HOSTEL" && priceModel === "per_bed")) {
+      setPrice(val);
+    }
+  };
 
   const handleCategoryChange = (newCat: string) => {
     setPropertyType(newCat);
+    if (!isStayModelAllowedForCategory(newCat, bookingType)) {
+      setBookingType(getDefaultStayModel(newCat));
+    }
     const upper = newCat.trim().toUpperCase();
     if (upper === "PG") {
-      setBookingType("monthly");
       setOccupancyType("single");
       setGenderCategory("unisex");
+      if (!monthlyRentPerBed && price) {
+        setMonthlyRentPerBed(price);
+      }
     } else if (upper === "FLAT" || upper === "APARTMENT" || upper === "HOUSE") {
-      setBookingType("monthly");
       setBhkConfig("1 BHK");
     } else if (upper === "HOSTEL") {
-      setBookingType("monthly");
       setRoomType("dormitory");
       setPriceModel("per_bed");
+      if (!monthlyRentPerBed && price) {
+        setMonthlyRentPerBed(price);
+      }
     } else if (upper === "HOTEL") {
-      setBookingType("daily");
       setRoomType("standard");
     } else if (upper === "BNB" || upper === "VACATIONSTAY" || upper === "VACATION_STAY") {
-      setBookingType("daily");
       setSpaceType("entire_place");
     }
   };
@@ -208,6 +322,18 @@ export default function HostPropertyEditPage({
     setCheckOutTime,
     houseRules,
     setHouseRules,
+
+    // Stay Terms
+    contractDuration,
+    setContractDuration,
+    customDurationValue,
+    setCustomDurationValue,
+    customDurationUnit,
+    setCustomDurationUnit,
+    monthlyRentPerBed,
+    setMonthlyRentPerBed: handleMonthlyRentPerBedChange,
+    securityDepositEnabled,
+    setSecurityDepositEnabled,
 
     occupancyType,
     setOccupancyType,
@@ -256,6 +382,9 @@ export default function HostPropertyEditPage({
     setBreakfastIncluded,
     cancellationPolicy,
     setCancellationPolicy,
+
+    occupancyOptions,
+    setOccupancyOptions,
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -273,33 +402,82 @@ export default function HostPropertyEditPage({
       return;
     }
 
+    if ((latitude !== undefined && longitude === undefined) || (latitude === undefined && longitude !== undefined)) {
+      setError("Both latitude and longitude must be provided together, or leave both empty.");
+      return;
+    }
+
+    const normCat = propertyType.trim().toUpperCase();
+    const stayTypeVal = bookingType.toLowerCase();
+    const isHostelDaily = normCat === "HOSTEL" && stayTypeVal !== "monthly";
+    const isLeaseCategory = normCat === "PG" || (normCat === "HOSTEL" && !isHostelDaily) || normCat === "FLAT" || normCat === "APARTMENT" || normCat === "HOUSE";
+
+    if (isLeaseCategory && securityDepositEnabled) {
+      const depNum = parseFloat(securityDeposit);
+      if (isNaN(depNum) || depNum <= 0) {
+        setError("Please enter a valid security deposit amount (greater than 0), or disable the security deposit toggle.");
+        return;
+      }
+    }
+
+    if ((normCat === "PG" || (normCat === "HOSTEL" && !isHostelDaily)) && contractDuration === "custom") {
+      const custVal = parseInt(customDurationValue);
+      if (isNaN(custVal) || custVal <= 0) {
+        setError("Please enter a valid custom contract duration value (greater than 0).");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
-      const priceNum = parseFloat(price);
-      const stayTypeVal = bookingType.toLowerCase();
-      const normCat = propertyType.trim().toUpperCase();
+      const isBedRentModel = normCat === "PG" || (normCat === "HOSTEL" && !isHostelDaily && priceModel === "per_bed");
+      let effectiveBedRent: number | undefined = undefined;
+      if (normCat === "PG" || (normCat === "HOSTEL" && !isHostelDaily)) {
+        if (monthlyRentPerBed && !isNaN(parseFloat(monthlyRentPerBed))) {
+          effectiveBedRent = parseFloat(monthlyRentPerBed);
+        } else if (price && !isNaN(parseFloat(price))) {
+          effectiveBedRent = parseFloat(price);
+        }
+      }
 
-      await updateProperty(propertyId, {
+      if ((normCat === "PG" || normCat === "HOSTEL") && occupancyOptions.length > 0) {
+        const rents = occupancyOptions.map((o) => o.monthlyRentPerBed).filter((r) => r > 0);
+        if (rents.length > 0 && (!effectiveBedRent || isNaN(effectiveBedRent))) {
+          effectiveBedRent = Math.min(...rents);
+        }
+      }
+
+      const effectivePriceNum = (isBedRentModel && effectiveBedRent !== undefined)
+        ? effectiveBedRent
+        : parseFloat(price);
+
+      const saved = await updateProperty(propertyId, {
         title,
         description,
         propertyType,
         category: propertyType,
         bookingType: stayTypeVal,
         stayTypes: [stayTypeVal],
-        pricePerNight: stayTypeVal === "daily" ? priceNum : undefined,
-        pricePerMonth: stayTypeVal === "monthly" ? priceNum : undefined,
-        pricePerHour: stayTypeVal === "hourly" ? priceNum : undefined,
-        dailyPrice: stayTypeVal === "daily" ? priceNum : undefined,
-        monthlyPrice: stayTypeVal === "monthly" ? priceNum : undefined,
-        hourlyPrice: stayTypeVal === "hourly" ? priceNum : undefined,
-        price: priceNum,
+        pricePerNight: stayTypeVal === "daily" ? effectivePriceNum : undefined,
+        pricePerMonth: stayTypeVal === "monthly" ? effectivePriceNum : undefined,
+        pricePerHour: stayTypeVal === "hourly" ? effectivePriceNum : undefined,
+        dailyPrice: stayTypeVal === "daily" ? effectivePriceNum : undefined,
+        monthlyPrice: stayTypeVal === "monthly" ? effectivePriceNum : undefined,
+        hourlyPrice: stayTypeVal === "hourly" ? effectivePriceNum : undefined,
+        price: effectivePriceNum,
         city,
         area,
+        address: address.trim(),
+        latitude,
+        longitude,
         bedrooms: Number(bedrooms),
         bathrooms: Number(bathrooms),
         furnished,
         areaSqFt: areaSqFt ? parseFloat(areaSqFt) : undefined,
         images,
+
+        // Occupancy Options (PG & Hostel)
+        occupancyOptions: (normCat === "PG" || normCat === "HOSTEL") ? occupancyOptions : undefined,
 
         // BNB
         spaceType: normCat === "BNB" || normCat === "VACATIONSTAY" ? spaceType : undefined,
@@ -309,13 +487,20 @@ export default function HostPropertyEditPage({
         checkOutTime: normCat === "BNB" || normCat === "VACATIONSTAY" || normCat === "HOTEL" ? checkOutTime : undefined,
         houseRules: normCat === "BNB" || normCat === "VACATIONSTAY" ? houseRules : undefined,
 
+        // Category stay terms
+        contractDuration: (normCat === "PG" || (normCat === "HOSTEL" && !isHostelDaily)) ? contractDuration : undefined,
+        customDurationValue: (normCat === "PG" || (normCat === "HOSTEL" && !isHostelDaily)) && contractDuration === "custom" && customDurationValue ? parseInt(customDurationValue) : undefined,
+        customDurationUnit: (normCat === "PG" || (normCat === "HOSTEL" && !isHostelDaily)) && contractDuration === "custom" ? customDurationUnit : undefined,
+        monthlyRentPerBed: effectiveBedRent,
+        securityDepositEnabled: isLeaseCategory ? securityDepositEnabled : undefined,
+        securityDeposit: isLeaseCategory && securityDepositEnabled && securityDeposit ? parseFloat(securityDeposit) : undefined,
+        noticePeriodDays: isLeaseCategory && noticePeriodDays ? parseInt(noticePeriodDays) : undefined,
+
         // PG
-        occupancyType: normCat === "PG" ? occupancyType : undefined,
-        genderCategory: normCat === "PG" ? genderCategory : undefined,
+        occupancyType: normCat === "PG" && occupancyType ? occupancyType.toLowerCase() : undefined,
+        genderCategory: normCat === "PG" && genderCategory ? genderCategory.toLowerCase() : undefined,
         foodIncluded: normCat === "PG" ? foodIncluded : undefined,
         foodOptions: normCat === "PG" && foodIncluded ? foodOptions : undefined,
-        securityDeposit: (normCat === "PG" || normCat === "FLAT") && securityDeposit ? parseFloat(securityDeposit) : undefined,
-        noticePeriodDays: normCat === "PG" && noticePeriodDays ? parseInt(noticePeriodDays) : undefined,
         gateClosingTime: normCat === "PG" ? gateClosingTime : undefined,
 
         // Hostel
@@ -340,9 +525,23 @@ export default function HostPropertyEditPage({
         cancellationPolicy: normCat === "HOTEL" ? cancellationPolicy : undefined,
       });
 
+      // Update form directly with confirmed saved data from backend
+      if (saved) {
+        populateForm(saved);
+      }
+
       setSuccess("Property details updated successfully!");
+      setError("");
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     } catch (err: any) {
+      console.error("Failed to update property:", err);
       setError(err.message || "Failed to update property.");
+      setSuccess("");
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     } finally {
       setSaving(false);
     }
@@ -375,210 +574,333 @@ export default function HostPropertyEditPage({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-10 w-full flex-1">
-        <div className="mb-6 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
-            <Link href="/host/properties" className="hover:text-black">My Properties</Link>
-            <span>/</span>
-            <span className="text-zinc-900 font-bold">Edit Property</span>
+    <div className="space-y-6 max-w-5xl mx-auto w-full">
+        {/* Navigation / Breadcrumbs */}
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <Link
+              href="/host/properties"
+              className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+            >
+              <ArrowLeftIcon className="w-3.5 h-3.5" />
+              <span>My Properties</span>
+            </Link>
+            <span className="text-border">/</span>
+            <span className="text-foreground font-semibold">Edit Property</span>
           </div>
 
           {!loading && (
             <Link
               href={`/properties/${propertyId}`}
-              className="inline-flex items-center gap-1 text-xs font-bold text-black hover:underline"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card hover:bg-muted text-xs font-semibold text-foreground border border-border shadow-2xs transition-all"
             >
-              <span>View Public Page</span> ↗
+              <span>View Public Listing</span>
+              <span className="text-muted-foreground">↗</span>
             </Link>
           )}
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-xs font-bold text-zinc-500">Loading property data...</div>
+          <div className="py-24 text-center">
+            <div className="w-8 h-8 mx-auto border-2 border-primary border-t-transparent rounded-full animate-spin mb-3" />
+            <p className="text-xs font-medium text-muted-foreground">Loading property details...</p>
+          </div>
         ) : (
-          <GlassCard className="border border-zinc-200 p-6 sm:p-8 space-y-6 shadow-xl">
-            <div className="flex justify-between items-center pb-4 border-b border-zinc-200 flex-wrap gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="clay-badge px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
-                    ID: {propertyId}
-                  </span>
-                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                    verificationStatus === "approved"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : verificationStatus === "rejected"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-amber-100 text-amber-800"
-                  }`}>
-                    {verificationStatus === "approved"
-                      ? "Verified & Active"
-                      : verificationStatus === "rejected"
-                      ? "Rejected"
-                      : "Pending Verification"}
-                  </span>
+          <div>
+            {/* Header / Meta Banner */}
+            <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 shadow-xs mb-8">
+              <div className="flex justify-between items-start gap-4 flex-wrap">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-md bg-muted text-[11px] font-mono text-muted-foreground border border-border/70">
+                      ID: {propertyId}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                        verificationStatus === "approved"
+                          ? "bg-emerald-500/10 text-emerald-800 border-emerald-500/20"
+                          : verificationStatus === "rejected"
+                          ? "bg-destructive/10 text-destructive border-destructive/20"
+                          : "bg-amber-500/10 text-amber-800 border-amber-500/20"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          verificationStatus === "approved"
+                            ? "bg-emerald-600"
+                            : verificationStatus === "rejected"
+                            ? "bg-destructive"
+                            : "bg-amber-600 animate-pulse"
+                        }`}
+                      />
+                      {verificationStatus === "approved"
+                        ? "Verified & Active"
+                        : verificationStatus === "rejected"
+                        ? "Rejected"
+                        : "Pending Verification"}
+                    </span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                    Edit Property
+                  </h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Update listing specifications, pricing structure, category rules, and gallery assets.
+                  </p>
                 </div>
-                <h1 className="text-2xl font-black text-zinc-950">Edit Property</h1>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 transition-all cursor-pointer disabled:opacity-50"
-              >
-                <TrashIcon className="w-3.5 h-3.5 text-red-600" />
-                <span>{deleting ? "Deleting..." : "Delete Property"}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-destructive/5 hover:bg-destructive/10 text-destructive text-xs font-semibold border border-destructive/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <TrashIcon className="w-3.5 h-3.5 text-destructive" />
+                  <span>{deleting ? "Deleting..." : "Delete Property"}</span>
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {error && (
-                <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
-                  {error}
+                <div
+                  data-testid="error-banner"
+                  className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-start gap-2"
+                >
+                  <span>{error}</span>
                 </div>
               )}
 
               {success && (
-                <div className="p-3 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200">
-                  {success}
+                <div
+                  data-testid="success-banner"
+                  className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-start gap-2.5"
+                >
+                  <ShieldCheckIcon className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p>{success}</p>
+                    <p className="text-[11px] font-normal text-emerald-700 mt-0.5">
+                      Your changes have been safely persisted to StayTrack.
+                    </p>
+                  </div>
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                  Property Title
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Furnished 2BHK Apartment in Cyber City, Gurugram"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                  Description
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Describe key features, amenities, food availability, Wi-Fi speed, etc..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-xs font-medium border border-zinc-200 focus:border-black outline-none bg-zinc-50/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Section 1: Basic Information */}
+              <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={propertyType}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold text-zinc-900"
-                  >
-                    {ACCOMMODATION_CATEGORIES.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.id} ({cat.label})
-                      </option>
-                    ))}
-                  </select>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">1. Basic Information</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Core identity, narrative description, and accommodation model.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                    Stay Model
-                  </label>
-                  <select
-                    value={bookingType}
-                    onChange={(e) => setBookingType(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold text-zinc-900"
-                  >
-                    <option value="daily">Nightly / Daily</option>
-                    <option value="monthly">Monthly Stay</option>
-                    <option value="hourly">Hourly Stay</option>
-                  </select>
-                </div>
-              </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                      Property Title
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Furnished 2BHK Apartment in Cyber City, Gurugram"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="glass-input w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-medium border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                    {getPriceLabel()}
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="2500"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="Describe key features, amenities, food availability, Wi-Fi speed, surrounding landmarks..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-normal border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-background transition-all resize-y"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                    City (Delhi NCR)
-                  </label>
-                  <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold text-zinc-900"
-                  >
-                    {SUPPORTED_LOCATIONS.map((loc) => (
-                      <option key={loc.id} value={loc.name}>
-                        {loc.name} ({loc.state})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                        Category
+                      </label>
+                      <select
+                        value={propertyType}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
+                        className="glass-input w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold text-foreground border border-border focus:border-primary outline-none"
+                      >
+                        {ACCOMMODATION_CATEGORIES.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.id} ({cat.label})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2">
-                    Area / Locality
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Cyber City, Sector 62"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    className="glass-input w-full px-4 py-3 rounded-xl text-xs font-bold"
-                  />
+                    <div>
+                      <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                        Stay Model
+                      </label>
+                      <select
+                        value={bookingType}
+                        onChange={(e) => setBookingType(e.target.value)}
+                        className="glass-input w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold text-foreground border border-border focus:border-primary outline-none"
+                      >
+                        {getAllowedStayModels(propertyType).map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <CategorySpecificFormFields category={propertyType} form={formState} />
+              {/* Section 2: Pricing & Location */}
+              <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">2. Pricing & Location</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Rate structure and regional coordinates for guests to discover.
+                  </p>
+                </div>
 
-              <div className="pt-4 border-t border-zinc-100">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                        {getPriceLabel()}
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="2500"
+                        value={price}
+                        onChange={(e) => handlePriceChange(e.target.value)}
+                        className="glass-input w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                        City (Delhi NCR)
+                      </label>
+                      <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="glass-input w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold text-foreground border border-border focus:border-primary outline-none"
+                      >
+                        {SUPPORTED_LOCATIONS.map((loc) => (
+                          <option key={loc.id} value={loc.name}>
+                            {loc.name} ({loc.state})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                        Area / Locality
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Cyber City, Sector 62"
+                        value={area}
+                        onChange={(e) => setArea(e.target.value)}
+                        className="glass-input w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-medium border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                      Street Address
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Tower B, Flat 402, Cyber City Residency, Phase 2"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="glass-input w-full px-4 py-3 rounded-xl text-xs sm:text-sm font-medium border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                    />
+                    <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-muted/60 border border-border/60 text-[11px] text-muted-foreground">
+                      <ShieldCheckIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span>
+                        <strong className="text-foreground">StayTrack Privacy Protection:</strong> Your exact street address is never displayed publicly. It is only shared with guests after you confirm their booking.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <PropertyLocationPicker
+                      city={city}
+                      latitude={latitude}
+                      longitude={longitude}
+                      onChange={({ latitude: newLat, longitude: newLng }) => {
+                        setLatitude(newLat);
+                        setLongitude(newLng);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Accommodation Details */}
+              <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">3. Category Specifications</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Room options, occupancy rates, security deposits, and amenities for {propertyType}.
+                  </p>
+                </div>
+
+                <CategorySpecificFormFields category={propertyType} stayModel={bookingType} form={formState} />
+              </div>
+
+              {/* Section 4: Property Photos */}
+              <div className="bg-card border border-border/80 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">4. Property Gallery</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Upload crisp interior, exterior, and amenity photos to boost occupancy.
+                  </p>
+                </div>
+
                 <PropertyImageUploader images={images} onChange={setImages} />
               </div>
 
-              <div className="pt-4 border-t border-zinc-200 flex justify-end gap-3">
-                <Link
-                  href="/host/properties"
-                  className="px-5 py-3 rounded-xl border border-zinc-300 text-xs font-bold text-zinc-800 hover:bg-zinc-100 text-center"
-                >
-                  Cancel
-                </Link>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-3 rounded-xl bg-black hover:bg-zinc-800 text-xs font-bold text-white shadow-md transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {saving ? "Saving Changes..." : "Save Changes"}
-                </button>
+              {/* Section 5: Save Controls (Sticky Action Footer) */}
+              <div className="sticky bottom-4 z-20 p-4 sm:p-5 rounded-2xl bg-card/95 backdrop-blur-md border border-border/80 shadow-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="text-xs min-h-[1.25rem]">
+                  {error && <span className="font-semibold text-destructive">{error}</span>}
+                  {success && <span className="font-semibold text-emerald-700">{success}</span>}
+                  {!error && !success && (
+                    <span className="text-muted-foreground">Ensure all required fields are filled before saving.</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-3 shrink-0">
+                  <Link
+                    href="/host/properties"
+                    className="px-5 py-2.5 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors text-center"
+                  >
+                    Cancel
+                  </Link>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {saving && <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />}
+                    <span>{saving ? "Saving Changes..." : "Save Changes"}</span>
+                  </button>
+                </div>
               </div>
             </form>
-          </GlassCard>
+          </div>
         )}
-      </main>
-
-      <Footer />
     </div>
   );
 }

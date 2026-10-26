@@ -2,9 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import MobileNav from "@/components/layout/MobileNav";
 import BackButton from "@/components/ui/BackButton";
 import Badge, { BadgeVariant } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils";
@@ -213,17 +210,14 @@ export default function HostPropertiesListPage() {
   }, [properties, statusFilter, searchQuery]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-
-      <main className="stay-container pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:py-10 flex-1">
-        {/* Breadcrumb / Back to Dashboard */}
-        <BackButton
-          fallbackUrl="/host"
-          label="Back to Dashboard"
-          ariaLabel="Return to Host Dashboard"
-          className="mb-4"
-        />
+    <div className="space-y-6">
+      {/* Breadcrumb / Back to Dashboard */}
+      <BackButton
+        fallbackUrl="/host"
+        label="Back to Dashboard"
+        ariaLabel="Return to Host Dashboard"
+        className="mb-2"
+      />
 
         {/* Banner Alert Feedback */}
         {bannerMessage && (
@@ -569,10 +563,6 @@ export default function HostPropertiesListPage() {
             })}
           </div>
         )}
-      </main>
-
-      <Footer />
-      <MobileNav />
     </div>
   );
 }

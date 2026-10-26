@@ -10,7 +10,7 @@ import BackButton from "@/components/ui/BackButton";
 import Badge from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { formatCurrency } from "@/lib/utils";
-import { getCategoryLabel } from "@/lib/categories";
+import { getCategoryLabel, normalizeCategoryKey } from "@/lib/categories";
 import { getPropertyDetails, createBooking, checkPropertyAvailability } from "@/lib/api";
 import { Property } from "@/types/property";
 import {
@@ -100,6 +100,11 @@ function CreateBookingContent() {
   const router = useRouter();
   const propertyId = searchParams.get("propertyId") || "";
   const queryBookingType = (searchParams.get("bookingType") || "").toLowerCase() as BookingType;
+  const occupancyOptionId = searchParams.get("occupancyOptionId") || "";
+  const occupancyType = searchParams.get("occupancyType") || "";
+  const occupancyOptionName = searchParams.get("occupancyOptionName") || "";
+  const roomTypeId = searchParams.get("roomTypeId") || "";
+  const inventoryUnitId = searchParams.get("inventoryUnitId") || "";
 
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(false);
@@ -188,6 +193,48 @@ function CreateBookingContent() {
     };
   }, [propertyId, queryBookingType]);
 
+  // Selected occupancy option for PG & Hostel
+  const selectedOccupancyOption = useMemo(() => {
+    if (!property) return null;
+    const cat = String(property.propertyType || property.category || "").toUpperCase();
+    if (cat !== "PG" && cat !== "HOSTEL") return null;
+
+    if (Array.isArray(property.occupancyOptions) && property.occupancyOptions.length > 0) {
+      if (occupancyOptionId) {
+        const found = property.occupancyOptions.find((o) => o.id === occupancyOptionId);
+        if (found) return found;
+      }
+      if (occupancyType) {
+        const found = property.occupancyOptions.find((o) => o.occupancyType === occupancyType);
+        if (found) return found;
+      }
+      return property.occupancyOptions[0];
+    }
+    if (occupancyOptionName || occupancyType) {
+      return {
+        id: occupancyOptionId || "custom",
+        name: occupancyOptionName || "Selected Room Sharing",
+        occupancyType: occupancyType || "single",
+        monthlyRentPerBed: property.monthlyRentPerBed || property.monthlyPrice || property.price || 0,
+      };
+    }
+    return null;
+  }, [property, occupancyOptionId, occupancyType, occupancyOptionName]);
+
+  const canonicalCategory = useMemo(() => {
+    return normalizeCategoryKey(property?.category || property?.propertyType || "");
+  }, [property]);
+
+  const isDirectBooking = useMemo(() => {
+    if (canonicalCategory === "HOTEL" || canonicalCategory === "BNB") {
+      return true;
+    }
+    if (canonicalCategory === "HOSTEL") {
+      return bookingType === "daily";
+    }
+    return false;
+  }, [canonicalCategory, bookingType]);
+
   // Live availability verification
   useEffect(() => {
     if (!propertyId) return;
@@ -207,6 +254,9 @@ function CreateBookingContent() {
         startTime: bookingType === "hourly" ? startTime : undefined,
         endTime: bookingType === "hourly" ? endTime : undefined,
         bookingType,
+        occupancyType: selectedOccupancyOption?.occupancyType || occupancyType || undefined,
+        roomTypeId: selectedOccupancyOption?.id !== "custom" ? (selectedOccupancyOption?.id || roomTypeId || undefined) : (roomTypeId || undefined),
+        inventoryUnitId: inventoryUnitId || undefined,
       })
         .then((res) => {
           if (!cancel) {
@@ -227,7 +277,7 @@ function CreateBookingContent() {
     return () => {
       cancel = true;
     };
-  }, [propertyId, bookingType, startDate, endDate, hourlyDate, startTime, endTime]);
+  }, [propertyId, bookingType, startDate, endDate, hourlyDate, startTime, endTime, selectedOccupancyOption, occupancyType, roomTypeId, inventoryUnitId]);
 
   const supportedStayTypes = useMemo(() => getSupportedStayTypes(property), [property]);
 
@@ -276,7 +326,10 @@ function CreateBookingContent() {
       };
     } else if (bookingType === "monthly") {
       const dailyPrice = property.dailyPrice || property.pricePerNight || property.price || 0;
-      const monthlyPrice = property.monthlyPrice || property.pricePerMonth || (dailyPrice > 0 ? dailyPrice * 30 : 0);
+      let monthlyPrice = property.monthlyPrice || property.pricePerMonth || (dailyPrice > 0 ? dailyPrice * 30 : 0);
+      if (selectedOccupancyOption && selectedOccupancyOption.monthlyRentPerBed > 0) {
+        monthlyPrice = selectedOccupancyOption.monthlyRentPerBed;
+      }
 
       let bookedDays = 1;
       if (startDate && endDate) {
@@ -311,7 +364,7 @@ function CreateBookingContent() {
         total: price * bookedDays,
       };
     }
-  }, [property, bookingType, startDate, endDate, startTime, endTime]);
+  }, [property, bookingType, startDate, endDate, startTime, endTime, selectedOccupancyOption]);
 
   const handleStartDateChange = (val: string) => {
     setStartDate(val);
@@ -387,6 +440,10 @@ function CreateBookingContent() {
         endTime: bookingType === "hourly" ? endTime : undefined,
         guestName: guestName.trim() || undefined,
         contactPhone: guestPhone.trim() || undefined,
+        inventoryUnitId: inventoryUnitId || undefined,
+        occupancyType: selectedOccupancyOption?.occupancyType || occupancyType || undefined,
+        roomTypeId: selectedOccupancyOption?.id !== "custom" ? (selectedOccupancyOption?.id || roomTypeId || undefined) : (roomTypeId || undefined),
+        occupancyOptionName: selectedOccupancyOption?.name || occupancyOptionName || undefined,
       });
 
       const newBookingId = res?.id || res?.bookingId;
@@ -414,10 +471,12 @@ function CreateBookingContent() {
           className="mb-3.5"
         />
         <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-          Confirm and Reserve
+          {isDirectBooking ? "Confirm and Reserve" : "Request Reservation"}
         </h1>
         <p className="text-xs sm:text-sm text-muted mt-1">
-          Review your dates, duration, and send a direct reservation request to the host.
+          {isDirectBooking
+            ? "Review your dates, duration, and reserve your stay directly."
+            : "Review your dates, duration, and send a direct reservation request to the host."}
         </p>
       </div>
 
@@ -746,7 +805,7 @@ function CreateBookingContent() {
                     placeholder="+91 98765 43210"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    leftIcon={<span className="text-xs font-bold text-muted">🇮🇳</span>}
+                    leftIcon={<span className="text-xs font-bold text-muted">+91</span>}
                     hint="For WhatsApp or direct host coordination"
                   />
                 </div>
@@ -761,10 +820,12 @@ function CreateBookingContent() {
                   <div className="p-3 rounded-2xl bg-surface-muted/60 border border-border/60 space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                       <ShieldCheckIcon className="w-4 h-4 text-primary shrink-0" />
-                      <span>Host Review</span>
+                      <span>{isDirectBooking ? "Direct Reservation" : "Host Review"}</span>
                     </div>
                     <p className="text-[11px] text-muted leading-relaxed">
-                      Reservation goes directly to the host for verification and confirmation.
+                      {isDirectBooking
+                        ? "Instant reservation directly held and confirmed with the property."
+                        : "Reservation goes directly to the host for verification and confirmation."}
                     </p>
                   </div>
                   <div className="p-3 rounded-2xl bg-surface-muted/60 border border-border/60 space-y-1">
@@ -798,19 +859,21 @@ function CreateBookingContent() {
                   {submitLoading ? (
                     <>
                       <span className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-                      <span>Submitting Reservation Request...</span>
+                      <span>{isDirectBooking ? "Confirming Direct Reservation..." : "Submitting Reservation Request..."}</span>
                     </>
                   ) : availabilityError ? (
                     <span>Dates Unavailable — Choose Other Dates</span>
                   ) : (
                     <>
-                      <span>Request Reservation</span>
+                      <span>{isDirectBooking ? "Confirm & Reserve Directly" : "Request Reservation"}</span>
                       <ArrowRightIcon className="w-4 h-4" />
                     </>
                   )}
                 </button>
                 <p className="text-center text-[11px] text-muted font-medium mt-2.5">
-                  You will not be billed at this step. Your reservation request will be tracked in My Trips.
+                  {isDirectBooking
+                    ? "Your reservation will be confirmed and tracked in My Trips."
+                    : "You will not be billed at this step. Your reservation request will be tracked in My Trips."}
                 </p>
               </div>
             </form>
@@ -867,6 +930,25 @@ function CreateBookingContent() {
                     {[property?.area, property?.city].filter(Boolean).join(", ") || "Delhi NCR"}
                   </span>
                 </div>
+
+                {selectedOccupancyOption && (
+                  <div className="p-3 rounded-2xl bg-surface-muted border border-border/80 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
+                        Room / Sharing Option
+                      </span>
+                      <span className="text-[10px] font-extrabold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        {selectedOccupancyOption.occupancyType}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-foreground">
+                      {selectedOccupancyOption.name}
+                    </p>
+                    <p className="text-[11px] text-muted font-medium">
+                      {formatCurrency(selectedOccupancyOption.monthlyRentPerBed)} / month per bed
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Itemized Price Breakdown */}
@@ -935,7 +1017,7 @@ function CreateBookingContent() {
               {/* Trust Badge */}
               <div className="p-3 rounded-2xl bg-surface-muted border border-border/80 flex items-center gap-2.5 text-[11px] text-muted">
                 <ShieldCheckIcon className="w-4 h-4 text-primary shrink-0" />
-                <span>Direct host reservation · Zero brokerage markup</span>
+                <span>{isDirectBooking ? "Direct property reservation · Zero brokerage markup" : "Direct host reservation · Zero brokerage markup"}</span>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 package com.staytrack.backend.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
@@ -19,23 +20,29 @@ import com.staytrack.backend.dto.booking.BookingRequest;
 import com.staytrack.backend.repository.BookingRepository;
 import com.staytrack.backend.repository.PropertyRepository;
 import com.staytrack.backend.security.AuthenticatedUser;
+import com.staytrack.backend.exception.BookingConflictException;
+import com.staytrack.backend.util.BookingAvailabilityUtils;
+import com.staytrack.backend.repository.InventoryUnitRepository;
 
 @Service
 public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
+    private final InventoryUnitRepository inventoryUnitRepository;
     private final RefundService refundService;
     private final NotificationService notificationService;
 
     public BookingService(
             BookingRepository bookingRepository,
             PropertyRepository propertyRepository,
+            InventoryUnitRepository inventoryUnitRepository,
             RefundService refundService,
             @org.springframework.context.annotation.Lazy NotificationService notificationService
     ) {
         this.bookingRepository = bookingRepository;
         this.propertyRepository = propertyRepository;
+        this.inventoryUnitRepository = inventoryUnitRepository;
         this.refundService = refundService;
         this.notificationService = notificationService;
     }
@@ -185,6 +192,43 @@ public class BookingService {
                 );
             }
 
+            Map<String, Object> validatedUnit =
+                    validateInventorySelection(
+                            request,
+                            propertyData
+                    );
+
+            Double unitPriceOverride = null;
+            if (validatedUnit != null && validatedUnit.get("price") != null) {
+                unitPriceOverride = numberValue(validatedUnit.get("price"));
+            }
+
+            // Check if occupancy option has its own monthlyRentPerBed
+            String reqOccType = request.getOccupancyType();
+            String reqRoomType = request.getRoomTypeId();
+            if (unitPriceOverride == null || unitPriceOverride <= 0) {
+                Object occOpts = propertyData.get("occupancyOptions");
+                if (occOpts instanceof List<?> list) {
+                    for (Object item : list) {
+                        if (item instanceof Map<?, ?> opt) {
+                            String optId = stringValue(opt.get("id"));
+                            String optOcc = stringValue(opt.get("occupancyType"));
+                            if ((reqRoomType != null && !reqRoomType.isBlank() && reqRoomType.equalsIgnoreCase(optId))
+                                    || (reqOccType != null && !reqOccType.isBlank() && reqOccType.equalsIgnoreCase(optOcc))) {
+                                Double optRent = numberValue(opt.get("monthlyRentPerBed"));
+                                if (optRent > 0) {
+                                    unitPriceOverride = optRent;
+                                    if (request.getOccupancyOptionName() == null || request.getOccupancyOptionName().isBlank()) {
+                                        request.setOccupancyOptionName(stringValue(opt.get("name")));
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             /*
              * Calculate the amount entirely from
              * property pricing.
@@ -198,7 +242,8 @@ public class BookingService {
                             endDate,
                             request.getStartTime(),
                             request.getEndTime(),
-                            propertyData
+                            propertyData,
+                            unitPriceOverride
                     );
 
             /*
@@ -304,15 +349,56 @@ public class BookingService {
             booking.put("area", stringValue(propertyData.get("area")));
             booking.put("propertyType", stringValue(propertyData.get("propertyType")));
 
+            String cat = stringValue(propertyData.get("category"));
+            if (cat.isBlank()) {
+                cat = stringValue(propertyData.get("propertyType"));
+            }
+            booking.put("category", cat);
+
+            String catUpper = cat.trim().toUpperCase();
+            boolean isDirectBooking = false;
+            if ("HOTEL".equals(catUpper) || "HOTELS".equals(catUpper)
+                    || "BNB".equals(catUpper) || "BNBS".equals(catUpper)
+                    || "B&B".equals(catUpper) || "BED & BREAKFAST".equals(catUpper)
+                    || "BED AND BREAKFAST".equals(catUpper) || "BED_AND_BREAKFAST".equals(catUpper)
+                    || "VACATIONSTAY".equals(catUpper) || "VACATION_STAY".equals(catUpper)
+                    || "ROOM".equals(catUpper)) {
+                isDirectBooking = true;
+            } else if ("HOSTEL".equals(catUpper) || "HOSTELS".equals(catUpper)) {
+                isDirectBooking = "daily".equalsIgnoreCase(bookingType);
+            }
+
+            booking.put("isDirectBooking", isDirectBooking);
             booking.put(
                     "paymentStatus",
                     "created"
             );
 
-            booking.put(
-                    "bookingStatus",
-                    "requested"
-            );
+            if (isDirectBooking) {
+                // Direct booking: no host review needed; enters accepted status ready for guest payment
+                booking.put(
+                        "bookingStatus",
+                        "accepted"
+                );
+                long paymentHoldExpiryMillis = System.currentTimeMillis()
+                        + BookingAvailabilityUtils.PAYMENT_HOLD_MILLIS;
+                booking.put(
+                        "holdExpiresAt",
+                        Timestamp.ofTimeSecondsAndNanos(paymentHoldExpiryMillis / 1000, 0)
+                );
+            } else {
+                // Request-to-book: requires host review and confirmation
+                booking.put(
+                        "bookingStatus",
+                        "requested"
+                );
+                long hostHoldExpiryMillis = System.currentTimeMillis()
+                        + BookingAvailabilityUtils.HOST_REQUEST_HOLD_MILLIS;
+                booking.put(
+                        "holdExpiresAt",
+                        Timestamp.ofTimeSecondsAndNanos(hostHoldExpiryMillis / 1000, 0)
+                );
+            }
 
             booking.put(
                     "createdAt",
@@ -323,6 +409,22 @@ public class BookingService {
                     "updatedAt",
                     now
             );
+
+            if (validatedUnit != null) {
+                booking.put("inventoryUnitId", request.getInventoryUnitId().trim());
+                booking.put("unitType", validatedUnit.get("unitType"));
+                booking.put("parentRoomId", validatedUnit.get("parentRoomId"));
+                booking.put("unitName", validatedUnit.get("unitName"));
+                booking.put("totalQuantity", validatedUnit.get("totalQuantity"));
+            } else {
+                booking.put("inventoryUnitId", null);
+                booking.put("unitType", null);
+                booking.put("parentRoomId", null);
+            }
+
+            booking.put("occupancyType", request.getOccupancyType());
+            booking.put("roomTypeId", request.getRoomTypeId());
+            booking.put("occupancyOptionName", request.getOccupancyOptionName());
 
             /*
              * IMPORTANT:
@@ -353,14 +455,25 @@ public class BookingService {
             );
 
             try {
-                notificationService.createNotification(
-                        hostId,
-                        "booking_request",
-                        "New Booking Request",
-                        "You received a new booking request for your property.",
-                        bookingId,
-                        "booking"
-                );
+                if (isDirectBooking) {
+                    notificationService.createNotification(
+                            hostId,
+                            "direct_booking",
+                            "New Direct Reservation",
+                            "A guest has reserved your property directly and has 30 minutes to complete payment.",
+                            bookingId,
+                            "booking"
+                    );
+                } else {
+                    notificationService.createNotification(
+                            hostId,
+                            "booking_request",
+                            "New Booking Request",
+                            "You received a new booking request for your property.",
+                            bookingId,
+                            "booking"
+                    );
+                }
             } catch (Exception ignored) {}
 
             return booking;
@@ -527,7 +640,10 @@ public class BookingService {
                     document.getId()
             );
 
-            if (!booking.containsKey("status") && booking.containsKey("bookingStatus")) {
+            if (BookingAvailabilityUtils.isHoldExpired(booking, Instant.now())) {
+                booking.put("bookingStatus", "expired");
+                booking.put("status", "expired");
+            } else if (!booking.containsKey("status") && booking.containsKey("bookingStatus")) {
                 booking.put("status", booking.get("bookingStatus"));
             }
 
@@ -539,34 +655,107 @@ public class BookingService {
                 booking.put("totalPrice", booking.get("amount"));
             }
 
-            // Fallback enrichment for bookings missing propertyTitle or details
-            if (isBlank(stringValue(booking.get("propertyTitle")))) {
-                String propId = stringValue(booking.get("propertyId"));
+            // Fallback enrichment for bookings missing property metadata or direct booking classification
+            String propId = stringValue(booking.get("propertyId"));
+            if (!propId.isBlank()) {
+                try {
+                    DocumentSnapshot propDoc = propertyRepository.findById(propId);
+                    if (propDoc != null && propDoc.exists()) {
+                        Map<String, Object> pData = propDoc.getData();
+                        if (pData != null) {
+                            if (isBlank(stringValue(booking.get("category")))) {
+                                String propCat = stringValue(pData.get("category"));
+                                if (propCat.isBlank()) propCat = stringValue(pData.get("propertyType"));
+                                booking.put("category", propCat);
+                            }
+                            if (isBlank(stringValue(booking.get("propertyType")))) {
+                                booking.put("propertyType", stringValue(pData.get("propertyType")));
+                            }
+                            String title = stringValue(pData.get("title"));
+                            if (title.isBlank()) title = stringValue(pData.get("name"));
+                            if (isBlank(stringValue(booking.get("propertyTitle")))) {
+                                booking.put("propertyTitle", title);
+                            }
+                            if (isBlank(stringValue(booking.get("city")))) {
+                                booking.put("city", stringValue(pData.get("city")));
+                            }
+                            if (isBlank(stringValue(booking.get("area")))) {
+                                booking.put("area", stringValue(pData.get("area")));
+                            }
+                            if (isBlank(stringValue(booking.get("propertyImage")))) {
+                                Object imgs = pData.get("images");
+                                if (imgs instanceof List && !((List<?>) imgs).isEmpty()) {
+                                    booking.put("propertyImage", String.valueOf(((List<?>) imgs).get(0)));
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            String cat = stringValue(booking.get("category"));
+            if (cat.isBlank()) {
+                cat = stringValue(booking.get("propertyType"));
+            }
+            String catUpper = cat.trim().toUpperCase();
+            boolean isDirect = Boolean.TRUE.equals(booking.get("isDirectBooking"))
+                    || "HOTEL".equals(catUpper) || "HOTELS".equals(catUpper)
+                    || "BNB".equals(catUpper) || "BNBS".equals(catUpper)
+                    || "B&B".equals(catUpper) || "BED & BREAKFAST".equals(catUpper)
+                    || "BED AND BREAKFAST".equals(catUpper) || "BED_AND_BREAKFAST".equals(catUpper)
+                    || "VACATIONSTAY".equals(catUpper) || "VACATION_STAY".equals(catUpper)
+                    || "ROOM".equals(catUpper)
+                    || (("HOSTEL".equals(catUpper) || "HOSTELS".equals(catUpper)) && "daily".equalsIgnoreCase(stringValue(booking.get("bookingType"))));
+
+            booking.put("isDirectBooking", isDirect);
+
+            // If this is a direct accommodation and status was erroneously stored as "requested"
+            // by a legacy or stale process, automatically heal it to "accepted" (direct reservation ready for payment)
+            String currentStatus = stringValue(booking.get("bookingStatus")).toLowerCase();
+            if (isDirect && "requested".equals(currentStatus) && !BookingAvailabilityUtils.isHoldExpired(booking, Instant.now())) {
+                booking.put("bookingStatus", "accepted");
+                booking.put("status", "accepted");
+            }
+
+            // Expose exact address and exact coordinates ONLY to confirmed reservation holders, property hosts, and admins
+            String bStatus = stringValue(booking.get("bookingStatus")).toLowerCase();
+            if (bStatus.isBlank() && booking.containsKey("status")) {
+                bStatus = stringValue(booking.get("status")).toLowerCase();
+            }
+
+            boolean isConfirmedGuest = owner && "confirmed".equals(bStatus);
+            boolean isHostOrAdmin = admin || host;
+
+            if (isConfirmedGuest || isHostOrAdmin) {
                 if (!propId.isBlank()) {
                     try {
                         DocumentSnapshot propDoc = propertyRepository.findById(propId);
-                        if (propDoc.exists()) {
+                        if (propDoc != null && propDoc.exists()) {
                             Map<String, Object> pData = propDoc.getData();
                             if (pData != null) {
-                                String title = stringValue(pData.get("title"));
-                                if (title.isBlank()) title = stringValue(pData.get("name"));
-                                booking.put("propertyTitle", title);
-                                if (isBlank(stringValue(booking.get("city")))) {
-                                    booking.put("city", stringValue(pData.get("city")));
+                                if (pData.get("address") != null) {
+                                    booking.put("address", stringValue(pData.get("address")));
                                 }
-                                if (isBlank(stringValue(booking.get("area")))) {
-                                    booking.put("area", stringValue(pData.get("area")));
+                                if (pData.get("latitude") != null) {
+                                    booking.put("latitude", pData.get("latitude"));
                                 }
-                                if (isBlank(stringValue(booking.get("propertyImage")))) {
-                                    Object imgs = pData.get("images");
-                                    if (imgs instanceof List && !((List<?>) imgs).isEmpty()) {
-                                        booking.put("propertyImage", String.valueOf(((List<?>) imgs).get(0)));
-                                    }
+                                if (pData.get("longitude") != null) {
+                                    booking.put("longitude", pData.get("longitude"));
                                 }
                             }
                         }
                     } catch (Exception ignored) {}
                 }
+            } else {
+                // Ensure no leaked address or exact coordinates for non-confirmed customer
+                // Even if status is "accepted" or "payment_pending"
+                booking.remove("address");
+                booking.remove("latitude");
+                booking.remove("longitude");
+                booking.remove("lat");
+                booking.remove("lng");
+                booking.remove("coordinates");
+                booking.remove("exactCoordinates");
             }
 
             return booking;
@@ -616,6 +805,17 @@ public class BookingService {
                         )
                 );
 
+        if ("expired".equalsIgnoreCase(currentStatus)
+                || BookingAvailabilityUtils.isHoldExpired(booking, Instant.now())) {
+            throw new IllegalStateException(
+                    "Booking request has expired and can no longer be accepted"
+            );
+        }
+
+        if ("accepted".equalsIgnoreCase(currentStatus)) {
+            return booking;
+        }
+
         if (!"requested".equalsIgnoreCase(
                 currentStatus
         )) {
@@ -626,73 +826,16 @@ public class BookingService {
         }
 
         String propertyId = stringValue(booking.get("propertyId"));
-        String startDate = stringValue(booking.get("startDate"));
-        String endDate = stringValue(booking.get("endDate"));
-        String startTime = stringValue(booking.get("startTime"));
-        String endTime = stringValue(booking.get("endTime"));
-        String bookingType = stringValue(booking.get("bookingType"));
 
         try {
-            List<QueryDocumentSnapshot> existingBookings = bookingRepository.findByPropertyId(propertyId);
-            for (QueryDocumentSnapshot doc : existingBookings) {
-                if (doc.getId().equals(bookingId)) continue;
-                Map<String, Object> existing = doc.getData();
-                if (existing == null) continue;
-
-                String status = stringValue(existing.get("bookingStatus")).toLowerCase();
-                if (!java.util.Set.of("accepted", "payment_pending", "confirmed").contains(status)) {
-                    continue;
-                }
-
-                String existingStart = stringValue(existing.get("startDate"));
-                String existingEnd = stringValue(existing.get("endDate"));
-                if (existingStart.isBlank() || existingEnd.isBlank()) continue;
-
-                if (dateRangesOverlap(startDate, endDate, existingStart, existingEnd)) {
-                    if (!"hourly".equalsIgnoreCase(bookingType)) {
-                        throw new IllegalStateException("Property is already booked for the requested period");
-                    }
-                    if (startDate.equals(existingStart)) {
-                        String existingStartTime = stringValue(existing.get("startTime"));
-                        String existingEndTime = stringValue(existing.get("endTime"));
-                        if (timesOverlap(startTime, endTime, existingStartTime, existingEndTime)) {
-                            throw new IllegalStateException("Property is already booked for the requested period");
-                        }
-                    }
-                }
-            }
-        } catch (IllegalStateException e) {
-            throw e;
-        } catch (Exception ignored) {
-        }
-
-        try {
-
-            Map<String, Object> updates =
-                    new HashMap<>();
-
-            updates.put(
-                    "bookingStatus",
-                    "accepted"
-            );
-
-            updates.put(
-                    "paymentStatus",
-                    "created"
-            );
-
-            updates.put(
-                    "updatedAt",
-                    Timestamp.now()
-            );
-
-            bookingRepository.update(
-                    bookingId,
-                    updates
-            );
+            Map<String, Object> acceptedBooking =
+                    bookingRepository.acceptWithAvailabilityCheck(
+                            propertyId,
+                            bookingId
+                    );
 
             booking.putAll(
-                    updates
+                    acceptedBooking
             );
 
             try {
@@ -710,6 +853,12 @@ public class BookingService {
             } catch (Exception ignored) {}
 
             return booking;
+
+        } catch (IllegalStateException
+                | IllegalArgumentException
+                | SecurityException e) {
+
+            throw e;
 
         } catch (Exception e) {
 
@@ -754,10 +903,12 @@ public class BookingService {
 
         if (!"requested".equalsIgnoreCase(
                 currentStatus
+        ) && !"accepted".equalsIgnoreCase(
+                currentStatus
         )) {
 
             throw new RuntimeException(
-                    "Only requested bookings can be rejected"
+                    "Only requested or accepted bookings can be rejected"
             );
         }
 
@@ -779,6 +930,11 @@ public class BookingService {
             updates.put(
                     "updatedAt",
                     Timestamp.now()
+            );
+
+            updates.put(
+                    "holdExpiresAt",
+                    null
             );
 
             bookingRepository.update(
@@ -898,6 +1054,11 @@ public class BookingService {
                     Timestamp.now()
             );
 
+            updates.put(
+                    "holdExpiresAt",
+                    null
+            );
+
             bookingRepository.update(
                     bookingId,
                     updates
@@ -979,6 +1140,12 @@ public class BookingService {
             );
         }
 
+        if (BookingAvailabilityUtils.isHoldExpired(booking, Instant.now())) {
+            throw new IllegalStateException(
+                    "Booking hold has expired. Please submit a new booking request."
+            );
+        }
+
         /*
          * If already payment_pending, return it as-is.
          * This makes the endpoint effectively idempotent.
@@ -1008,6 +1175,13 @@ public class BookingService {
             updates.put(
                     "updatedAt",
                     Timestamp.now()
+            );
+
+            long paymentHoldExpiryMillis = System.currentTimeMillis()
+                    + BookingAvailabilityUtils.PAYMENT_HOLD_MILLIS;
+            updates.put(
+                    "holdExpiresAt",
+                    Timestamp.ofTimeSecondsAndNanos(paymentHoldExpiryMillis / 1000, 0)
             );
 
             bookingRepository.update(
@@ -1274,6 +1448,133 @@ public class BookingService {
         }
     }
 
+    private Map<String, Object> validateInventorySelection(
+            BookingRequest request,
+            Map<String, Object> propertyData
+    ) {
+        String propertyId = request.getPropertyId().trim();
+        String category = stringValue(propertyData.get("propertyType")).trim().toLowerCase();
+        if (category.isBlank()) {
+            category = stringValue(propertyData.get("category")).trim().toLowerCase();
+        }
+
+        boolean isFlat = "flat".equals(category) || "apartment".equals(category) || "house".equals(category);
+        String requestedUnitId = request.getInventoryUnitId() != null ? request.getInventoryUnitId().trim() : "";
+
+        if (isFlat) {
+            if (!requestedUnitId.isBlank()) {
+                throw new IllegalArgumentException("Properties categorized as flats cannot be booked by room or bed");
+            }
+            return null;
+        }
+
+        List<QueryDocumentSnapshot> propertyUnits;
+        try {
+            propertyUnits = inventoryUnitRepository.findByPropertyId(propertyId);
+        } catch (Exception e) {
+            throw new RuntimeException("Error checking property inventory", e);
+        }
+
+        if (propertyUnits != null && !propertyUnits.isEmpty()) {
+            if (requestedUnitId.isBlank()) {
+                String reqOcc = request.getOccupancyType() != null ? request.getOccupancyType().trim() : "";
+                String reqRoomType = request.getRoomTypeId() != null ? request.getRoomTypeId().trim() : "";
+                if (!reqOcc.isBlank() || !reqRoomType.isBlank()) {
+                    String allocatedId = allocateAvailableUnitForOccupancy(propertyId, propertyUnits, reqOcc, reqRoomType, request);
+                    if (allocatedId != null && !allocatedId.isBlank()) {
+                        requestedUnitId = allocatedId;
+                        request.setInventoryUnitId(allocatedId);
+                    } else {
+                        throw new BookingConflictException("Selected occupancy option has no available beds for the requested dates");
+                    }
+                } else {
+                    throw new IllegalArgumentException("Booking this property requires selecting a room or bed inventory unit");
+                }
+            }
+
+            DocumentSnapshot unitDoc;
+            try {
+                unitDoc = inventoryUnitRepository.findById(requestedUnitId);
+            } catch (Exception e) {
+                throw new RuntimeException("Error fetching inventory unit", e);
+            }
+
+            if (!unitDoc.exists()) {
+                throw new IllegalArgumentException("Selected inventory unit does not exist on this property");
+            }
+
+            Map<String, Object> unitData = unitDoc.getData();
+            if (unitData == null || !propertyId.equals(unitData.get("propertyId"))) {
+                throw new IllegalArgumentException("Selected inventory unit does not belong to this property");
+            }
+
+            String status = stringValue(unitData.get("status")).trim().toLowerCase();
+            if ("inactive".equals(status)) {
+                throw new IllegalStateException("Selected inventory unit is not active");
+            }
+
+            return unitData;
+        }
+
+        if (!requestedUnitId.isBlank()) {
+            throw new IllegalArgumentException("Property does not have inventory units configured");
+        }
+
+        return null;
+    }
+
+    private String allocateAvailableUnitForOccupancy(
+            String propertyId,
+            List<QueryDocumentSnapshot> propertyUnits,
+            String occupancyType,
+            String roomTypeId,
+            BookingRequest request
+    ) {
+        List<Map<String, Object>> candidateUnits = PropertyService.findMatchingUnits(propertyUnits, occupancyType, roomTypeId);
+        if (candidateUnits == null || candidateUnits.isEmpty()) {
+            return null;
+        }
+
+        List<QueryDocumentSnapshot> existingBookings;
+        try {
+            existingBookings = bookingRepository.findByPropertyId(propertyId);
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching existing bookings for inventory check", e);
+        }
+
+        Instant now = Instant.now();
+        String bType = request.getBookingType();
+        String sDate = request.getStartDate();
+        String eDate = request.getEndDate();
+        String sTime = request.getStartTime();
+        String eTime = request.getEndTime();
+
+        for (Map<String, Object> cand : candidateUnits) {
+            String candId = stringValue(cand.get("id"));
+            if (candId.isBlank()) candId = stringValue(cand.get("inventoryUnitId"));
+            String candType = stringValue(cand.get("unitType")).trim();
+            String candParentRoomId = stringValue(cand.get("parentRoomId")).trim();
+
+            boolean conflict = false;
+            for (QueryDocumentSnapshot doc : existingBookings) {
+                Map<String, Object> data = doc.getData();
+                if (data == null) continue;
+                if (!BookingAvailabilityUtils.datesAndTimesOverlap(bType, sDate, eDate, sTime, eTime, data, now)) {
+                    continue;
+                }
+                if (BookingAvailabilityUtils.unitConflicts(candId, candType, candParentRoomId, data)) {
+                    conflict = true;
+                    break;
+                }
+            }
+
+            if (!conflict) {
+                return candId;
+            }
+        }
+        return null;
+    }
+
     /*
      * -------------------------
      * PRICE CALCULATION
@@ -1288,39 +1589,55 @@ public class BookingService {
             String endTime,
             Map<String, Object> property
     ) {
+        return calculateAmount(bookingType, startDate, endDate, startTime, endTime, property, null);
+    }
+
+    private long calculateAmount(
+            String bookingType,
+            LocalDate startDate,
+            LocalDate endDate,
+            String startTime,
+            String endTime,
+            Map<String, Object> property,
+            Double unitPriceOverride
+    ) {
 
         double price;
 
-        switch (bookingType) {
+        if (unitPriceOverride != null && unitPriceOverride > 0) {
+            price = unitPriceOverride;
+        } else {
+            switch (bookingType) {
 
-            case "hourly":
-                price = numberValue(property.get("hourlyPrice"));
-                if (price <= 0) price = numberValue(property.get("pricePerHour"));
-                if (price <= 0) price = numberValue(property.get("price"));
-                break;
+                case "hourly":
+                    price = numberValue(property.get("hourlyPrice"));
+                    if (price <= 0) price = numberValue(property.get("pricePerHour"));
+                    if (price <= 0) price = numberValue(property.get("price"));
+                    break;
 
-            case "daily":
-                price = numberValue(property.get("dailyPrice"));
-                if (price <= 0) price = numberValue(property.get("pricePerNight"));
-                if (price <= 0) price = numberValue(property.get("price"));
-                break;
+                case "daily":
+                    price = numberValue(property.get("dailyPrice"));
+                    if (price <= 0) price = numberValue(property.get("pricePerNight"));
+                    if (price <= 0) price = numberValue(property.get("price"));
+                    break;
 
-            case "monthly":
-                price = numberValue(property.get("monthlyPrice"));
-                if (price <= 0) price = numberValue(property.get("pricePerMonth"));
-                if (price <= 0) {
-                    double daily = numberValue(property.get("dailyPrice"));
-                    if (daily <= 0) daily = numberValue(property.get("pricePerNight"));
-                    if (daily <= 0) daily = numberValue(property.get("price"));
-                    if (daily > 0) price = daily * 30.0;
-                }
-                break;
+                case "monthly":
+                    price = numberValue(property.get("monthlyPrice"));
+                    if (price <= 0) price = numberValue(property.get("pricePerMonth"));
+                    if (price <= 0) {
+                        double daily = numberValue(property.get("dailyPrice"));
+                        if (daily <= 0) daily = numberValue(property.get("pricePerNight"));
+                        if (daily <= 0) daily = numberValue(property.get("price"));
+                        if (daily > 0) price = daily * 30.0;
+                    }
+                    break;
 
-            default:
+                default:
 
-                throw new IllegalArgumentException(
-                        "Unsupported booking type"
-                );
+                    throw new IllegalArgumentException(
+                            "Unsupported booking type"
+                    );
+            }
         }
 
         if (price <= 0) {
@@ -1456,7 +1773,10 @@ public class BookingService {
                         document.getId()
                 );
 
-                if (!booking.containsKey("status") && booking.containsKey("bookingStatus")) {
+                if (BookingAvailabilityUtils.isHoldExpired(booking, Instant.now())) {
+                    booking.put("bookingStatus", "expired");
+                    booking.put("status", "expired");
+                } else if (!booking.containsKey("status") && booking.containsKey("bookingStatus")) {
                     booking.put("status", booking.get("bookingStatus"));
                 }
 
@@ -1469,34 +1789,64 @@ public class BookingService {
                 }
 
                 // Fallback enrichment if property metadata is missing
-                String propTitle = stringValue(booking.get("propertyTitle"));
-                if (propTitle.isBlank()) {
-                    String propId = stringValue(booking.get("propertyId"));
-                    if (!propId.isBlank()) {
-                        try {
-                            DocumentSnapshot propDoc = propertyRepository.findById(propId);
-                            if (propDoc != null && propDoc.exists()) {
-                                Map<String, Object> pData = propDoc.getData();
-                                if (pData != null) {
-                                    String title = stringValue(pData.get("title"));
-                                    if (title.isBlank()) title = stringValue(pData.get("name"));
+                String propId = stringValue(booking.get("propertyId"));
+                if (!propId.isBlank()) {
+                    try {
+                        DocumentSnapshot propDoc = propertyRepository.findById(propId);
+                        if (propDoc != null && propDoc.exists()) {
+                            Map<String, Object> pData = propDoc.getData();
+                            if (pData != null) {
+                                if (isBlank(stringValue(booking.get("category")))) {
+                                    String propCat = stringValue(pData.get("category"));
+                                    if (propCat.isBlank()) propCat = stringValue(pData.get("propertyType"));
+                                    booking.put("category", propCat);
+                                }
+                                if (isBlank(stringValue(booking.get("propertyType")))) {
+                                    booking.put("propertyType", stringValue(pData.get("propertyType")));
+                                }
+                                String title = stringValue(pData.get("title"));
+                                if (title.isBlank()) title = stringValue(pData.get("name"));
+                                if (isBlank(stringValue(booking.get("propertyTitle")))) {
                                     booking.put("propertyTitle", title);
-                                    if (stringValue(booking.get("city")).isBlank()) {
-                                        booking.put("city", stringValue(pData.get("city")));
-                                    }
-                                    if (stringValue(booking.get("area")).isBlank()) {
-                                        booking.put("area", stringValue(pData.get("area")));
-                                    }
-                                    if (stringValue(booking.get("propertyImage")).isBlank()) {
-                                        Object imgs = pData.get("images");
-                                        if (imgs instanceof List && !((List<?>) imgs).isEmpty()) {
-                                            booking.put("propertyImage", String.valueOf(((List<?>) imgs).get(0)));
-                                        }
+                                }
+                                if (stringValue(booking.get("city")).isBlank()) {
+                                    booking.put("city", stringValue(pData.get("city")));
+                                }
+                                if (stringValue(booking.get("area")).isBlank()) {
+                                    booking.put("area", stringValue(pData.get("area")));
+                                }
+                                if (stringValue(booking.get("propertyImage")).isBlank()) {
+                                    Object imgs = pData.get("images");
+                                    if (imgs instanceof List && !((List<?>) imgs).isEmpty()) {
+                                        booking.put("propertyImage", String.valueOf(((List<?>) imgs).get(0)));
                                     }
                                 }
                             }
-                        } catch (Exception ignored) {}
-                    }
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                String cat = stringValue(booking.get("category"));
+                if (cat.isBlank()) {
+                    cat = stringValue(booking.get("propertyType"));
+                }
+                String catUpper = cat.trim().toUpperCase();
+                boolean isDirect = Boolean.TRUE.equals(booking.get("isDirectBooking"))
+                        || "HOTEL".equals(catUpper) || "HOTELS".equals(catUpper)
+                        || "BNB".equals(catUpper) || "BNBS".equals(catUpper)
+                        || "B&B".equals(catUpper) || "BED & BREAKFAST".equals(catUpper)
+                        || "BED AND BREAKFAST".equals(catUpper) || "BED_AND_BREAKFAST".equals(catUpper)
+                        || "VACATIONSTAY".equals(catUpper) || "VACATION_STAY".equals(catUpper)
+                        || "ROOM".equals(catUpper)
+                        || (("HOSTEL".equals(catUpper) || "HOSTELS".equals(catUpper)) && "daily".equalsIgnoreCase(stringValue(booking.get("bookingType"))));
+
+                booking.put("isDirectBooking", isDirect);
+
+                // Heal in-flight direct bookings stored as requested
+                String currentStatus = stringValue(booking.get("bookingStatus")).toLowerCase();
+                if (isDirect && "requested".equals(currentStatus) && !BookingAvailabilityUtils.isHoldExpired(booking, Instant.now())) {
+                    booking.put("bookingStatus", "accepted");
+                    booking.put("status", "accepted");
                 }
 
                 bookings.add(

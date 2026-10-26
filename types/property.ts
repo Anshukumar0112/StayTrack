@@ -9,6 +9,29 @@ export type HostelRoomType = 'dormitory' | 'private' | string;
 export type HostelPriceModel = 'per_bed' | 'per_room' | string;
 export type HostelAudience = 'students' | 'working_professionals' | 'open_to_all' | string;
 
+export type BathroomType = 'attached' | 'shared' | 'not_available' | string;
+
+export interface OccupancyOption {
+  id: string;
+  name: string;
+  occupancyType: 'single' | 'double' | 'triple' | 'four_sharing' | 'custom' | string;
+  monthlyRentPerBed: number;
+  securityDeposit?: number;
+  bathrooms?: number;
+  bathroomType?: BathroomType;
+  roomCount?: number;
+  bedsCount?: number;
+  maxOccupancy?: number;
+  bedType?: string;
+  roomCategory?: HotelRoomType | string;
+  furnished?: boolean;
+  roomDetails?: string;
+  amenities?: string[];
+  price?: number;
+  nightlyPrice?: number;
+  isAvailable?: boolean;
+}
+
 export type FlatBhkConfig = '1 RK' | '1 BHK' | '2 BHK' | '3 BHK' | '4+ BHK' | string;
 export type TenantPreference = 'family' | 'bachelors' | 'any' | string;
 export type ParkingType = 'covered' | 'open' | 'two_wheeler' | 'none' | string;
@@ -22,10 +45,15 @@ export interface Property {
   title: string;
   description: string;
   hostId: string;
+  hostType?: string;
+  hostName?: string;
+  hostPhoto?: string;
   propertyType: 'BNB' | 'HOSTEL' | 'PG' | 'HOTEL' | 'FLAT' | 'Hostel' | 'Hotel' | 'Flat' | string;
   category?: PropertyCategory;
   bookingType: 'daily' | 'monthly' | 'hourly' | string;
   stayTypes?: string[];
+  averageRating?: number;
+  reviewCount?: number;
   pricePerNight?: number;
   pricePerMonth?: number;
   pricePerHour?: number;
@@ -41,10 +69,14 @@ export interface Property {
   furnished?: boolean;
   areaSqFt?: number;
   amenities?: string[];
+  propertyAmenities?: string[];
   rating?: number;
   images?: string[];
   latitude?: number;
   longitude?: number;
+  approximateLatitude?: number;
+  approximateLongitude?: number;
+  isExactLocation?: boolean;
   verificationStatus?: 'pending' | 'approved' | 'changes_required' | 'rejected';
   listingStatus?: 'active' | 'hidden' | 'inactive';
   topVerified?: boolean;
@@ -67,8 +99,14 @@ export interface Property {
   foodIncluded?: boolean;
   foodOptions?: string[];
   securityDeposit?: number;
+  securityDepositEnabled?: boolean;
   noticePeriodDays?: number;
   gateClosingTime?: string;
+  contractDuration?: '3_months' | '4_months' | '6_months' | '10_months' | '12_months' | 'custom' | string;
+  customDurationValue?: number;
+  customDurationUnit?: 'months' | 'days' | string;
+  monthlyRentPerBed?: number;
+  occupancyOptions?: OccupancyOption[];
 
   // Hostel attributes
   roomType?: HostelRoomType | HotelRoomType;

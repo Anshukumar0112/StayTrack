@@ -63,8 +63,14 @@ public class Property {
     private Boolean foodIncluded;
     private List<String> foodOptions;
     private Double securityDeposit;
+    private Boolean securityDepositEnabled;
     private Integer noticePeriodDays;
     private String gateClosingTime;
+    private String contractDuration;
+    private Integer customDurationValue;
+    private String customDurationUnit;
+    private Double monthlyRentPerBed;
+    private List<java.util.Map<String, Object>> occupancyOptions;
 
     // Hostel attributes
     private String roomType;
@@ -312,7 +318,10 @@ public class Property {
     }
 
     public String getCategory() {
-        return category;
+        if (category != null && !category.isBlank()) {
+            return category;
+        }
+        return propertyType;
     }
 
     public void setCategory(String category) {
@@ -541,5 +550,53 @@ public class Property {
 
     public void setCancellationPolicy(String cancellationPolicy) {
         this.cancellationPolicy = cancellationPolicy;
+    }
+
+    public String getContractDuration() {
+        return contractDuration;
+    }
+
+    public void setContractDuration(String contractDuration) {
+        this.contractDuration = contractDuration;
+    }
+
+    public Integer getCustomDurationValue() {
+        return customDurationValue;
+    }
+
+    public void setCustomDurationValue(Integer customDurationValue) {
+        this.customDurationValue = customDurationValue;
+    }
+
+    public String getCustomDurationUnit() {
+        return customDurationUnit;
+    }
+
+    public void setCustomDurationUnit(String customDurationUnit) {
+        this.customDurationUnit = customDurationUnit;
+    }
+
+    public Double getMonthlyRentPerBed() {
+        return monthlyRentPerBed;
+    }
+
+    public void setMonthlyRentPerBed(Double monthlyRentPerBed) {
+        this.monthlyRentPerBed = monthlyRentPerBed;
+    }
+
+    public Boolean getSecurityDepositEnabled() {
+        return securityDepositEnabled;
+    }
+
+    public void setSecurityDepositEnabled(Boolean securityDepositEnabled) {
+        this.securityDepositEnabled = securityDepositEnabled;
+    }
+
+    public List<java.util.Map<String, Object>> getOccupancyOptions() {
+        return occupancyOptions;
+    }
+
+    public void setOccupancyOptions(List<java.util.Map<String, Object>> occupancyOptions) {
+        this.occupancyOptions = occupancyOptions;
     }
 }

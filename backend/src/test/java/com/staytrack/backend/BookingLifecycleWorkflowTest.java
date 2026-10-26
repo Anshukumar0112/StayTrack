@@ -65,8 +65,8 @@ public class BookingLifecycleWorkflowTest {
         // 3. Create & approve a property for booking
         PropertyRequest pReq = new PropertyRequest();
         pReq.setHostType("pg_owner");
-        pReq.setTitle("Royal PG Koramangala");
-        pReq.setPropertyType("pg");
+        pReq.setTitle("Royal Hotel Koramangala");
+        pReq.setPropertyType("hotel");
         pReq.setStayTypes(List.of("daily"));
         pReq.setDailyPrice(1500.0);
         pReq.setAddress("456 8th Main");
@@ -99,14 +99,14 @@ public class BookingLifecycleWorkflowTest {
 
             bookingId = (String) booking.get("bookingId");
             assertNotNull(bookingId, "Booking ID should be set");
-            assertEquals("requested", booking.get("bookingStatus"), "Booking status should be requested");
+            assertEquals("accepted", booking.get("bookingStatus"), "Booking status should be accepted for direct booking");
             assertEquals("created", booking.get("paymentStatus"), "Payment status should be created");
             assertEquals(6000L, ((Number) booking.get("amount")).longValue(), "Daily rate 1500 * 4 nights should be 6000");
 
             // 5. Verify live Firestore document in bookings collection
             DocumentSnapshot bookingDoc = db.collection("bookings").document(bookingId).get().get();
             assertTrue(bookingDoc.exists(), "Booking document must exist in Firestore");
-            assertEquals("requested", bookingDoc.getString("bookingStatus"));
+            assertEquals("accepted", bookingDoc.getString("bookingStatus"));
             assertEquals(customerUid, bookingDoc.getString("customerId"));
 
             // 6. Verify transactional lock / double booking prevention

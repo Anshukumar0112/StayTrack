@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
@@ -368,10 +369,34 @@ public class ConversationService {
             );
         }
 
-        if (PHONE_PATTERN.matcher(content).find()) {
-            throw new IllegalArgumentException(
-                    "Phone numbers cannot be shared in StayTrack chat"
-            );
+        boolean isVisitRequest = "visit_request".equalsIgnoreCase(request.getMessageType())
+                || content.startsWith("[SCHEDULED VISIT REQUEST]");
+
+        if (!isVisitRequest) {
+            if (PHONE_PATTERN.matcher(content).find()) {
+                throw new IllegalArgumentException(
+                        "Phone numbers cannot be shared in StayTrack chat"
+                );
+            }
+        } else {
+            // For visit inquiries, validate the contact phone number format
+            String phoneToCheck = request.getVisitorPhone() != null && !request.getVisitorPhone().isBlank()
+                    ? request.getVisitorPhone().trim()
+                    : null;
+
+            if (phoneToCheck == null) {
+                Matcher matcher = PHONE_PATTERN.matcher(content);
+                if (matcher.find()) {
+                    phoneToCheck = matcher.group();
+                }
+            }
+
+            if (phoneToCheck != null) {
+                String cleanDigits = phoneToCheck.replaceAll("\\D", "");
+                if (cleanDigits.length() < 10 || cleanDigits.length() > 15) {
+                    throw new IllegalArgumentException("Invalid phone number format in visit inquiry");
+                }
+            }
         }
 
         try {
@@ -399,6 +424,25 @@ public class ConversationService {
                     user,
                     conversationData
             );
+
+            if (isVisitRequest) {
+                String propId = stringValue(conversationData.get("propertyId"));
+                if (!propId.isBlank()) {
+                    DocumentSnapshot propDoc = propertyRepository.findById(propId);
+                    if (propDoc.exists()) {
+                        String cat = stringValue(propDoc.get("category"));
+                        if (cat.isBlank()) {
+                            cat = stringValue(propDoc.get("propertyType"));
+                        }
+                        String catUpper = cat.trim().toUpperCase();
+                        if ("HOTEL".equals(catUpper) || "BNB".equals(catUpper) || "B&B".equals(catUpper)
+                                || "BED_AND_BREAKFAST".equals(catUpper) || "VACATIONSTAY".equals(catUpper)
+                                || "VACATION_STAY".equals(catUpper)) {
+                            throw new IllegalArgumentException("In-person visits are not available for Hotel and B&B accommodations");
+                        }
+                    }
+                }
+            }
 
             Timestamp now = Timestamp.now();
             String messageId =
@@ -430,6 +474,13 @@ public class ConversationService {
                     "content",
                     content
             );
+            message.put(
+                    "messageType",
+                    isVisitRequest ? "visit_request" : "chat"
+            );
+            if (isVisitRequest && request.getVisitorPhone() != null && !request.getVisitorPhone().isBlank()) {
+                message.put("visitorPhone", request.getVisitorPhone().trim());
+            }
             message.put(
                     "createdAt",
                     now

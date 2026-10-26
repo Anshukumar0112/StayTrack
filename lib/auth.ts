@@ -82,14 +82,26 @@ export async function verifyOtp(
   return result.user;
 }
 
-export async function getIdToken(): Promise<string | null> {
+export async function getIdToken(forceRefresh: boolean = false): Promise<string | null> {
+  if (typeof window === "undefined" || !auth) {
+    return null;
+  }
+
+  if (typeof auth.authStateReady === "function") {
+    try {
+      await auth.authStateReady();
+    } catch {
+      // Ignore authStateReady rejection
+    }
+  }
+
   const currentUser = auth.currentUser;
 
   if (!currentUser) {
     return null;
   }
 
-  return currentUser.getIdToken();
+  return currentUser.getIdToken(forceRefresh);
 }
 
 export async function signOutUser(): Promise<void> {

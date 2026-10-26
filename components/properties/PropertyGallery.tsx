@@ -79,14 +79,32 @@ export default function PropertyGallery({
   // ==========================================
   if (validImages.length === 0) {
     return (
-      <div className="h-56 sm:h-64 w-full rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#F6F5F1] via-[#EFECE5] to-[#E3E0D6] border border-border/80 flex flex-col items-center justify-center relative overflow-hidden shadow-subtle p-6 text-center">
+      <div className="h-64 sm:h-72 w-full rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#F6F5F1] via-[#EFECE5] to-[#E3E0D6] border border-border/80 flex flex-col items-center justify-center relative overflow-hidden shadow-subtle p-6 text-center">
         {/* Subtle decorative background circles */}
         <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[#718D87]/5 pointer-events-none" />
         <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-[#111716]/5 pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col items-center gap-2.5 max-w-sm">
-          <div className="w-13 h-13 rounded-2xl bg-surface border border-border/90 flex items-center justify-center shadow-xs text-primary">
-            <Building2Icon className="w-6 h-6 stroke-[1.75]" />
+        {/* Top-Left Trust Badges */}
+        <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2 pointer-events-none">
+          {isVerified && (
+            <span className="inline-flex items-center gap-1.5 bg-surface/95 backdrop-blur-md border border-border text-foreground px-3 py-1 rounded-full text-xs font-bold shadow-2xs">
+              <BadgeCheckIcon className="w-3.5 h-3.5 text-primary" />
+              <span>Verified Listing</span>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5 bg-[#111716] text-white px-3 py-1 rounded-full text-xs font-bold shadow-2xs">
+            Direct Host
+          </span>
+          {propertyType && (
+            <span className="inline-flex items-center gap-1.5 bg-surface/90 text-foreground px-3 py-1 rounded-full text-xs font-semibold border border-border/70 shadow-2xs">
+              {propertyType}
+            </span>
+          )}
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center gap-3 max-w-sm mt-4">
+          <div className="w-14 h-14 rounded-2xl bg-surface border border-border/90 flex items-center justify-center shadow-xs text-primary">
+            <Building2Icon className="w-7 h-7 stroke-[1.75]" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-foreground">
@@ -200,8 +218,71 @@ export default function PropertyGallery({
               );
             })}
           </div>
-        ) : validImages.length >= 3 ? (
-          /* 3-4 Photos Layout: 1 Hero (Left 60%) + 2 Stacked (Right 40%) */
+        ) : validImages.length === 4 ? (
+          /* 4 Photos Layout: 1 Hero (Left 50%) + 1 Wide Top Right + 2 Bottom Right */
+          <div className="grid grid-cols-4 grid-rows-2 gap-2.5 h-[440px] rounded-3xl overflow-hidden border border-border/80 shadow-subtle bg-surface-muted">
+            {/* Hero Left (takes 2 cols, 2 rows) */}
+            <div
+              onClick={() => openLightbox(0)}
+              className="col-span-2 row-span-2 relative h-full w-full cursor-pointer overflow-hidden group"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={validImages[0]}
+                alt={`${title} - Primary Photo`}
+                onError={() => handleImageError(0)}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </div>
+
+            {/* Photo 1: Top Right (2 cols, 1 row) */}
+            <div
+              onClick={() => openLightbox(1)}
+              className="col-span-2 row-span-1 relative h-full w-full cursor-pointer overflow-hidden group"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={validImages[1]}
+                alt={`${title} - Photo 2`}
+                onError={() => handleImageError(1)}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </div>
+
+            {/* Photo 2: Bottom Right Left (1 col, 1 row) */}
+            <div
+              onClick={() => openLightbox(2)}
+              className="col-span-1 row-span-1 relative h-full w-full cursor-pointer overflow-hidden group"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={validImages[2]}
+                alt={`${title} - Photo 3`}
+                onError={() => handleImageError(2)}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </div>
+
+            {/* Photo 3: Bottom Right Right (1 col, 1 row) */}
+            <div
+              onClick={() => openLightbox(3)}
+              className="col-span-1 row-span-1 relative h-full w-full cursor-pointer overflow-hidden group"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={validImages[3]}
+                alt={`${title} - Photo 4`}
+                onError={() => handleImageError(3)}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </div>
+          </div>
+        ) : validImages.length === 3 ? (
+          /* 3 Photos Layout: 1 Hero (Left 66%) + 2 Stacked (Right 33%) */
           <div className="grid grid-cols-3 grid-rows-2 gap-2.5 h-[420px] rounded-3xl overflow-hidden border border-border/80 shadow-subtle bg-surface-muted">
             <div
               onClick={() => openLightbox(0)}
@@ -420,6 +501,10 @@ function LightboxModal({
         <img
           src={currentImage}
           alt={`${title} - Photo ${currentIndex + 1}`}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src =
+              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23111716'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='15' font-family='sans-serif'%3EPhoto preview unavailable%3C/text%3E%3C/svg%3E";
+          }}
           className="max-h-[75vh] max-w-[90vw] object-contain rounded-xl select-none"
         />
 

@@ -1,0 +1,41 @@
+{
+  "hostPopover": {
+    "popoverExists": true,
+    "width": 384,
+    "height": 406,
+    "rowCount": 5,
+    "hasViewAll": true,
+    "hasMarkAll": false,
+    "unreadPillText": "5m ago",
+    "firstRowTitle": "New Booking Request",
+    "firstRowTime": "5m ago",
+    "firstRowHasDot": true,
+    "firstRowHasIcon": true
+  },
+  "fullPageDesktop": {
+    "headingText": "Notifications",
+    "rowCount": 5,
+    "tabs": [
+      "Mark all as read",
+      "All (5)",
+      "Unread (3)",
+      "All Types"
+    ],
+    "firstRowTitle": "New Booking Request",
+    "firstRowCategory": "booking",
+    "hasMarkAllBtn": true,
+    "docWidth": 1440,
+    "winWidth": 1440
+  },
+  "unreadFilteredCount": 3,
+  "mobileAudit": {
+    "docWidth": 393,
+    "winWidth": 393,
+    "noHorizontalOverflow": true,
+    "rowCount": 5
+  },
+  "mobilePopover": {
+    "popWidth": 320,
+    "noHorizontalOverflow": true
+  }
+}

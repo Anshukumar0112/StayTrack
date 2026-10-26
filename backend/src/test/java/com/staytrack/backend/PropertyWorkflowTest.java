@@ -53,9 +53,9 @@ public class PropertyWorkflowTest {
         // 4. Create Property Request
         PropertyRequest request = new PropertyRequest();
         request.setHostType("pg_owner");
-        request.setTitle("Sunshine Luxury PG");
-        request.setDescription("Comfortable and affordable PG for working professionals.");
-        request.setPropertyType("pg");
+        request.setTitle("Sunshine Luxury Hostel");
+        request.setDescription("Comfortable and affordable hostel for working professionals.");
+        request.setPropertyType("hostel");
         request.setStayTypes(List.of("daily", "monthly"));
         request.setDailyPrice(1200.0);
         request.setMonthlyPrice(15000.0);

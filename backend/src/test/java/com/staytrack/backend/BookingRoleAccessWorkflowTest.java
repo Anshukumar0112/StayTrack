@@ -74,7 +74,7 @@ public class BookingRoleAccessWorkflowTest {
             PropertyRequest pReq = new PropertyRequest();
             pReq.setHostType("pg_owner");
             pReq.setTitle("Cozy Studio in Connaught Place");
-            pReq.setPropertyType("flat");
+            pReq.setPropertyType("hotel");
             pReq.setStayTypes(List.of("daily"));
             pReq.setDailyPrice(2500.0);
             pReq.setAddress("12 Barakhamba Road");
@@ -115,7 +115,8 @@ public class BookingRoleAccessWorkflowTest {
             assertNotNull(booking);
             bookingId = (String) booking.get("bookingId");
             assertNotNull(bookingId);
-            assertEquals("requested", booking.get("bookingStatus"));
+            assertEquals("accepted", booking.get("bookingStatus"));
+            assertEquals(Boolean.TRUE, booking.get("isDirectBooking"));
             assertEquals(host1Uid, booking.get("customerId"), "Host 1 must be saved as customerId");
             assertEquals(host2Uid, booking.get("hostId"), "Host 2 must be saved as hostId");
             assertEquals("Host One Traveling", booking.get("guestName"));

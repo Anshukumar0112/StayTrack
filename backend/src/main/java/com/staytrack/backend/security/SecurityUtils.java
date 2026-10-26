@@ -36,6 +36,27 @@ public final class SecurityUtils {
         return user;
     }
 
+    public static AuthenticatedUser getCurrentUserOptional() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (!(principal instanceof AuthenticatedUser user)) {
+            return null;
+        }
+
+        return user;
+    }
+
     public static String getCurrentUserId() {
         return getCurrentUser().getUid();
     }

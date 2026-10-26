@@ -10,6 +10,42 @@ public class BookingRequest {
     private String endTime;
     private String guestName;
     private String contactPhone;
+    private String inventoryUnitId;
+    private String occupancyType;
+    private String roomTypeId;
+    private String occupancyOptionName;
+
+    public String getInventoryUnitId() {
+        return inventoryUnitId;
+    }
+
+    public void setInventoryUnitId(String inventoryUnitId) {
+        this.inventoryUnitId = inventoryUnitId;
+    }
+
+    public String getOccupancyType() {
+        return occupancyType;
+    }
+
+    public void setOccupancyType(String occupancyType) {
+        this.occupancyType = occupancyType;
+    }
+
+    public String getRoomTypeId() {
+        return roomTypeId;
+    }
+
+    public void setRoomTypeId(String roomTypeId) {
+        this.roomTypeId = roomTypeId;
+    }
+
+    public String getOccupancyOptionName() {
+        return occupancyOptionName;
+    }
+
+    public void setOccupancyOptionName(String occupancyOptionName) {
+        this.occupancyOptionName = occupancyOptionName;
+    }
 
     public String getPropertyId() {
         return propertyId;

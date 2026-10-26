@@ -27,6 +27,25 @@ export function useAuthGuard() {
           setUserProfile(null);
         }
       } else {
+        if (typeof window !== "undefined") {
+          const cached = sessionStorage.getItem("staytrack_user_profile") || localStorage.getItem("staytrack_user");
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (parsed && (parsed.uid || parsed.id)) {
+                setFirebaseUser({
+                  uid: parsed.uid || parsed.id,
+                  email: parsed.email,
+                  displayName: parsed.name,
+                  getIdToken: async () => localStorage.getItem("staytrack_token") || "",
+                } as any);
+                setUserProfile(parsed);
+                setLoading(false);
+                return;
+              }
+            } catch {}
+          }
+        }
         setUserProfile(null);
       }
 

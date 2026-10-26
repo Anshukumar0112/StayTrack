@@ -4,9 +4,11 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.staytrack.backend.dto.search.SearchRequest;
 import com.staytrack.backend.repository.BookingRepository;
 import com.staytrack.backend.repository.PropertyRepository;
+import com.staytrack.backend.util.BookingAvailabilityUtils;
 import com.staytrack.backend.util.LocationUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
@@ -89,6 +91,8 @@ public class SearchService {
                         "searchPrice",
                         priceFor(property, request.getBookingType())
                 );
+
+                LocationUtils.sanitizePublicLocation(property);
 
                 results.add(property);
             }
@@ -440,117 +444,41 @@ public class SearchService {
             String propertyId,
             SearchRequest request
     ) {
-        LocalDate requestedStart =
-                parseDate(request.getAvailableFrom());
+        String from = request.getAvailableFrom();
+        String to = request.getAvailableTo();
+        if (from == null || from.isBlank() || to == null || to.isBlank()) {
+            return true;
+        }
 
-        LocalDate requestedEnd =
-                parseDate(request.getAvailableTo());
+        String startDate = from.contains("T") ? from.substring(0, from.indexOf('T')).trim() : from.trim();
+        String endDate = to.contains("T") ? to.substring(0, to.indexOf('T')).trim() : to.trim();
+        String startTime = from.contains("T") ? from.substring(from.indexOf('T') + 1).trim() : "";
+        String endTime = to.contains("T") ? to.substring(to.indexOf('T') + 1).trim() : "";
+        String bookingType = request.getBookingType();
 
         try {
             List<QueryDocumentSnapshot> bookings =
                     bookingRepository.findByPropertyId(
                             propertyId
                     );
+            Instant now = Instant.now();
 
-            for (QueryDocumentSnapshot booking :
-                    bookings) {
-
-                Map<String, Object> data =
-                        booking.getData();
-
+            for (QueryDocumentSnapshot booking : bookings) {
+                Map<String, Object> data = booking.getData();
                 if (data == null) {
                     continue;
                 }
 
-                String status =
-                        normalize(
-                                stringValue(
-                                        data.get("bookingStatus")
-                                )
-                        );
-
-                if (!Set.of(
-                        "accepted",
-                        "payment_pending",
-                        "confirmed"
-                ).contains(status)) {
-                    continue;
-                }
-
-                LocalDate bookingStart =
-                        parseDate(
-                                stringValue(
-                                        data.get("startDate")
-                                )
-                        );
-
-                LocalDate bookingEnd =
-                        parseDate(
-                                stringValue(
-                                        data.get("endDate")
-                                )
-                        );
-
-                if (datesOverlap(
-                        requestedStart,
-                        requestedEnd,
-                        bookingStart,
-                        bookingEnd
+                if (BookingAvailabilityUtils.bookingConflicts(
+                        bookingType,
+                        startDate,
+                        endDate,
+                        startTime,
+                        endTime,
+                        data,
+                        now
                 )) {
                     return false;
-                }
-
-                /*
-                 * For same-day hourly searches, also compare the
-                 * requested time window when both sides provide it.
-                 */
-                if (requestedStart.equals(requestedEnd)
-                        && bookingStart.equals(bookingEnd)
-                        && request.getAvailableFrom() != null
-                        && request.getAvailableTo() != null) {
-
-                    String requestedStartTime =
-                            request.getAvailableFrom()
-                                    .contains("T")
-                                    ? request.getAvailableFrom()
-                                    .substring(
-                                            request.getAvailableFrom()
-                                                    .indexOf('T') + 1
-                                    )
-                                    : "";
-
-                    String requestedEndTime =
-                            request.getAvailableTo()
-                                    .contains("T")
-                                    ? request.getAvailableTo()
-                                            .substring(
-                                                    request.getAvailableTo()
-                                                            .indexOf('T') + 1
-                                            )
-                                    : "";
-
-                    String bookingStartTime =
-                            stringValue(
-                                    data.get("startTime")
-                            );
-
-                    String bookingEndTime =
-                            stringValue(
-                                    data.get("endTime")
-                            );
-
-                    if (!requestedStartTime.isBlank()
-                            && !requestedEndTime.isBlank()
-                            && !bookingStartTime.isBlank()
-                            && !bookingEndTime.isBlank()
-                            && timeWindowsOverlap(
-                            requestedStartTime,
-                            requestedEndTime,
-                            bookingStartTime,
-                            bookingEndTime
-                    )) {
-                        return false;
-                    }
                 }
             }
 

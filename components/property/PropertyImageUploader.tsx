@@ -63,7 +63,11 @@ export default function PropertyImageUploader({
         const storagePath = `properties/photos/${Date.now()}_${sanitizedName}`;
         try {
           const storageRef = ref(storage, storagePath);
-          await uploadBytes(storageRef, file);
+          const uploadPromise = uploadBytes(storageRef, file);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Storage upload timed out")), 3500)
+          );
+          await Promise.race([uploadPromise, timeoutPromise]);
           const downloadUrl = await getDownloadURL(storageRef);
           newUploadedUrls.push(downloadUrl);
         } catch (storageErr: any) {
@@ -99,24 +103,24 @@ export default function PropertyImageUploader({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <label className="block text-xs font-bold text-zinc-800 uppercase tracking-wider">
+          <label className="block text-xs font-bold text-foreground uppercase tracking-wider">
             Property Photos ({images.length}/{maxImages})
           </label>
-          <p className="text-[11px] text-zinc-500 font-semibold mt-0.5">
-            Upload high-resolution stay photos. First photo will be displayed as the main cover photo.
+          <p className="text-[11px] text-muted font-medium mt-0.5">
+            Upload high-resolution stay photos. First photo will be displayed as the main cover photo across search results.
           </p>
         </div>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-1.5">
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-2xs">
           <AlertTriangleIcon className="w-4 h-4 shrink-0 text-red-600" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Upload Drop Zone */}
-      <div className="relative border-2 border-dashed border-zinc-300 hover:border-black rounded-2xl p-6 text-center bg-zinc-50/50 hover:bg-zinc-100/50 transition-all cursor-pointer">
+      <div className="relative border-2 border-dashed border-border hover:border-primary rounded-3xl p-7 text-center bg-surface-muted/40 hover:bg-surface-muted/80 transition-all cursor-pointer shadow-2xs group">
         <input
           type="file"
           multiple
@@ -126,13 +130,13 @@ export default function PropertyImageUploader({
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         />
         <div className="space-y-2 pointer-events-none">
-          <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mx-auto mb-1">
-            <CameraIcon className="w-6 h-6 text-zinc-500 stroke-[1.5]" />
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto mb-1 group-hover:scale-105 transition-transform">
+            <CameraIcon className="w-6 h-6 stroke-[1.75]" />
           </div>
-          <p className="text-xs font-bold text-zinc-900">
+          <p className="text-xs font-bold text-foreground">
             {uploading ? "Uploading photos..." : "Click or drag photos here to upload"}
           </p>
-          <p className="text-[10px] font-semibold text-zinc-500">
+          <p className="text-[10px] font-medium text-muted">
             Supported formats: JPG, PNG, WEBP, GIF (Max 5MB per photo)
           </p>
         </div>
@@ -144,13 +148,13 @@ export default function PropertyImageUploader({
           {images.map((url, idx) => (
             <div
               key={idx}
-              className="relative group rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-100 aspect-video shadow-sm"
+              className="relative group rounded-2xl overflow-hidden border border-border bg-surface-muted aspect-[4/3] shadow-2xs"
             >
-              <img src={url} alt={`Property photo ${idx + 1}`} className="w-full h-full object-cover" />
+              <img src={url} alt={`Property photo ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
 
               {/* Cover Photo Badge */}
               {idx === 0 ? (
-                <span className="absolute top-2 left-2 z-10 bg-black text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md inline-flex items-center gap-1">
+                <span className="absolute top-2 left-2 z-10 bg-[#111716] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-subtle inline-flex items-center gap-1">
                   <StarIcon className="w-2.5 h-2.5 text-[#D9A441]" />
                   <span>Cover Photo</span>
                 </span>
@@ -158,7 +162,7 @@ export default function PropertyImageUploader({
                 <button
                   type="button"
                   onClick={() => handleMakePrimary(idx)}
-                  className="absolute top-2 left-2 z-10 bg-white/90 hover:bg-black hover:text-white text-zinc-800 text-[9px] font-bold px-2 py-0.5 rounded-full shadow-md transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                  className="absolute top-2 left-2 z-10 bg-surface/95 backdrop-blur-md hover:bg-[#111716] hover:text-white text-foreground text-[9px] font-bold px-2 py-0.5 rounded-full shadow-subtle transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                 >
                   Set as Cover
                 </button>
@@ -168,7 +172,7 @@ export default function PropertyImageUploader({
               <button
                 type="button"
                 onClick={() => handleRemove(idx)}
-                className="absolute top-2 right-2 z-10 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold h-6 w-6 rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer"
+                className="absolute top-2 right-2 z-10 bg-rose-600/90 hover:bg-rose-700 text-white text-[10px] font-bold h-6 w-6 rounded-full flex items-center justify-center shadow-subtle transition-all cursor-pointer"
                 title="Remove photo"
               >
                 <CloseIcon className="w-3 h-3" />

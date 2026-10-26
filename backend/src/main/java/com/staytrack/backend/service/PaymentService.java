@@ -1,5 +1,6 @@
 package com.staytrack.backend.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,12 +9,14 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.staytrack.backend.dto.payment.SubscriptionPaymentVerificationRequest;
 import com.staytrack.backend.repository.BookingRepository;
 import com.staytrack.backend.repository.PaymentRepository;
 import com.staytrack.backend.security.AuthenticatedUser;
+import com.staytrack.backend.util.BookingAvailabilityUtils;
 
 @Service
 public class PaymentService {
@@ -619,6 +622,10 @@ public class PaymentService {
             throw new IllegalStateException("Only accepted bookings can be paid");
         }
 
+        if (BookingAvailabilityUtils.isHoldExpired(booking, Instant.now())) {
+            throw new IllegalStateException("Booking hold has expired. Please submit a new booking request.");
+        }
+
         long amount = getLongValue(booking.get("amount"), "Booking amount");
         if (amount <= 0) {
             throw new IllegalStateException("Booking has an invalid payment amount");
@@ -774,7 +781,29 @@ public class PaymentService {
 
         if ("captured".equalsIgnoreCase(String.valueOf(payment.get("status")))) {
             if (!"confirmed".equalsIgnoreCase(bookingStatus)) {
-                confirmBookingAfterPayment(bookingId);
+                try {
+                    confirmBookingAfterPayment(bookingId);
+                } catch (IllegalStateException e) {
+                    Map<String, Object> bookingUpdates = new HashMap<>();
+                    bookingUpdates.put("bookingStatus", "cancelled");
+                    bookingUpdates.put("updatedAt", Timestamp.now());
+                    bookingUpdates.put("holdExpiresAt", null);
+                    bookingUpdates.put("cancellationReason", "Late payment: " + e.getMessage());
+                    try {
+                        bookingRepository.update(bookingId, bookingUpdates);
+                    } catch (Exception ignored) {}
+
+                    Map<String, Object> refund =
+                            refundService.processBookingCancellation(bookingId);
+                    Map<String, Object> response = new HashMap<>(refund);
+                    response.put("status", "cancelled");
+                    response.put("bookingStatus", "cancelled");
+                    response.put("paymentStatus", refund.getOrDefault("refundStatus", "refund_pending"));
+                    response.put("paymentId", payment.get("paymentId"));
+                    response.put("bookingId", bookingId);
+                    response.put("conflictReason", e.getMessage());
+                    return response;
+                }
             }
             return bookingPaymentSuccess(payment, bookingId);
         }
@@ -840,7 +869,29 @@ public class PaymentService {
             return response;
         }
 
-        confirmBookingAfterPayment(bookingId);
+        try {
+            confirmBookingAfterPayment(bookingId);
+        } catch (IllegalStateException e) {
+            Map<String, Object> bookingUpdates = new HashMap<>();
+            bookingUpdates.put("bookingStatus", "cancelled");
+            bookingUpdates.put("updatedAt", Timestamp.now());
+            bookingUpdates.put("holdExpiresAt", null);
+            bookingUpdates.put("cancellationReason", "Late payment: " + e.getMessage());
+            try {
+                bookingRepository.update(bookingId, bookingUpdates);
+            } catch (Exception ignored) {}
+
+            Map<String, Object> refund =
+                    refundService.processBookingCancellation(bookingId);
+            Map<String, Object> response = new HashMap<>(refund);
+            response.put("status", "cancelled");
+            response.put("bookingStatus", "cancelled");
+            response.put("paymentStatus", refund.getOrDefault("refundStatus", "refund_pending"));
+            response.put("paymentId", payment.get("paymentId"));
+            response.put("bookingId", bookingId);
+            response.put("conflictReason", e.getMessage());
+            return response;
+        }
         return bookingPaymentSuccess(payment, bookingId);
     }
 
@@ -859,7 +910,7 @@ public class PaymentService {
                         notificationService.createNotification(
                                 customerId,
                                 "booking_confirmed",
-                                "Booking Confirmed 🎉",
+                                "Booking Confirmed",
                                 "Your booking #" + bookingId + " has been confirmed!",
                                 bookingId,
                                 "booking"
@@ -914,31 +965,7 @@ public class PaymentService {
 
     private void confirmBookingAfterPayment(String bookingId) {
         try {
-            DocumentSnapshot document = bookingRepository.findById(bookingId);
-            if (!document.exists()) {
-                throw new IllegalStateException("Booking not found");
-            }
-
-            Map<String, Object> data = document.getData();
-            if (data == null) {
-                throw new IllegalStateException("Booking data not found");
-            }
-
-            String currentStatus = String.valueOf(data.get("bookingStatus"));
-            if ("rejected".equalsIgnoreCase(currentStatus)
-                    || "cancelled".equalsIgnoreCase(currentStatus)) {
-                throw new IllegalStateException("Booking can no longer be confirmed");
-            }
-
-            if ("confirmed".equalsIgnoreCase(currentStatus)) {
-                return;
-            }
-
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("bookingStatus", "confirmed");
-            updates.put("paymentStatus", "captured");
-            updates.put("updatedAt", System.currentTimeMillis());
-            bookingRepository.update(bookingId, updates);
+            bookingRepository.confirmWithAvailabilityCheck(null, bookingId);
         } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {

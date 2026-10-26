@@ -96,9 +96,22 @@ export default function UnifiedBookingDetailPage({
   const cancellable = booking ? isBookingCancellable(booking) : false;
   const stayDuration = booking ? calculateStayDuration(booking) : "Stay";
 
-  const isAccepted = st === "accepted" || st === "payment_pending";
-  const isConfirmed = st === "confirmed";
-  const isPending = st === "requested";
+  const rawCat = (booking?.category || booking?.propertyType || "").toUpperCase();
+  const isDirectAccommodation = Boolean(
+    booking?.isDirectBooking ||
+    rawCat === "HOTEL" || rawCat === "HOTELS" ||
+    rawCat === "BNB" || rawCat === "BNBS" || rawCat === "B&B" ||
+    rawCat === "BED & BREAKFAST" || rawCat === "BED AND BREAKFAST" || rawCat === "BED_AND_BREAKFAST" ||
+    rawCat === "VACATIONSTAY" || rawCat === "VACATION_STAY" || rawCat === "ROOM" ||
+    (rawCat === "HOSTEL" && booking?.bookingType === "daily")
+  );
+
+  const isTerminal = st === "confirmed" || st === "cancelled" || st === "rejected" || st === "expired";
+  const isDirectPaymentRequired = isDirectAccommodation && !isHost && !isTerminal && booking?.paymentStatus !== "captured";
+
+  const isAccepted = st === "accepted" || st === "payment_pending" || isDirectPaymentRequired;
+  const isConfirmed = st === "confirmed" || booking?.paymentStatus === "captured";
+  const isPending = !isDirectAccommodation && st === "requested";
 
   const handleCopyRef = () => {
     if (!navigator.clipboard || !displayId) return;
@@ -271,11 +284,13 @@ export default function UnifiedBookingDetailPage({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <Badge
-                    variant={badgeVariant}
-                    pulseDot={st === "requested" || st === "payment_pending" || st === "accepted"}
+                    variant={isDirectPaymentRequired ? "warning" : badgeVariant}
+                    pulseDot={st === "requested" || st === "payment_pending" || st === "accepted" || isDirectPaymentRequired}
                     size="md"
                   >
-                    {getBookingStatusLabel(st, userPerspective)}
+                    {isDirectAccommodation && !isHost && !isConfirmed && !isTerminal
+                      ? "Direct Reservation — Payment Required"
+                      : getBookingStatusLabel(st, userPerspective)}
                   </Badge>
 
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-surface-muted text-muted border border-border">
@@ -297,7 +312,9 @@ export default function UnifiedBookingDetailPage({
 
               <div className="pt-4">
                 <p className="text-xs sm:text-sm text-foreground/90 font-medium leading-relaxed">
-                  {getBookingStatusDescription(st, userPerspective)}
+                  {isDirectAccommodation && !isHost && !isConfirmed && !isTerminal
+                    ? "Direct reservation held with property! Complete payment within 30 minutes to confirm your stay."
+                    : getBookingStatusDescription(st, userPerspective)}
                 </p>
               </div>
             </div>

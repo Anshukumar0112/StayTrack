@@ -25,6 +25,12 @@ export interface Booking {
   totalPrice?: number;
   bookingStatus?: string;
   paymentStatus?: string;
+  inventoryUnitId?: string;
+  occupancyType?: string;
+  roomTypeId?: string;
+  occupancyOptionName?: string;
+  isDirectBooking?: boolean;
+  category?: string;
   status: string;
   createdAt?: string;
   updatedAt?: string;
@@ -330,12 +336,29 @@ export function getMessageId(m: Partial<Message> & Record<string, any>): string 
 }
 
 export interface Notification {
-  id: string;
-  userId: string;
+  id?: string;
+  notificationId?: string;
+  userId?: string;
   title: string;
-  body: string;
+  body?: string;
+  message?: string;
   type?: string;
   referenceId?: string;
+  relatedId?: string;
+  relatedType?: string;
   read: boolean;
-  createdAt: string;
+  createdAt?: string;
 }
+
+export function getNotificationId(n: Partial<Notification> & Record<string, any>): string {
+  return n.notificationId || n.id || "";
+}
+
+export function getNotificationBody(n: Partial<Notification> & Record<string, any>): string {
+  return n.body || n.message || "";
+}
+
+export function getNotificationRelatedId(n: Partial<Notification> & Record<string, any>): string {
+  return n.relatedId || n.referenceId || "";
+}
+

@@ -2,6 +2,7 @@ package com.staytrack.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -62,6 +63,13 @@ public class SecurityConfig {
                                 "/api/properties/public",
                                 "/api/properties/top-verified",
                                 "/api/properties/stay-section"
+                        ).permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/api/properties/mine").authenticated()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/properties/*",
+                                "/api/properties/*/availability"
                         ).permitAll()
 
                         .requestMatchers("/api/admin/**")

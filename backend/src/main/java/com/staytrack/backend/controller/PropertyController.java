@@ -43,7 +43,7 @@ public class PropertyController {
             @PathVariable String propertyId) {
 
         AuthenticatedUser user =
-                SecurityUtils.getCurrentUser();
+                SecurityUtils.getCurrentUserOptional();
 
         return propertyService.getProperty(
                 propertyId,
@@ -58,7 +58,10 @@ public class PropertyController {
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime,
-            @RequestParam(required = false) String bookingType) {
+            @RequestParam(required = false) String bookingType,
+            @RequestParam(required = false) String inventoryUnitId,
+            @RequestParam(required = false) String occupancyType,
+            @RequestParam(required = false) String roomTypeId) {
 
         return propertyService.checkPropertyAvailability(
                 propertyId,
@@ -66,7 +69,10 @@ public class PropertyController {
                 endDate,
                 startTime,
                 endTime,
-                bookingType
+                bookingType,
+                inventoryUnitId,
+                occupancyType,
+                roomTypeId
         );
     }
 

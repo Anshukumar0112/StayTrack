@@ -69,8 +69,8 @@ public class MessagingNotificationAndReportWorkflowTest {
         // 2. Create property & approve
         PropertyRequest pReq = new PropertyRequest();
         pReq.setHostType("pg_owner");
-        pReq.setTitle("Chat & Notification Test PG");
-        pReq.setPropertyType("pg");
+        pReq.setTitle("Chat & Notification Test Hotel");
+        pReq.setPropertyType("hotel");
         pReq.setStayTypes(List.of("daily"));
         pReq.setDailyPrice(1100.0);
         pReq.setAddress("101 HSR Layout");

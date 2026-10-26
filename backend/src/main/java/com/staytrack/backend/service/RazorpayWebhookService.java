@@ -7,6 +7,7 @@ import java.util.Map;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.staytrack.backend.repository.BookingRepository;
@@ -946,6 +947,16 @@ public class RazorpayWebhookService {
                             paymentId
                     );
                 }
+            } else if ("failed".equalsIgnoreCase(status)) {
+                String type =
+                        String.valueOf(
+                                paymentData.get(
+                                        "type"
+                                )
+                        );
+                if ("booking".equalsIgnoreCase(type)) {
+                    handleBookingPaymentFailed(paymentData);
+                }
             }
 
             return true;
@@ -987,6 +998,27 @@ public class RazorpayWebhookService {
     ) {
 
         try {
+            DocumentSnapshot payDoc = paymentRepository.findById(paymentId);
+            if (payDoc != null && payDoc.exists()) {
+                Map<String, Object> pData = payDoc.getData();
+                if (pData != null) {
+                    String refundStatus = String.valueOf(pData.getOrDefault("refundStatus", "")).trim().toLowerCase();
+                    if (!refundStatus.isBlank() && !"none".equals(refundStatus)) {
+                        return;
+                    }
+
+                    String bookingId = String.valueOf(pData.getOrDefault("bookingId", "")).trim();
+                    if (!bookingId.isBlank()) {
+                        DocumentSnapshot bDoc = bookingRepository.findById(bookingId);
+                        if (bDoc.exists()) {
+                            String bStatus = String.valueOf(bDoc.get("bookingStatus")).trim().toLowerCase();
+                            if (!"confirmed".equals(bStatus)) {
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
 
             transferService
                     .settleCapturedBookingPayment(
@@ -1104,26 +1136,30 @@ public class RazorpayWebhookService {
                     );
 
             /*
-             * Never resurrect a cancelled/rejected booking.
-             */
-            if ("cancelled".equalsIgnoreCase(
-                    currentStatus
-            )
-                    || "rejected".equalsIgnoreCase(
-                    currentStatus
-            )) {
-
-                throw new IllegalStateException(
-                        "Cannot confirm cancelled or rejected booking"
-                );
-            }
-
-            /*
-             * Idempotent confirmation.
+             * Idempotent confirmation: if already confirmed, do nothing.
              */
             if ("confirmed".equalsIgnoreCase(
                     currentStatus
             )) {
+                return;
+            }
+
+            /*
+             * If booking is in a terminal state (cancelled, rejected, expired, completed),
+             * never confirm. If payment was captured, ensure refund is initiated safely.
+             */
+            if ("cancelled".equalsIgnoreCase(currentStatus)
+                    || "rejected".equalsIgnoreCase(currentStatus)
+                    || "expired".equalsIgnoreCase(currentStatus)
+                    || "completed".equalsIgnoreCase(currentStatus)) {
+
+                if ("captured".equalsIgnoreCase(String.valueOf(paymentData.get("status")))) {
+                    try {
+                        refundService.processBookingCancellation(bookingId);
+                    } catch (Exception refundEx) {
+                        throw new RuntimeException("Unable to process refund for terminal booking", refundEx);
+                    }
+                }
                 return;
             }
 
@@ -1173,28 +1209,38 @@ public class RazorpayWebhookService {
                 );
             }
 
-            Map<String, Object> updates =
-                    new HashMap<>();
+            String propertyId =
+                    String.valueOf(
+                            bookingData.get(
+                                    "propertyId"
+                            )
+                    );
 
-            updates.put(
-                    "bookingStatus",
-                    "confirmed"
-            );
+            try {
+                bookingRepository.confirmWithAvailabilityCheck(
+                        propertyId,
+                        bookingId
+                );
+            } catch (IllegalStateException e) {
+                // If late payment arrives after hold expired or conflict occurred:
+                // 1. Mark booking cancelled and release hold
+                Map<String, Object> bookingUpdates = new HashMap<>();
+                bookingUpdates.put("bookingStatus", "cancelled");
+                bookingUpdates.put("updatedAt", Timestamp.now());
+                bookingUpdates.put("holdExpiresAt", null);
+                bookingUpdates.put("cancellationReason", "Late payment: " + e.getMessage());
+                try {
+                    bookingRepository.update(bookingId, bookingUpdates);
+                } catch (Exception ignored) {}
 
-            updates.put(
-                    "paymentStatus",
-                    "captured"
-            );
-
-            updates.put(
-                    "updatedAt",
-                    System.currentTimeMillis()
-            );
-
-            bookingRepository.update(
-                    bookingId,
-                    updates
-            );
+                // 2. Trigger automatic refund
+                try {
+                    refundService.processBookingCancellation(bookingId);
+                } catch (Exception refundEx) {
+                    throw new RuntimeException("Late payment conflict: unable to process automatic refund", refundEx);
+                }
+                return;
+            }
 
         } catch (SecurityException e) {
 
@@ -1219,6 +1265,72 @@ public class RazorpayWebhookService {
                     "Unable to confirm booking from payment",
                     e
             );
+        }
+    }
+
+    private void handleBookingPaymentFailed(
+            Map<String, Object> paymentData
+    ) {
+        String bookingId =
+                String.valueOf(
+                        paymentData.get(
+                                "bookingId"
+                        )
+                );
+
+        if (bookingId == null
+                || bookingId.isBlank()
+                || "null".equalsIgnoreCase(bookingId)) {
+            return;
+        }
+
+        try {
+            DocumentSnapshot doc =
+                    bookingRepository.findById(
+                            bookingId
+                    );
+            if (!doc.exists()) {
+                return;
+            }
+            Map<String, Object> booking = doc.getData();
+            if (booking == null) {
+                return;
+            }
+            String currentStatus =
+                    String.valueOf(
+                            booking.getOrDefault(
+                                    "bookingStatus",
+                                    ""
+                            )
+                    ).trim().toLowerCase();
+
+            // Release hold immediately if payment failed while in hold state
+            if ("payment_pending".equals(currentStatus)
+                    || "accepted".equals(currentStatus)) {
+                Map<String, Object> updates =
+                        new HashMap<>();
+                updates.put(
+                        "bookingStatus",
+                        "cancelled"
+                );
+                updates.put(
+                        "paymentStatus",
+                        "failed"
+                );
+                updates.put(
+                        "updatedAt",
+                        Timestamp.now()
+                );
+                updates.put(
+                        "holdExpiresAt",
+                        null
+                );
+                bookingRepository.update(
+                        bookingId,
+                        updates
+                );
+            }
+        } catch (Exception ignored) {
         }
     }
 

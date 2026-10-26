@@ -65,8 +65,8 @@ public class ReviewWorkflowTest {
         // 2. Create property & approve
         PropertyRequest pReq = new PropertyRequest();
         pReq.setHostType("pg_owner");
-        pReq.setTitle("Review Test PG");
-        pReq.setPropertyType("pg");
+        pReq.setTitle("Review Test Hotel");
+        pReq.setPropertyType("hotel");
         pReq.setStayTypes(List.of("daily"));
         pReq.setDailyPrice(1000.0);
         pReq.setAddress("789 Indiranagar");

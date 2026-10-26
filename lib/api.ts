@@ -14,6 +14,7 @@ import {
   User,
   LocationArea,
 } from "./types";
+import { VisitBooking } from "@/types/visit";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -48,20 +49,41 @@ async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): P
       headers["Authorization"] = `Bearer ${authToken}`;
     }
 
-    return fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-      credentials: "include",
-    });
+    // Default 20-second timeout if caller did not provide a signal
+    let signal = options.signal;
+    let timeoutId: any = null;
+    if (!signal) {
+      const controller = new AbortController();
+      signal = controller.signal;
+      timeoutId = setTimeout(() => controller.abort(), 20000);
+    }
+
+    try {
+      return await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+        signal,
+        credentials: "include",
+      });
+    } catch (err: any) {
+      if (err.name === "AbortError" || signal?.aborted) {
+        throw new Error("Request timed out. Please check that the server is running and try again.");
+      }
+      throw err;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
   };
 
-  let response = await makeRequest(token);
+  let response: Response;
+  try {
+    response = await makeRequest(token);
+  } catch (err: any) {
+    throw err;
+  }
 
-  // Firebase can restore the persisted session asynchronously after the
-  // first render. If the first protected request was sent before the
-  // Firebase user/token was ready, wait briefly and retry once the token
-  // becomes available. Do not retry a 401 when we already had a token,
-  // because that indicates a genuinely rejected credential.
+  // Firebase can restore the persisted session asynchronously after the first render.
+  // If the first request was sent before token was ready, wait and retry.
   if (response.status === 401 && !token) {
     for (let attempt = 0; attempt < 5 && !token; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -69,6 +91,13 @@ async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): P
     }
 
     if (token) {
+      response = await makeRequest(token);
+    }
+  } else if (response.status === 401 && token) {
+    // Token may have expired in the browser session. Attempt one force-refresh.
+    const refreshedToken = await getIdToken(true);
+    if (refreshedToken && refreshedToken !== token) {
+      token = refreshedToken;
       response = await makeRequest(token);
     }
   }
@@ -190,11 +219,28 @@ export async function getStayProperties(): Promise<Property[]> {
 }
 
 export async function getPropertyDetails(propertyId: string): Promise<Property> {
-  const res = await apiFetch<Property>(`/api/properties/${propertyId}`);
-  if (res) {
-    res.id = getPropertyId(res);
+  try {
+    const res = await apiFetch<Property>(`/api/properties/${propertyId}`);
+    if (res) {
+      res.id = getPropertyId(res);
+      return res;
+    }
+  } catch (err: unknown) {
+    try {
+      const publicList = await getPublicProperties();
+      const match = (publicList || []).find(
+        (p) => getPropertyId(p) === propertyId || p.id === propertyId || p.propertyId === propertyId
+      );
+      if (match) {
+        match.id = getPropertyId(match);
+        return match;
+      }
+    } catch {
+      // ignore fallback error and throw original error
+    }
+    throw err;
   }
-  return res;
+  throw new Error("Property not found");
 }
 
 export async function getMyProperties(): Promise<Property[]> {
@@ -242,6 +288,10 @@ export async function createBooking(data: {
   endTime?: string;
   guestName?: string;
   contactPhone?: string;
+  inventoryUnitId?: string;
+  occupancyType?: string;
+  roomTypeId?: string;
+  occupancyOptionName?: string;
 }): Promise<any> {
   return apiFetch("/api/bookings", {
     method: "POST",
@@ -359,7 +409,16 @@ export async function getMyHostApplication(): Promise<HostApplication | null> {
 // ==========================================
 export async function checkPropertyAvailability(
   propertyId: string,
-  params: { startDate?: string; endDate?: string; startTime?: string; endTime?: string; bookingType?: string }
+  params: {
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+    bookingType?: string;
+    inventoryUnitId?: string;
+    occupancyType?: string;
+    roomTypeId?: string;
+  }
 ): Promise<{ available: boolean; reason?: string }> {
   const query = new URLSearchParams();
   if (params.startDate) query.set("startDate", params.startDate);
@@ -367,8 +426,15 @@ export async function checkPropertyAvailability(
   if (params.startTime) query.set("startTime", params.startTime);
   if (params.endTime) query.set("endTime", params.endTime);
   if (params.bookingType) query.set("bookingType", params.bookingType);
+  if (params.inventoryUnitId) query.set("inventoryUnitId", params.inventoryUnitId);
+  if (params.occupancyType) query.set("occupancyType", params.occupancyType);
+  if (params.roomTypeId) query.set("roomTypeId", params.roomTypeId);
 
   return apiFetch<{ available: boolean; reason?: string }>(`/api/properties/${propertyId}/availability?${query.toString()}`);
+}
+
+export async function getInventoryUnits(propertyId: string): Promise<any[]> {
+  return apiFetch<any[]>(`/api/properties/${propertyId}/inventory`);
 }
 
 export async function createConversation(data: { propertyId: string; bookingId?: string; participantId?: string }): Promise<Conversation> {
@@ -390,10 +456,24 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
   return apiFetch<Message[]>(`/api/conversations/${conversationId}/messages`);
 }
 
-export async function sendMessage(conversationId: string, text: string): Promise<Message> {
+export interface SendMessageOptions {
+  messageType?: string;
+  visitorPhone?: string;
+}
+
+export async function sendMessage(
+  conversationId: string,
+  text: string,
+  options?: SendMessageOptions
+): Promise<Message> {
   return apiFetch<Message>(`/api/conversations/${conversationId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ content: text, text }),
+    body: JSON.stringify({
+      content: text,
+      text,
+      messageType: options?.messageType,
+      visitorPhone: options?.visitorPhone,
+    }),
   });
 }
 
@@ -437,7 +517,11 @@ export async function createReview(data: { propertyId: string; rating: number; c
 }
 
 export async function getPropertyReviews(propertyId: string): Promise<Review[]> {
-  return apiFetch<Review[]>(`/api/reviews/property/${propertyId}`);
+  try {
+    return await apiFetch<Review[]>(`/api/reviews/property/${propertyId}`);
+  } catch {
+    return [];
+  }
 }
 
 export async function getMyReviews(): Promise<Review[]> {
@@ -684,4 +768,35 @@ export async function clearAdminActivities(): Promise<any> {
       return await apiFetch("/api/admin/activities/delete", { method: "POST" });
     }
   }
+}
+
+export async function createVisit(data: {
+  propertyId: string;
+  visitDate: string;
+  timeSlot: string;
+  visitorName?: string;
+  notes?: string;
+}): Promise<VisitBooking> {
+  return apiFetch<VisitBooking>("/api/visits", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMyVisits(): Promise<VisitBooking[]> {
+  return apiFetch<VisitBooking[]>("/api/visits/me");
+}
+
+export async function getHostVisits(): Promise<VisitBooking[]> {
+  return apiFetch<VisitBooking[]>("/api/visits/host");
+}
+
+export async function getVisit(visitId: string): Promise<VisitBooking> {
+  return apiFetch<VisitBooking>(`/api/visits/${visitId}`);
+}
+
+export async function cancelVisit(visitId: string): Promise<VisitBooking> {
+  return apiFetch<VisitBooking>(`/api/visits/${visitId}/cancel`, {
+    method: "PUT",
+  });
 }

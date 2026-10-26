@@ -22,6 +22,13 @@ public class Booking {
     private String paymentStatus;
     private String bookingStatus;
 
+    private String inventoryUnitId;
+    private String unitType;
+    private String parentRoomId;
+    private String occupancyType;
+    private String roomTypeId;
+    private String occupancyOptionName;
+
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
@@ -121,6 +128,8 @@ public class Booking {
         this.bookingStatus = bookingStatus;
     }
 
+    private Boolean isDirectBooking;
+
     public Timestamp getCreatedAt() {
         return createdAt;
     }
@@ -129,11 +138,176 @@ public class Booking {
         this.createdAt = createdAt;
     }
 
+    public String getInventoryUnitId() {
+        return inventoryUnitId;
+    }
+
+    public void setInventoryUnitId(String inventoryUnitId) {
+        this.inventoryUnitId = inventoryUnitId;
+    }
+
+    public String getUnitType() {
+        return unitType;
+    }
+
+    public void setUnitType(String unitType) {
+        this.unitType = unitType;
+    }
+
+    public String getParentRoomId() {
+        return parentRoomId;
+    }
+
+    public void setParentRoomId(String parentRoomId) {
+        this.parentRoomId = parentRoomId;
+    }
+
     public Timestamp getUpdatedAt() {
         return updatedAt;
     }
 
     public void setUpdatedAt(Timestamp updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getOccupancyType() {
+        return occupancyType;
+    }
+
+    public void setOccupancyType(String occupancyType) {
+        this.occupancyType = occupancyType;
+    }
+
+    public String getRoomTypeId() {
+        return roomTypeId;
+    }
+
+    public void setRoomTypeId(String roomTypeId) {
+        this.roomTypeId = roomTypeId;
+    }
+
+    public String getOccupancyOptionName() {
+        return occupancyOptionName;
+    }
+
+    public void setOccupancyOptionName(String occupancyOptionName) {
+        this.occupancyOptionName = occupancyOptionName;
+    }
+
+    public Boolean getIsDirectBooking() {
+        return isDirectBooking;
+    }
+
+    public void setIsDirectBooking(Boolean isDirectBooking) {
+        this.isDirectBooking = isDirectBooking;
+    }
+
+    private String category;
+    private String propertyType;
+    private Timestamp holdExpiresAt;
+    private String guestName;
+    private String userName;
+    private String contactPhone;
+    private String propertyTitle;
+    private String propertyImage;
+    private String city;
+    private String area;
+    private String unitName;
+    private Integer totalQuantity;
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getPropertyType() {
+        return propertyType;
+    }
+
+    public void setPropertyType(String propertyType) {
+        this.propertyType = propertyType;
+    }
+
+    public Timestamp getHoldExpiresAt() {
+        return holdExpiresAt;
+    }
+
+    public void setHoldExpiresAt(Timestamp holdExpiresAt) {
+        this.holdExpiresAt = holdExpiresAt;
+    }
+
+    public String getGuestName() {
+        return guestName;
+    }
+
+    public void setGuestName(String guestName) {
+        this.guestName = guestName;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public String getPropertyTitle() {
+        return propertyTitle;
+    }
+
+    public void setPropertyTitle(String propertyTitle) {
+        this.propertyTitle = propertyTitle;
+    }
+
+    public String getPropertyImage() {
+        return propertyImage;
+    }
+
+    public void setPropertyImage(String propertyImage) {
+        this.propertyImage = propertyImage;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    public String getUnitName() {
+        return unitName;
+    }
+
+    public void setUnitName(String unitName) {
+        this.unitName = unitName;
+    }
+
+    public Integer getTotalQuantity() {
+        return totalQuantity;
+    }
+
+    public void setTotalQuantity(Integer totalQuantity) {
+        this.totalQuantity = totalQuantity;
     }
 }
