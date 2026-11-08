@@ -793,4 +793,50 @@ public class AdminController {
         AuthenticatedUser admin = SecurityUtils.getCurrentUser();
         return ResponseEntity.ok(adminService.cleanupTestArtifacts(admin));
     }
+
+    @GetMapping("/bookings")
+    public ResponseEntity<Map<String, Object>> listBookings(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.listBookingsForAdmin(admin, status, search, page, pageSize));
+    }
+
+    @PutMapping("/bookings/{bookingId}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelBooking(
+            @PathVariable String bookingId,
+            @RequestParam(required = false) String reason) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.cancelBookingForAdmin(admin, bookingId, reason));
+    }
+
+    @PostMapping("/bookings/{bookingId}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelBookingPost(
+            @PathVariable String bookingId,
+            @RequestParam(required = false) String reason) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.cancelBookingForAdmin(admin, bookingId, reason));
+    }
+
+    @GetMapping("/reviews")
+    public ResponseEntity<Map<String, Object>> listReviews(
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.listReviewsForAdmin(admin, rating, search, page, pageSize));
+    }
+
+    @GetMapping("/subscriptions")
+    public ResponseEntity<Map<String, Object>> listSubscriptions(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        AuthenticatedUser admin = SecurityUtils.getCurrentUser();
+        return ResponseEntity.ok(adminService.listSubscriptionsForAdmin(admin, status, search, page, pageSize));
+    }
 }

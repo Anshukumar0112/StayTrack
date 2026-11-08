@@ -485,6 +485,24 @@ export default function HostPropertiesListPage() {
                           {categorySummary}
                         </p>
                       )}
+
+                      {(p.adminNote || p.rejectionReason) && (p.verificationStatus === "changes_required" || p.verificationStatus === "rejected") && (
+                        <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs leading-relaxed space-y-1.5 mt-2">
+                          <div className="flex items-center gap-1.5 text-amber-800 font-bold text-[10px] uppercase tracking-wider">
+                            <AlertTriangleIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span>{p.verificationStatus === "changes_required" ? "Admin Change Request" : "Rejection Reason"}</span>
+                          </div>
+                          <p className="text-[11px] text-amber-900 leading-snug">{p.adminNote || p.rejectionReason}</p>
+                          {p.verificationStatus === "changes_required" && (
+                            <Link
+                              href={`/host/properties/${propId}`}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 hover:text-amber-950 underline pt-0.5"
+                            >
+                              <span>Review & Update Listing</span>
+                            </Link>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

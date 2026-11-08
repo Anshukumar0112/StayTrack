@@ -3474,6 +3474,350 @@ public class AdminService {
         }
     }
 
+    public Map<String, Object> listBookingsForAdmin(
+            AuthenticatedUser admin,
+            String status,
+            String search,
+            int page,
+            int pageSize) {
+
+        requireAdmin(admin);
+
+        int validPage = Math.max(1, page);
+        int validPageSize = (pageSize < 1 || pageSize > 100) ? 20 : pageSize;
+
+        String cleanStatus = status == null ? "" : status.trim().toLowerCase();
+        String cleanSearch = search == null ? "" : search.trim().toLowerCase();
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> docs = db.collection("bookings").get().get().getDocuments();
+
+            List<Map<String, Object>> matchedBookings = new ArrayList<>();
+
+            for (QueryDocumentSnapshot doc : docs) {
+                if (!doc.exists()) continue;
+                Map<String, Object> data = new HashMap<>(doc.getData());
+                data.put("id", doc.getId());
+                data.put("bookingId", doc.getId());
+
+                String bStatus = String.valueOf(data.getOrDefault("bookingStatus", "")).toLowerCase();
+                if (bStatus.isBlank() && data.containsKey("status")) {
+                    bStatus = String.valueOf(data.get("status")).toLowerCase();
+                }
+
+                if (!cleanStatus.isBlank() && !"all".equals(cleanStatus)) {
+                    if (!cleanStatus.equals(bStatus)) {
+                        continue;
+                    }
+                }
+
+                if (!cleanSearch.isBlank()) {
+                    String bookingId = doc.getId().toLowerCase();
+                    String customerId = String.valueOf(data.getOrDefault("customerId", "")).toLowerCase();
+                    String hostId = String.valueOf(data.getOrDefault("hostId", "")).toLowerCase();
+                    String propertyTitle = String.valueOf(data.getOrDefault("propertyTitle", "")).toLowerCase();
+                    String customerName = String.valueOf(data.getOrDefault("customerName", "")).toLowerCase();
+
+                    if (!bookingId.contains(cleanSearch)
+                            && !customerId.contains(cleanSearch)
+                            && !hostId.contains(cleanSearch)
+                            && !propertyTitle.contains(cleanSearch)
+                            && !customerName.contains(cleanSearch)) {
+                        continue;
+                    }
+                }
+
+                matchedBookings.add(data);
+            }
+
+            matchedBookings.sort((a, b) -> {
+                Object ca = a.get("createdAt");
+                Object cb = b.get("createdAt");
+                if (ca instanceof Timestamp && cb instanceof Timestamp) {
+                    return ((Timestamp) cb).compareTo((Timestamp) ca);
+                }
+                return 0;
+            });
+
+            int total = matchedBookings.size();
+            int fromIndex = (validPage - 1) * validPageSize;
+            int toIndex = Math.min(fromIndex + validPageSize, total);
+
+            List<Map<String, Object>> pageItems = fromIndex < total
+                    ? matchedBookings.subList(fromIndex, toIndex)
+                    : new ArrayList<>();
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("bookings", pageItems);
+            result.put("content", pageItems);
+            result.put("data", pageItems);
+            result.put("total", total);
+            result.put("totalElements", total);
+            result.put("page", validPage);
+            result.put("pageSize", validPageSize);
+            result.put("totalPages", (int) Math.ceil((double) total / validPageSize));
+            return result;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to list bookings for admin", e);
+        }
+    }
+
+    public Map<String, Object> cancelBookingForAdmin(
+            AuthenticatedUser admin,
+            String bookingId,
+            String reason) {
+
+        requireAdmin(admin);
+
+        if (bookingId == null || bookingId.isBlank()) {
+            throw new RuntimeException("Booking ID is required");
+        }
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            DocumentSnapshot doc = db.collection("bookings").document(bookingId.trim()).get().get();
+            if (!doc.exists()) {
+                throw new RuntimeException("Booking not found");
+            }
+
+            Map<String, Object> data = doc.getData();
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("bookingStatus", "cancelled");
+            updates.put("status", "cancelled");
+            updates.put("adminCancellationReason", reason != null ? reason : "Cancelled by platform administrator");
+            updates.put("cancelledByAdmin", true);
+            updates.put("cancelledAt", Timestamp.now());
+            updates.put("updatedAt", Timestamp.now());
+
+            String paymentStatus = String.valueOf(data != null ? data.getOrDefault("paymentStatus", "") : "");
+            if (!"captured".equalsIgnoreCase(paymentStatus)) {
+                updates.put("paymentStatus", "cancelled");
+            }
+
+            db.collection("bookings").document(bookingId.trim()).update(updates).get();
+
+            logAdminActivity(admin.getUid(), "BOOKING_CANCELLED", "booking", bookingId.trim(),
+                    "Admin cancelled booking " + bookingId + (reason != null ? ": " + reason : ""));
+
+            if (data != null) {
+                String customerId = String.valueOf(data.getOrDefault("customerId", ""));
+                String hostId = String.valueOf(data.getOrDefault("hostId", ""));
+                if (!customerId.isBlank()) {
+                    try {
+                        notificationService.createNotification(customerId, "booking_cancelled",
+                                "Booking Cancelled by Admin",
+                                reason != null ? reason : "Your booking was cancelled by the platform administrator.",
+                                bookingId.trim(), "booking");
+                    } catch (Exception ignored) {}
+                }
+                if (!hostId.isBlank()) {
+                    try {
+                        notificationService.createNotification(hostId, "booking_cancelled",
+                                "Booking Cancelled by Admin",
+                                reason != null ? reason : "A booking for your property was cancelled by the platform administrator.",
+                                bookingId.trim(), "booking");
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", true);
+            res.put("message", "Booking cancelled successfully");
+            res.put("bookingId", bookingId.trim());
+            return res;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to cancel booking: " + e.getMessage(), e);
+        }
+    }
+
+    public Map<String, Object> listReviewsForAdmin(
+            AuthenticatedUser admin,
+            Integer rating,
+            String search,
+            int page,
+            int pageSize) {
+
+        requireAdmin(admin);
+
+        int validPage = Math.max(1, page);
+        int validPageSize = (pageSize < 1 || pageSize > 100) ? 20 : pageSize;
+        String cleanSearch = search == null ? "" : search.trim().toLowerCase();
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> docs = db.collection("reviews").get().get().getDocuments();
+
+            List<Map<String, Object>> matchedReviews = new ArrayList<>();
+
+            for (QueryDocumentSnapshot doc : docs) {
+                if (!doc.exists()) continue;
+                Map<String, Object> data = new HashMap<>(doc.getData());
+                data.put("id", doc.getId());
+                data.put("reviewId", doc.getId());
+
+                Number rNum = (Number) data.get("rating");
+                int revRating = rNum != null ? rNum.intValue() : 0;
+
+                if (rating != null && rating > 0) {
+                    if (revRating != rating) {
+                        continue;
+                    }
+                }
+
+                if (!cleanSearch.isBlank()) {
+                    String comment = String.valueOf(data.getOrDefault("comment", "")).toLowerCase();
+                    String reviewerName = String.valueOf(data.getOrDefault("reviewerName", "")).toLowerCase();
+                    String propertyId = String.valueOf(data.getOrDefault("propertyId", "")).toLowerCase();
+                    String propertyTitle = String.valueOf(data.getOrDefault("propertyTitle", "")).toLowerCase();
+
+                    if (!comment.contains(cleanSearch)
+                            && !reviewerName.contains(cleanSearch)
+                            && !propertyId.contains(cleanSearch)
+                            && !propertyTitle.contains(cleanSearch)) {
+                        continue;
+                    }
+                }
+
+                matchedReviews.add(data);
+            }
+
+            matchedReviews.sort((a, b) -> {
+                Object ca = a.get("createdAt");
+                Object cb = b.get("createdAt");
+                if (ca instanceof Timestamp && cb instanceof Timestamp) {
+                    return ((Timestamp) cb).compareTo((Timestamp) ca);
+                }
+                return 0;
+            });
+
+            int total = matchedReviews.size();
+            int fromIndex = (validPage - 1) * validPageSize;
+            int toIndex = Math.min(fromIndex + validPageSize, total);
+
+            List<Map<String, Object>> pageItems = fromIndex < total
+                    ? matchedReviews.subList(fromIndex, toIndex)
+                    : new ArrayList<>();
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("reviews", pageItems);
+            result.put("content", pageItems);
+            result.put("data", pageItems);
+            result.put("total", total);
+            result.put("totalElements", total);
+            result.put("page", validPage);
+            result.put("pageSize", validPageSize);
+            result.put("totalPages", (int) Math.ceil((double) total / validPageSize));
+            return result;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to list reviews for admin", e);
+        }
+    }
+
+    public Map<String, Object> listSubscriptionsForAdmin(
+            AuthenticatedUser admin,
+            String status,
+            String search,
+            int page,
+            int pageSize) {
+
+        requireAdmin(admin);
+
+        int validPage = Math.max(1, page);
+        int validPageSize = (pageSize < 1 || pageSize > 100) ? 20 : pageSize;
+        String cleanStatus = status == null ? "" : status.trim().toLowerCase();
+        String cleanSearch = search == null ? "" : search.trim().toLowerCase();
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            List<QueryDocumentSnapshot> docs = db.collection("subscriptions").get().get().getDocuments();
+
+            Map<String, Object> planSettings = subscriptionService.getCurrentPlan();
+            String subMode = subscriptionService.getSubscriptionMode();
+
+            List<Map<String, Object>> matchedSubs = new ArrayList<>();
+            int activeCount = 0;
+            int pausedCount = 0;
+            int expiredCount = 0;
+
+            for (QueryDocumentSnapshot doc : docs) {
+                if (!doc.exists()) continue;
+                Map<String, Object> data = new HashMap<>(doc.getData());
+                data.put("id", doc.getId());
+                data.put("subscriptionId", doc.getId());
+
+                String subStatus = String.valueOf(data.getOrDefault("status", "active")).toLowerCase();
+                if ("active".equals(subStatus)) activeCount++;
+                else if ("paused".equals(subStatus)) pausedCount++;
+                else if ("expired".equals(subStatus)) expiredCount++;
+
+                if (!cleanStatus.isBlank() && !"all".equals(cleanStatus)) {
+                    if (!cleanStatus.equals(subStatus)) {
+                        continue;
+                    }
+                }
+
+                if (!cleanSearch.isBlank()) {
+                    String hostId = String.valueOf(data.getOrDefault("hostId", "")).toLowerCase();
+                    String plan = String.valueOf(data.getOrDefault("plan", "")).toLowerCase();
+                    String hostName = String.valueOf(data.getOrDefault("hostName", "")).toLowerCase();
+                    String hostEmail = String.valueOf(data.getOrDefault("hostEmail", "")).toLowerCase();
+
+                    if (!hostId.contains(cleanSearch)
+                            && !plan.contains(cleanSearch)
+                            && !hostName.contains(cleanSearch)
+                            && !hostEmail.contains(cleanSearch)) {
+                        continue;
+                    }
+                }
+
+                matchedSubs.add(data);
+            }
+
+            matchedSubs.sort((a, b) -> {
+                Object ca = a.get("createdAt");
+                Object cb = b.get("createdAt");
+                if (ca instanceof Timestamp && cb instanceof Timestamp) {
+                    return ((Timestamp) cb).compareTo((Timestamp) ca);
+                }
+                return 0;
+            });
+
+            int total = matchedSubs.size();
+            int fromIndex = (validPage - 1) * validPageSize;
+            int toIndex = Math.min(fromIndex + validPageSize, total);
+
+            List<Map<String, Object>> pageItems = fromIndex < total
+                    ? matchedSubs.subList(fromIndex, toIndex)
+                    : new ArrayList<>();
+
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("totalSubscriptions", total);
+            summary.put("activeSubscriptions", activeCount);
+            summary.put("pausedSubscriptions", pausedCount);
+            summary.put("expiredSubscriptions", expiredCount);
+            summary.put("subscriptionMode", subMode);
+            summary.put("currentPlan", planSettings);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("subscriptions", pageItems);
+            result.put("content", pageItems);
+            result.put("data", pageItems);
+            result.put("summary", summary);
+            result.put("total", total);
+            result.put("page", validPage);
+            result.put("pageSize", validPageSize);
+            result.put("totalPages", (int) Math.ceil((double) total / validPageSize));
+            return result;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to list subscriptions for admin", e);
+        }
+    }
+
     private String getStringField(
             DocumentSnapshot document,
             String field) {

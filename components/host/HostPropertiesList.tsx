@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import Badge from "@/components/ui/Badge";
@@ -9,6 +9,7 @@ import {
   ExternalLinkIcon,
   PlusIcon,
   ArrowRightIcon,
+  AlertTriangleIcon,
 } from "@/components/ui/Icons";
 import type { Property } from "@/types/property";
 import { getPropertyId } from "@/types/property";
@@ -22,6 +23,7 @@ function getStatusVariant(status: string): BadgeVariant {
       return "verified";
     case "pending":
       return "warning";
+    case "changes_required":
     case "rejected":
       return "error";
     default:
@@ -150,6 +152,18 @@ export default function HostPropertiesList({ properties, loading }: HostProperti
                       {[p.area, p.city].filter(Boolean).join(", ") || "Delhi NCR"}
                     </span>
                   </div>
+
+                  {(p.adminNote || p.rejectionReason) && (p.verificationStatus === "changes_required" || p.verificationStatus === "rejected") && (
+                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed flex items-start gap-1.5 mt-1.5">
+                      <AlertTriangleIcon className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold block text-[10px] uppercase tracking-wider text-amber-800">
+                          {p.verificationStatus === "changes_required" ? "Admin Change Request" : "Rejection Reason"}
+                        </span>
+                        <p className="line-clamp-2 text-amber-900/90">{p.adminNote || p.rejectionReason}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Price and Actions */}

@@ -826,6 +826,45 @@ export async function clearAdminActivities(): Promise<any> {
   }
 }
 
+export async function listAdminBookings(params?: {
+  status?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<any> {
+  const query = buildQueryString(params);
+  return apiFetch(`/api/admin/bookings${query}`);
+}
+
+export async function cancelAdminBooking(bookingId: string, reason?: string): Promise<any> {
+  const query = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  try {
+    return await apiFetch(`/api/admin/bookings/${bookingId}/cancel${query}`, { method: "PUT" });
+  } catch {
+    return await apiFetch(`/api/admin/bookings/${bookingId}/cancel${query}`, { method: "POST" });
+  }
+}
+
+export async function listAdminReviews(params?: {
+  rating?: number;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<any> {
+  const query = buildQueryString(params);
+  return apiFetch(`/api/admin/reviews${query}`);
+}
+
+export async function listAdminSubscriptions(params?: {
+  status?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<any> {
+  const query = buildQueryString(params);
+  return apiFetch(`/api/admin/subscriptions${query}`);
+}
+
 export async function createVisit(data: {
   propertyId: string;
   visitDate: string;
