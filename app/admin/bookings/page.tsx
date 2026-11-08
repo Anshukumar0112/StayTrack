@@ -34,6 +34,7 @@ export default function AdminBookingsPage() {
   const [activeTab, setActiveTab] = useState<BookingTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Cancellation Modal
   const [cancelModalBooking, setCancelModalBooking] = useState<any | null>(null);
@@ -45,6 +46,7 @@ export default function AdminBookingsPage() {
   const fetchBookings = () => {
     if (!isAdmin) return;
     setLoading(true);
+    setFetchError(null);
     listAdminBookings({
       status: activeTab === "all" ? undefined : activeTab,
       pageSize: 100,
@@ -53,8 +55,9 @@ export default function AdminBookingsPage() {
         const list = res?.bookings || res?.content || res?.data || (Array.isArray(res) ? res : []);
         setBookings(Array.isArray(list) ? list : []);
       })
-      .catch((err) => {
-        console.error("Failed to fetch admin bookings:", err);
+      .catch((err: any) => {
+        console.warn("Notice: fetch admin bookings:", err?.message);
+        setFetchError(err?.message || "Unable to fetch bookings from server");
         setBookings([]);
       })
       .finally(() => setLoading(false));
@@ -211,6 +214,19 @@ export default function AdminBookingsPage() {
       {/* Bookings List */}
       {loading ? (
         <div className="py-20 text-center text-xs font-semibold text-zinc-400">Loading platform bookings...</div>
+      ) : fetchError ? (
+        <GlassCard className="p-12 text-center border border-amber-200 bg-amber-50/20 space-y-3">
+          <AlertTriangleIcon className="w-8 h-8 text-amber-600 mx-auto" />
+          <h3 className="text-sm font-bold text-zinc-900">Bookings Sync Notice</h3>
+          <p className="text-xs text-zinc-600 max-w-md mx-auto">{fetchError}</p>
+          <button
+            type="button"
+            onClick={fetchBookings}
+            className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            Retry Connection
+          </button>
+        </GlassCard>
       ) : filteredBookings.length === 0 ? (
         <GlassCard className="p-12 text-center border border-zinc-200 space-y-2">
           <CalendarDaysIcon className="w-8 h-8 text-zinc-400 mx-auto" />

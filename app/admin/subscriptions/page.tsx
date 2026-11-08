@@ -41,6 +41,7 @@ export default function AdminSubscriptionsPage() {
   const [filter, setFilter] = useState<SubFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Grant Subscription Modal
   const [grantModalHost, setGrantModalHost] = useState<any | null>(null);
@@ -51,6 +52,7 @@ export default function AdminSubscriptionsPage() {
   const fetchSubscriptions = () => {
     if (!isAdmin) return;
     setLoading(true);
+    setFetchError(null);
     listAdminSubscriptions({
       status: filter === "all" ? undefined : filter,
       pageSize: 100,
@@ -60,8 +62,9 @@ export default function AdminSubscriptionsPage() {
         setSubscriptions(Array.isArray(list) ? list : []);
         if (res?.summary) setSummary(res.summary);
       })
-      .catch((err) => {
-        console.error("Failed to fetch admin subscriptions:", err);
+      .catch((err: any) => {
+        console.warn("Notice: fetch admin subscriptions:", err?.message);
+        setFetchError(err?.message || "Unable to fetch subscriptions from server");
         setSubscriptions([]);
       })
       .finally(() => setLoading(false));
@@ -245,6 +248,19 @@ export default function AdminSubscriptionsPage() {
       {/* Subscriptions List */}
       {loading ? (
         <div className="py-20 text-center text-xs font-semibold text-zinc-400">Loading subscriptions...</div>
+      ) : fetchError ? (
+        <GlassCard className="p-12 text-center border border-amber-200 bg-amber-50/20 space-y-3">
+          <AlertTriangleIcon className="w-8 h-8 text-amber-600 mx-auto" />
+          <h3 className="text-sm font-bold text-zinc-900">Subscriptions Sync Notice</h3>
+          <p className="text-xs text-zinc-600 max-w-md mx-auto">{fetchError}</p>
+          <button
+            type="button"
+            onClick={fetchSubscriptions}
+            className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            Retry Connection
+          </button>
+        </GlassCard>
       ) : filteredSubscriptions.length === 0 ? (
         <GlassCard className="p-12 text-center border border-zinc-200 space-y-2">
           <CrownIcon className="w-8 h-8 text-zinc-400 mx-auto" />

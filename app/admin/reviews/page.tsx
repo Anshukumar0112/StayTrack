@@ -25,6 +25,7 @@ export default function AdminReviewsPage() {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Delete Confirmation Modal
   const [deleteModalReview, setDeleteModalReview] = useState<any | null>(null);
@@ -32,6 +33,7 @@ export default function AdminReviewsPage() {
   const fetchReviews = () => {
     if (!isAdmin) return;
     setLoading(true);
+    setFetchError(null);
     listAdminReviews({
       rating: ratingFilter === "all" ? undefined : ratingFilter,
       pageSize: 100,
@@ -40,8 +42,9 @@ export default function AdminReviewsPage() {
         const list = res?.reviews || res?.content || res?.data || (Array.isArray(res) ? res : []);
         setReviews(Array.isArray(list) ? list : []);
       })
-      .catch((err) => {
-        console.error("Failed to fetch admin reviews:", err);
+      .catch((err: any) => {
+        console.warn("Notice: fetch admin reviews:", err?.message);
+        setFetchError(err?.message || "Unable to fetch reviews from server");
         setReviews([]);
       })
       .finally(() => setLoading(false));
@@ -151,6 +154,19 @@ export default function AdminReviewsPage() {
       {/* Reviews List */}
       {loading ? (
         <div className="py-20 text-center text-xs font-semibold text-zinc-400">Loading reviews for moderation...</div>
+      ) : fetchError ? (
+        <GlassCard className="p-12 text-center border border-amber-200 bg-amber-50/20 space-y-3">
+          <AlertTriangleIcon className="w-8 h-8 text-amber-600 mx-auto" />
+          <h3 className="text-sm font-bold text-zinc-900">Reviews Sync Notice</h3>
+          <p className="text-xs text-zinc-600 max-w-md mx-auto">{fetchError}</p>
+          <button
+            type="button"
+            onClick={fetchReviews}
+            className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            Retry Connection
+          </button>
+        </GlassCard>
       ) : filteredReviews.length === 0 ? (
         <GlassCard className="p-12 text-center border border-zinc-200 space-y-2">
           <MessageCircleIcon className="w-8 h-8 text-zinc-400 mx-auto" />
