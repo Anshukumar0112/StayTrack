@@ -231,8 +231,8 @@ export default function AdminPaymentsPage() {
           </GlassCard>
         ) : (
           <div className="space-y-3">
-            {filteredBookings.map((b) => {
-              const bookingId = b.bookingId || b.id;
+            {filteredBookings.map((b, idx) => {
+              const bookingId = b.bookingId || b.id || `booking-pay-${idx}`;
               const payStatus = String(b.paymentStatus || "pending").toLowerCase();
               const isCaptured = payStatus === "captured";
               const amount = Number(b.totalAmount || b.amount || b.totalPrice || 0);
@@ -299,15 +299,15 @@ export default function AdminPaymentsPage() {
           </GlassCard>
         ) : (
           <div className="space-y-3">
-            {filteredHosts.map((h) => {
-              const hostId = h.userId || h.id;
+            {filteredHosts.map((h, idx) => {
+              const hostId = h.uid || h.userId || h.id || `host-acc-${idx}`;
               const paymentAcc = h.paymentAccount;
               const hasAccount = Boolean(paymentAcc && paymentAcc.linkedAccountId);
               const isVerified = paymentAcc?.verified === true || paymentAcc?.status === "active";
 
               return (
                 <GlassCard
-                  key={hostId}
+                  key={`${hostId}-${idx}`}
                   className="p-5 border border-zinc-200 hover:border-zinc-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="space-y-1 flex-1 min-w-0">
