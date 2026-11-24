@@ -163,9 +163,9 @@ export default function HostDashboardHeader({ onToggleSidebar, collapsed = false
             aria-label={collapsed ? "Open sidebar" : "Close sidebar"}
             title={collapsed ? "Open sidebar" : "Close sidebar"}
             aria-expanded={!collapsed}
-            className="w-10 h-10 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm hover:bg-[#F8FAFC] hover:border-[#CBD5E1] text-[#334155] flex items-center justify-center transition-all cursor-pointer focus-ring shrink-0"
+            className="p-2 rounded-xl text-muted hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer focus-ring shrink-0 flex items-center justify-center"
           >
-            <MenuIcon className="w-5 h-5 text-[#334155] stroke-[2.2]" />
+            <MenuIcon className="w-5 h-5 stroke-[1.8]" />
           </button>
         </div>
 
@@ -221,9 +221,9 @@ export default function HostDashboardHeader({ onToggleSidebar, collapsed = false
             href="/"
             aria-label="Go to homepage"
             title="Go to homepage"
-            className="w-10 h-10 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm hover:bg-[#F8FAFC] hover:border-[#CBD5E1] text-[#334155] hover:text-primary flex items-center justify-center transition-all cursor-pointer focus-ring shrink-0"
+            className="p-2 rounded-xl text-muted hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer focus-ring shrink-0 flex items-center justify-center"
           >
-            <HomeIcon className="w-5 h-5 stroke-[2]" />
+            <HomeIcon className="w-5 h-5 stroke-[1.8]" />
           </Link>
 
           {/* Divider */}
